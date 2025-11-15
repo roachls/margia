@@ -2,6 +2,11 @@ package org.roach.midi_swarm;
 
 import java.util.List;
 
-public record MusicalMessage(String message, List<Note> myNotes) {
+/**
+ * A message sent from one {@link Musician} to another
+ * @param message the message that was sent
+ * @param myNotes the notes that the sending agent just played
+ */
+public record MusicalMessage(List<Note> myNotes) {
 
 }

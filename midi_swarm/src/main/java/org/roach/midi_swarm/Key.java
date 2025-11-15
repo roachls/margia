@@ -1,25 +1,6 @@
 package org.roach.midi_swarm;
 
-import static org.roach.midi_swarm.Note.A;
-import static org.roach.midi_swarm.Note.A_FLAT;
-import static org.roach.midi_swarm.Note.A_SHARP;
-import static org.roach.midi_swarm.Note.B;
-import static org.roach.midi_swarm.Note.B_FLAT;
-import static org.roach.midi_swarm.Note.B_SHARP;
-import static org.roach.midi_swarm.Note.C;
-import static org.roach.midi_swarm.Note.C_FLAT;
-import static org.roach.midi_swarm.Note.C_SHARP;
-import static org.roach.midi_swarm.Note.D;
-import static org.roach.midi_swarm.Note.D_FLAT;
-import static org.roach.midi_swarm.Note.D_SHARP;
-import static org.roach.midi_swarm.Note.E;
-import static org.roach.midi_swarm.Note.E_FLAT;
-import static org.roach.midi_swarm.Note.E_SHARP;
-import static org.roach.midi_swarm.Note.F;
-import static org.roach.midi_swarm.Note.F_SHARP;
-import static org.roach.midi_swarm.Note.G;
-import static org.roach.midi_swarm.Note.G_FLAT;
-import static org.roach.midi_swarm.Note.G_SHARP;
+import static org.roach.midi_swarm.Note.*;
 
 import java.security.SecureRandom;
 import java.util.List;

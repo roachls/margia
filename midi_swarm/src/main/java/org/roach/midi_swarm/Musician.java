@@ -1,109 +1,100 @@
 package org.roach.midi_swarm;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.concurrent.*;
 
+/**
+ * A {@link Musician} is the core class of the application. It continuously
+ * polls its own message queue and responds to any messages it receives in the
+ * order they were received.
+ */
 public class Musician implements Runnable {
-    public static final String PLAY_RANDOM_NOTE = "play a random note";
-    private static final Pattern PLAY_RANDOM_NOTE_PATTERN = Pattern.compile(PLAY_RANDOM_NOTE);
-    public static final String PLAY_INTERVAL = "play interval %s by %d";
-    private static final Pattern PLAY_INTERVAL_PATTERN = Pattern.compile("play interval (up|down) by (\\d+)");
-    private final int id;
-    private final SimpleMidiController controller;
-    private final BlockingQueue<MusicalMessage> messageQueue = new LinkedBlockingQueue<>();
-    private final Key key;
-    private final int channel;
-    private final int tempo;
-    private final List<Musician> peers = new ArrayList<>();
+	private final int id;
+	private final SimpleMidiController controller;
+	private final BlockingQueue<Note> messageQueue = new LinkedBlockingQueue<>();
+	private final Key key;
+	private final int channel;
+	private final int tempo;
+	private final List<Musician> peers = new ArrayList<>();
+	private final ExecutorService scheduler = Executors.newVirtualThreadPerTaskExecutor();
+	private long lastTimeIPlayedANote;
+	private List<MusicianRule> rules = new ArrayList<>();
 
-    public Musician(final int id, final SimpleMidiController controller, Key key, int tempo, int channel) {
-	this.id = id;
-	this.controller = controller;
-	this.key = key;
-	this.tempo = tempo;
-	this.channel = channel;
-    }
-
-    public void addPeer(Musician peer) {
-	if (!peers.contains(peer))
-	    peers.add(peer);
-    }
-
-    @Override
-    public void run() {
-	while (true) {
-	    try {
-		var message = messageQueue.take();
-		var matcher = PLAY_RANDOM_NOTE_PATTERN.matcher(message.message());
-		if (matcher.matches()) {
-		    var note = key.randomNote();
-		    System.out.println(id + " playing random note " + note);
-		    controller.playNotes(channel, List.of(note), 4, 90, Length.L1_4.getMillisForTempo(tempo));
-		    pause(Length.L1_8);
-		    for (var peer : peers) {
-			var peerMessage = new MusicalMessage(PLAY_INTERVAL.formatted("up", 4), List.of(note));
-			System.out.println(id + " sending " + peerMessage + " to " + peer.id);
-			peer.receiveMessage(peerMessage);
-		    }
-		}
-		matcher = PLAY_INTERVAL_PATTERN.matcher(message.message());
-		if (matcher.matches()) {
-		    var direction = matcher.group(1);
-		    var distance = Integer.parseInt(matcher.group(2));
-		    System.out.println(id + " got message to play " + direction + ":" + distance);
-		    var endNotes = message.myNotes()
-					  .stream()
-					  .map(n -> "up".equals(direction) ? key.upInterval(n, distance)
-						  : key.downInterval(n, distance))
-					  .toList();
-		    controller.playNotes(channel, endNotes, 4, 90, Length.L1_8.getMillisForTempo(tempo));
-		    pause(Length.L1_16);
-		    for (var peer : peers) {
-			var peerInterval = peer.id % 2 == 0 ? 2 : 6;
-			var peerMessage = new MusicalMessage(PLAY_INTERVAL.formatted("down", peerInterval), endNotes);
-			System.out.println(id + " sending " + peerMessage + " to " + peer.id);
-			peer.receiveMessage(peerMessage);
-		    }
-		}
-	    } catch (InterruptedException e) {
-		Thread.currentThread()
-		      .interrupt();
-	    }
+	/**
+	 * @param id         unique id of this {@link Musician}
+	 * @param controller MIDI controller that will actually play the notes
+	 * @param key        key to use for generating notes
+	 * @param tempo      tempo to play at
+	 * @param channel    MIDI channel
+	 */
+	public Musician(final int id, final SimpleMidiController controller, Key key, int tempo, int channel) {
+		this.id = id;
+		this.controller = controller;
+		this.key = key;
+		this.tempo = tempo;
+		this.channel = channel;
 	}
-    }
 
-    private void pause(Length length) {
-	try {
-	    TimeUnit.MILLISECONDS.sleep(length.getMillisForTempo(tempo));
-	} catch (InterruptedException e) {
-	    Thread.currentThread()
-		  .interrupt();
+	/**
+	 * @param peer another {@link Musician} with which this one may communicate
+	 */
+	public void addPeer(Musician peer) {
+		if (!peers.contains(peer))
+			peers.add(peer);
 	}
-    }
 
-    public void receiveMessage(MusicalMessage message) {
-	this.messageQueue.offer(message);
-    }
+	@Override
+	public void run() {
+		while (true) {
+			var now = System.currentTimeMillis();
+			var timeSinceLastNote = now - lastTimeIPlayedANote;
+			if (timeSinceLastNote < Length.L1_16.getMillisForTempo(tempo))
+				continue;
+			if (messageQueue.isEmpty()) {
+				var randomNote = key.randomNote();
+				controller.playNotes(channel, List.of(randomNote), 4, 90, Length.L1_16.getMillisForTempo(tempo));
+				for (var peer : peers) {
+					peer.receiveMessage(new MusicalMessage(List.of(randomNote)));
+				}
+			}
+			var noteIHeard = messageQueue.poll();
+			for (var rule : rules) {
+				rule.act(noteIHeard, this);
+			}
+		}
+	}
 
-    @Override
-    public int hashCode() {
-	return Objects.hash(id);
-    }
+	private void pause(Length length) {
+		try {
+			TimeUnit.MILLISECONDS.sleep(length.getMillisForTempo(tempo));
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
 
-    @Override
-    public boolean equals(Object obj) {
-	if (this == obj)
-	    return true;
-	if (obj == null)
-	    return false;
-	if (getClass() != obj.getClass())
-	    return false;
-	Musician other = (Musician) obj;
-	return Objects.equals(id, other.id);
-    }
+	/**
+	 * @param message receive a message and place it on the message queue
+	 */
+	public void receiveMessage(MusicalMessage message) {
+		for (var note : message.myNotes()) {
+			this.messageQueue.offer(note);
+		}
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Musician other = (Musician) obj;
+		return Objects.equals(id, other.id);
+	}
 }
