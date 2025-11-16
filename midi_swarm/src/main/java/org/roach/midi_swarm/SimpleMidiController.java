@@ -1,21 +1,12 @@
 package org.roach.midi_swarm;
 
-import static javax.sound.midi.ShortMessage.NOTE_OFF;
-import static javax.sound.midi.ShortMessage.NOTE_ON;
+import static javax.sound.midi.ShortMessage.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
-import javax.sound.midi.InvalidMidiDataException;
-import javax.sound.midi.MidiDevice;
-import javax.sound.midi.MidiSystem;
-import javax.sound.midi.MidiUnavailableException;
-import javax.sound.midi.Receiver;
-import javax.sound.midi.ShortMessage;
+import javax.sound.midi.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,12 +21,15 @@ public class SimpleMidiController {
 	private MidiDevice outputDevice;
 	private Receiver receiver;
 	private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(16);
+	private final int tempo;
 
 	/**
 	 * @param busName name of MIDI bus to send notes on
+	 * @param tempo   tempo at which the song will be played
 	 */
-	public SimpleMidiController(final String busName) {
+	public SimpleMidiController(final String busName, final int tempo) {
 		Objects.requireNonNull(busName, "bus name cannot be null");
+		this.tempo = tempo;
 		try {
 			// Get information about all available MIDI devices
 			MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
@@ -69,8 +63,7 @@ public class SimpleMidiController {
 			outputDevice.open(); // Open the device to use it
 			receiver = outputDevice.getReceiver(); // Get the receiver to send MIDI messages
 
-			System.out.println("Using MIDI output device: " + outputDevice.getDeviceInfo().getName());
-
+			LOGGER.atInfo().log("Using MIDI output device: {}", outputDevice.getDeviceInfo().getName());
 		} catch (MidiUnavailableException e) {
 			e.printStackTrace();
 		}
@@ -80,37 +73,34 @@ public class SimpleMidiController {
 	 * Plays the given notes as a chord
 	 * 
 	 * @param midiChannel MIDI channel to send on
-	 * @param notes       notes to send
-	 * @param octave      octave of notes
-	 * @param velocity    velocity to play with
-	 * @param duration    duration of chord
+	 * @param note        note to send
 	 */
-	public void playNotes(int midiChannel, List<Note> notes, int octave, int velocity, int duration) {
+	public void playNote(int midiChannel, NoteInfo note) {
 		if (receiver == null) {
 			System.err.println("MIDI receiver not available.");
 			return;
 		}
 
-		executor.schedule(() -> play(midiChannel, notes, octave, velocity, NOTE_ON), 0, TimeUnit.MILLISECONDS);
-		executor.schedule(() -> play(midiChannel, notes, octave, velocity, NOTE_OFF), duration, TimeUnit.MILLISECONDS);
+		executor.schedule(() -> play(midiChannel, note, NOTE_ON), 0, TimeUnit.MILLISECONDS);
+		executor.schedule(() -> play(midiChannel, note, NOTE_OFF), note.length().getMillisForTempo(tempo),
+				TimeUnit.MILLISECONDS);
 	}
 
-	private void play(int midiChannel, List<Note> notes, int octave, int velocity, int eventType) {
+	private void play(int midiChannel, NoteInfo note, int eventType) {
 
 		try {
-			for (var note : notes) {
-				switch (eventType) {
-				case NOTE_ON:
-					receiver.send(
-							new ShortMessage(eventType, midiChannel, note.getNoteNumberForOctave(octave), velocity),
-							-1);
-					break;
-				case NOTE_OFF:
-					receiver.send(new ShortMessage(eventType, midiChannel, note.getNoteNumberForOctave(octave)), -1);
-					break;
-				default:
-					break;
-				}
+			switch (eventType) {
+			case NOTE_ON:
+				receiver.send(new ShortMessage(eventType, midiChannel,
+						note.note().getNoteNumberForOctave(note.octave()), note.velocity()), -1);
+				break;
+			case NOTE_OFF:
+				receiver.send(
+						new ShortMessage(eventType, midiChannel, note.note().getNoteNumberForOctave(note.octave())),
+						-1);
+				break;
+			default:
+				break;
 			}
 		} catch (InvalidMidiDataException e) {
 			e.printStackTrace();
@@ -130,19 +120,40 @@ public class SimpleMidiController {
 	}
 
 	public static void main(String[] args) {
-//	var controller = new SimpleMidiController("loopMIDI Port");
-		var controller = new SimpleMidiController(DEFAULT_SYNTH);
-		var musicians = new Musician[10];
-		var executor = Executors.newFixedThreadPool(10);
-		for (int i = 0; i < 10; i++) {
-			musicians[i] = new Musician(i, controller, Key.CMajor, 120, i);
+		if (args.length < 1)
+			return;
+		var numMusicians = Integer.parseInt(args[0]);
+		var controller = new SimpleMidiController("loopMIDI Port", 120);
+//		var controller = new SimpleMidiController(DEFAULT_SYNTH, 120);
+		var musicians = new Musician[numMusicians];
+		var executor = Executors.newFixedThreadPool(numMusicians);
+		for (int i = 0; i < numMusicians; i++) {
+			musicians[i] = new Musician(i, controller, Key.CMajorPentatonic, 120, i);
 		}
-		for (int i = 0; i < 10; i++) {
-			musicians[i].addPeer(musicians[(i + 1) % 10]);
-			musicians[i].addPeer(musicians[(((i - 1) % 10) + 10) % 10]);
-		}
+//		for (int i = 0; i < numMusicians; i++) {
+//			musicians[i].addPeer(musicians[(i + 1) % numMusicians]);
+//			musicians[i].addPeer(musicians[(((i - 1) % numMusicians) + numMusicians) % numMusicians]);
+//		}
+		
+		/*
+		 * 0 1
+		 * 2 3
+		 */
+		musicians[0].addPeer(musicians[1]);
+		musicians[0].addPeer(musicians[2]);
+		
+		musicians[1].addPeer(musicians[0]);
+		musicians[1].addPeer(musicians[3]);
+
+		musicians[2].addPeer(musicians[0]);
+		musicians[2].addPeer(musicians[3]);
+		
+		musicians[3].addPeer(musicians[1]);
+		musicians[3].addPeer(musicians[2]);
+
 		for (var musician : musicians) {
 			executor.submit(musician);
 		}
 	}
+
 }

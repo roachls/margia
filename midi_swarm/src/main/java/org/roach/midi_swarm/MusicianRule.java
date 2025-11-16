@@ -8,7 +8,6 @@ public interface MusicianRule {
 	 * Act on hearing a note
 	 * 
 	 * @param note     Note to act on
-	 * @param musician the musician doing the action
 	 */
-	void act(Note note, Musician musician);
+	void act(NoteInfo note);
 }

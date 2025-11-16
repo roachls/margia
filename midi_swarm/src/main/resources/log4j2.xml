@@ -1,0 +1,15 @@
+<Configuration>
+	<Appenders>
+		<Console name="Console">
+			<PatternLayout pattern="%m%n" />>
+		</Console>
+	</Appenders>
+	<Loggers>
+		<Logger name="Musician_2" level="debug" additivity="false">
+			<AppenderRef ref="Console" />>
+		</Logger>
+		<Root level="info">
+			<AppenderRef ref="Console" />>
+		</Root>
+	</Loggers>
+</Configuration>
