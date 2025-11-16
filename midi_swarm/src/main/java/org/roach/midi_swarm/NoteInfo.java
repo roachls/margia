@@ -8,5 +8,7 @@ package org.roach.midi_swarm;
  * 
  */
 public record NoteInfo(Note note, int octave, int velocity, Length length) {
-
+	public int getNoteNumber() {
+		return note.getNoteNumberForOctave(octave);
+	}
 }
