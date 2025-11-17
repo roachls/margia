@@ -13,6 +13,8 @@ import org.roach.midi_swarm.random.DieRoller;
  * order they were received.
  */
 public class Musician {
+	private static final int MIN_OCTAVE = -1;
+	private static final int MAX_OCTAVE = 6;
 	private final int id;
 	private final MidiController controller;
 	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
@@ -45,51 +47,54 @@ public class Musician {
 		this.rules.add(n -> {
 			var r = DieRoller.rollDice("2d5");
 			switch (r) {
-			case 1:
-				velocity -= 10;
-				if (velocity < 0)
-					velocity = 0;
-				logger.atDebug().log("{}: decreased velocity to {}", id, velocity);
+			case 2: {
+				var coinToss = DieRoller.rollDice("1d2");
+				if (coinToss == 1) {
+					velocity -= 10;
+					if (velocity < 0)
+						velocity = 0;
+					logger.atDebug().log("{}: decreased velocity to {}", id, velocity);
+				} else {
+					velocity += 10;
+					if (velocity > 127)
+						velocity = 127;
+					logger.atDebug().log("{}: increased velocity to {}", id, velocity);
+				}
 				break;
-			case 2:
+			}
+			case 3:
 				octave--;
-				if (octave < 1)
-					octave = 1;
+				if (octave < MIN_OCTAVE)
+					octave = MIN_OCTAVE;
 				logger.atDebug().log("{}: decreased octave to {}", id, octave);
 				break;
-			case 3:
+			case 4:
 				repeatLastNote();
 				break;
-			case 4:
+			case 5:
 				myLastNote = n;
 				break;
-			case 5: {
+			case 6: {
 				var ni = new NoteInfo(key.upInterval(n.note(), 4), n.octave(), n.velocity(), Length.L1_16);
 				playNote(ni);
 				break;
 			}
-			case 6:
+			case 7:
 				playNote(n);
 				break;
-			case 7: {
+			case 8: {
 				var ni = new NoteInfo(key.upInterval(n.note(), 6), n.octave(), n.velocity(), Length.L1_8);
 				playNote(ni);
 				break;
 			}
-			case 8:
+			case 9:
 				receiveMessage(n);
 				break;
-			case 9:
-				octave++;
-				if (octave > 6)
-					octave = 6;
-				logger.atDebug().log("{}: increased octave to {}", id, octave);
-				break;
 			case 10:
-				velocity += 10;
-				if (velocity > 127)
-					velocity = 127;
-				logger.atDebug().log("{}: increased velocity to {}", id, velocity);
+				octave++;
+				if (octave > MAX_OCTAVE)
+					octave = MAX_OCTAVE;
+				logger.atDebug().log("{}: increased octave to {}", id, octave);
 				break;
 			default:
 				break;
@@ -124,6 +129,7 @@ public class Musician {
 
 	/**
 	 * Performs actions after receiving a tick from the {@link Transport}
+	 * 
 	 * @param tick the tick number
 	 */
 	public void doTick(long tick) {

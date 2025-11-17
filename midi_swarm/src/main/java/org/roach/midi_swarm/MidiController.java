@@ -146,14 +146,11 @@ public class MidiController {
 
 	private void allNotesOff() {
 		System.out.println("**** All notes off");
-		var allNotesOff = new ShortMessage();
-		var stop = new ShortMessage();
 		try {
 			for (int i = 0; i < 16; i++) {
-				allNotesOff.setMessage(CONTROL_CHANGE, i, 123, 0);
-				stop.setMessage(SYSTEM_RESET);
-				receiver.send(allNotesOff, -1);
-				receiver.send(stop, -1);
+				for (int n = 0; n < 128; n++) {
+					receiver.send(new ShortMessage(NOTE_OFF, i, n, 0), -1);
+				}
 			}
 		} catch (InvalidMidiDataException e) {
 			LOGGER.atError().log("Error turning all notes off: {}", e.getMessage());
@@ -199,25 +196,25 @@ public class MidiController {
 
 		musicians.get(3).addPeer(musicians.get(2));
 		musicians.get(3).addPeer(musicians.get(7));
-		
+
 		musicians.get(4).addPeer(musicians.get(0));
 		musicians.get(4).addPeer(musicians.get(5));
 		musicians.get(4).addPeer(musicians.get(5));
-		
+
 		musicians.get(5).addPeer(musicians.get(1));
 		musicians.get(5).addPeer(musicians.get(4));
 		musicians.get(5).addPeer(musicians.get(6));
 		musicians.get(5).addPeer(musicians.get(9));
-		
+
 		musicians.get(6).addPeer(musicians.get(2));
 		musicians.get(6).addPeer(musicians.get(5));
 		musicians.get(6).addPeer(musicians.get(7));
 		musicians.get(6).addPeer(musicians.get(10));
-		
+
 		musicians.get(7).addPeer(musicians.get(3));
 		musicians.get(7).addPeer(musicians.get(6));
 		musicians.get(7).addPeer(musicians.get(11));
-		
+
 		musicians.get(8).addPeer(musicians.get(4));
 		musicians.get(8).addPeer(musicians.get(9));
 		musicians.get(8).addPeer(musicians.get(12));
@@ -226,27 +223,27 @@ public class MidiController {
 		musicians.get(9).addPeer(musicians.get(8));
 		musicians.get(9).addPeer(musicians.get(10));
 		musicians.get(9).addPeer(musicians.get(13));
-		
+
 		musicians.get(10).addPeer(musicians.get(6));
 		musicians.get(10).addPeer(musicians.get(9));
 		musicians.get(10).addPeer(musicians.get(11));
 		musicians.get(10).addPeer(musicians.get(14));
-		
+
 		musicians.get(11).addPeer(musicians.get(7));
 		musicians.get(11).addPeer(musicians.get(10));
 		musicians.get(11).addPeer(musicians.get(15));
-		
+
 		musicians.get(12).addPeer(musicians.get(8));
 		musicians.get(12).addPeer(musicians.get(13));
-		
+
 		musicians.get(13).addPeer(musicians.get(9));
 		musicians.get(13).addPeer(musicians.get(12));
 		musicians.get(13).addPeer(musicians.get(14));
-		
+
 		musicians.get(14).addPeer(musicians.get(10));
 		musicians.get(14).addPeer(musicians.get(13));
 		musicians.get(14).addPeer(musicians.get(15));
-		
+
 		musicians.get(15).addPeer(musicians.get(14));
 		musicians.get(15).addPeer(musicians.get(11));
 
