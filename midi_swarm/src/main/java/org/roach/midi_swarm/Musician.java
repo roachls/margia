@@ -1,11 +1,11 @@
 package org.roach.midi_swarm;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.midi_swarm.random.DieRoller;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -13,8 +13,22 @@ import org.roach.midi_swarm.random.DieRoller;
  * order they were received.
  */
 public class Musician {
-	private static final int MIN_OCTAVE = -1;
-	private static final int MAX_OCTAVE = 6;
+	/**
+	 * Minimum octave a musician is allowed to go down to
+	 */
+	public static final int MIN_OCTAVE = -1;
+	/**
+	 * Maximum octave a musician is allowed to go up to
+	 */
+	public static final int MAX_OCTAVE = 6;
+	/**
+	 * Minimum velocity a note may be played at
+	 */
+	public static final int MIN_VELOCITY = 0;
+	/**
+	 * Maximum velocity a note may be played at
+	 */
+	public static final int MAX_VELOCITY = 127;
 	private final int id;
 	private final MidiController controller;
 	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
@@ -22,13 +36,13 @@ public class Musician {
 	private final int channel;
 	private final List<Musician> peers = new ArrayList<>();
 	private long lastTickIPlayedANote;
-	private List<MusicianRule> rules = new ArrayList<>();
+	private final MusicianRule rule;
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
 	private int octave = 4;
 	private int velocity = 64;
-	private long sequenceFinishTick;
+	private Transport transport;
 
 	/**
 	 * @param id         unique id of this {@link Musician}
@@ -36,78 +50,31 @@ public class Musician {
 	 * @param key        key to use for generating notes
 	 * @param tempo      tempo to play at
 	 * @param channel    MIDI channel
+	 * @param rule       The rule that governs a musician's behavior
 	 */
-	public Musician(final int id, final MidiController controller, Key key, int tempo, int channel) {
+	public Musician(final int id, final MidiController controller, Key key, int tempo, int channel,
+			final MusicianRule rule) {
 		this.id = id;
 		this.logger = LogManager.getLogger("Musician_" + id);
 		this.controller = controller;
 		this.key = key;
 		this.channel = channel;
-
-		this.rules.add(n -> {
-			var r = DieRoller.rollDice("2d5");
-			switch (r) {
-			case 2: {
-				var coinToss = DieRoller.rollDice("1d2");
-				if (coinToss == 1) {
-					velocity -= 10;
-					if (velocity < 0)
-						velocity = 0;
-					logger.atDebug().log("{}: decreased velocity to {}", id, velocity);
-				} else {
-					velocity += 10;
-					if (velocity > 127)
-						velocity = 127;
-					logger.atDebug().log("{}: increased velocity to {}", id, velocity);
-				}
-				break;
-			}
-			case 3:
-				octave--;
-				if (octave < MIN_OCTAVE)
-					octave = MIN_OCTAVE;
-				logger.atDebug().log("{}: decreased octave to {}", id, octave);
-				break;
-			case 4:
-				repeatLastNote();
-				break;
-			case 5:
-				myLastNote = n;
-				break;
-			case 6: {
-				var ni = new NoteInfo(key.upInterval(n.note(), 4), n.octave(), n.velocity(), Length.L1_16);
-				playNote(ni);
-				break;
-			}
-			case 7:
-				playNote(n);
-				break;
-			case 8: {
-				var ni = new NoteInfo(key.upInterval(n.note(), 6), n.octave(), n.velocity(), Length.L1_8);
-				playNote(ni);
-				break;
-			}
-			case 9:
-				receiveMessage(n);
-				break;
-			case 10:
-				octave++;
-				if (octave > MAX_OCTAVE)
-					octave = MAX_OCTAVE;
-				logger.atDebug().log("{}: increased octave to {}", id, octave);
-				break;
-			default:
-				break;
-			}
-		});
+		this.rule = rule;
+		this.rule.setMusician(this);
 	}
 
-	private void repeatLastNote() {
+	/**
+	 * Repeat the last note that this musician played
+	 */
+	public void repeatLastNote() {
 		if (myLastNote != null)
 			playNote(myLastNote);
 	}
 
-	private void playNote(NoteInfo note) {
+	/**
+	 * @param note the note to play
+	 */
+	public void playNote(NoteInfo note) {
 		if (note == null)
 			return;
 		logger.atDebug().log("{}: playing note {} on channel {}", id, note, channel);
@@ -117,6 +84,7 @@ public class Musician {
 		for (var peer : peers) {
 			peer.receiveMessage(note);
 		}
+		this.lastTickIPlayedANote = transport.getTick();
 	}
 
 	/**
@@ -134,32 +102,7 @@ public class Musician {
 	 */
 	public void doTick(long tick) {
 		logger.atDebug().log("{}: tick={}, lastTickIPlayedANote={}", id, tick, lastTickIPlayedANote);
-		if (lastTickIPlayedANote == tick) {
-			logger.atDebug().log("{}: I already played a note this tick", id);
-			return;
-		}
-		if (notesIvePlayed >= 5) {
-			logger.atDebug().log("{}: resting because I've played 5 notes", id);
-			notesIvePlayed = 0;
-			return;
-		}
-		if (messageQueue.isEmpty()) {
-			logger.atDebug().log("{} queue is empty", id);
-			var rand = DieRoller.rollDice("2d6");
-			if (rand <= 4) {
-				var randomNote = new NoteInfo(key.randomNote(), octave, velocity, Length.L1_16);
-				logger.atDebug().log("{}: playing {}", id, randomNote);
-				playNote(randomNote);
-				lastTickIPlayedANote = tick;
-			}
-		}
-		var noteIHeard = messageQueue.poll();
-		logger.atDebug().log("{}: heard {}", id, noteIHeard);
-		if (noteIHeard == null)
-			return;
-		for (var rule : rules) {
-			rule.act(noteIHeard);
-		}
+		rule.act(tick);
 	}
 
 	/**
@@ -167,6 +110,117 @@ public class Musician {
 	 */
 	public void receiveMessage(NoteInfo message) {
 		this.messageQueue.offer(message);
+	}
+
+	/**
+	 * Decrease the velocity by the given amount but no lower than
+	 * {@link #MIN_VELOCITY}
+	 * 
+	 * @param amount amount of decrease
+	 */
+	public void decreaseVelocity(int amount) {
+		velocity -= amount;
+		if (velocity < MIN_VELOCITY)
+			velocity = MIN_VELOCITY;
+		logger.atDebug().log("{}: decreased velocity to {}", id, velocity);
+	}
+
+	/**
+	 * Increase velocity by the given amount but no higher than
+	 * {@link #MAX_VELOCITY}
+	 * 
+	 * @param amount amount of increase
+	 */
+	public void increaseVelocity(int amount) {
+		velocity += amount;
+		if (velocity > MAX_VELOCITY)
+			velocity = MAX_VELOCITY;
+		logger.atDebug().log("{}: increased velocity to {}", id, velocity);
+	}
+
+	/**
+	 * @param myLastNote the last note that this musician played
+	 */
+	public void setMyLastNote(NoteInfo myLastNote) {
+		this.myLastNote = myLastNote;
+	}
+
+	/**
+	 * @param transport the transport that controls timing
+	 */
+	public void setTransport(Transport transport) {
+		this.transport = transport;
+	}
+
+	/**
+	 * @return the unique ID of this {@link Musician}
+	 */
+	public int getId() {
+		return id;
+	}
+
+	/**
+	 * @return the key in which this {@link Musician} is playing
+	 */
+	public Key getKey() {
+		return key;
+	}
+
+	/**
+	 * @return current number of notes in this {@link Musician musician's} queue
+	 */
+	public int getQueueSize() {
+		return this.messageQueue.size();
+	}
+
+	/**
+	 * @return current octave this musician is playing in
+	 */
+	public int getOctave() {
+		return octave;
+	}
+
+	/**
+	 * @return current velocity at which this musician is playing
+	 */
+	public int getVelocity() {
+		return velocity;
+	}
+
+	/**
+	 * @return the next note in this musician's queue of heard notes
+	 */
+	public NoteInfo getNextNoteHeard() {
+		return messageQueue.poll();
+	}
+
+	/**
+	 * @return the tick number of the last time this musician played a note
+	 */
+	public long getLastTickIPlayedANote() {
+		return lastTickIPlayedANote;
+	}
+
+	/**
+	 * @return the number of notes I've played since the last reset
+	 */
+	public int getNotesIvePlayed() {
+		return notesIvePlayed;
+	}
+
+	/**
+	 * reset the number of notes this musician has played
+	 */
+	public void resetNotesIvePlayed() {
+		this.notesIvePlayed = 0;
+	}
+
+	/**
+	 * @param lastTickIPlayedANote the tick number of the last time this musician
+	 *                             played a note
+	 */
+	public void setLastTickIPlayedANote(long lastTickIPlayedANote) {
+		this.lastTickIPlayedANote = lastTickIPlayedANote;
 	}
 
 	@Override
@@ -184,5 +238,32 @@ public class Musician {
 			return false;
 		Musician other = (Musician) obj;
 		return Objects.equals(id, other.id);
+	}
+
+	/**
+	 * decrease the octave this musician is playing, but no lower than {@link #MIN_OCTAVE}
+	 */
+	public void decrementOctave() {
+		octave--;
+		if (octave < MIN_OCTAVE)
+			octave = MIN_OCTAVE;
+		logger.atDebug().log("{}: decremented octave to {}", id, octave);
+	}
+
+	/**
+	 * Increase octave by 1, up to max of {@link #MAX_OCTAVE}
+	 */
+	public void incrementOctave() {
+		octave++;
+		if (octave > MAX_OCTAVE)
+			octave = MAX_OCTAVE;
+		logger.atDebug().log("{}: incremented octave to {}", id, octave);
+	}
+
+	/**
+	 * Rest for one 16th
+	 */
+	public void rest() {
+		controller.playNote(channel, new NoteInfo(Note.REST, 0, 0, Length.L1_16));
 	}
 }

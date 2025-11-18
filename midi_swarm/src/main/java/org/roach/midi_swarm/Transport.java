@@ -3,6 +3,9 @@ package org.roach.midi_swarm;
 import java.util.List;
 import java.util.concurrent.*;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every
  * 16th note.
@@ -10,6 +13,7 @@ import java.util.concurrent.*;
 public class Transport {
 	private final List<Musician> musicians;
 	private long tick;
+	private final Logger logger = LogManager.getLogger(getClass());
 	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 
 		@Override
@@ -49,6 +53,7 @@ public class Transport {
 	 */
 	public void start() {
 		future = executor.scheduleAtFixedRate(() -> {
+			logger.atInfo().log("Tick: {}", tick);
 			musicians.forEach(m -> m.doTick(tick));
 			tick++;
 		}, 0, tickLength, TimeUnit.MILLISECONDS);

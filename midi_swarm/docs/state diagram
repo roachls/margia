@@ -1,0 +1,11 @@
+@startuml
+
+[*] -> Start
+Start -> B : at least 4 notes in queue
+B : take note from queue
+B -> Playing
+Playing : play note a fourth up
+Playing -> B
+B -> Start : queue is empty
+
+@enduml

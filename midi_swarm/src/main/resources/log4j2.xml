@@ -1,14 +1,14 @@
 <Configuration>
 	<Appenders>
 		<Console name="Console">
-			<PatternLayout pattern="%m%n" />>
+			<PatternLayout pattern="%-5p [%t]: %m%n" />>
 		</Console>
 	</Appenders>
 	<Loggers>
-		<Logger name="Musician_2" level="info" additivity="false">
-			<AppenderRef ref="Console" />>
-		</Logger>
-		<Root level="info">
+<!--		<Logger name="Musician_0" level="debug" additivity="false">-->
+<!--			<AppenderRef ref="Console" />>-->
+<!--		</Logger>-->
+		<Root level="debug">
 			<AppenderRef ref="Console" />>
 		</Root>
 	</Loggers>
