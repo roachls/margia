@@ -8,7 +8,7 @@ import org.roach.midi_swarm.*;
 public class StateBasedRule extends MusicianRule {
 
 	private enum State {
-		START, B, PLAYING;
+		START, PLAYING_A, PLAYING_B;
 	}
 
 	private State state = State.START;
@@ -16,9 +16,12 @@ public class StateBasedRule extends MusicianRule {
 	@Override
 	public void act(long tick) {
 		var note = musician.getNextNoteHeard();
-		logger.atDebug().log("{}: heard {}", musician.getId(), note);
-		if (note == null)
+		logger.atDebug().log("{}: ({}) heard {}, queue size={}", musician.getId(), state, note,
+				musician.getQueueSize());
+		if (note == null) {
+			logger.atDebug().log("{} heard nothing, returning", musician.getId());
 			return;
+		}
 
 		switch (state) {
 		case START:
@@ -26,30 +29,35 @@ public class StateBasedRule extends MusicianRule {
 				musician.playNote(note);
 			}
 			if (musician.getQueueSize() >= 3) {
-				state = State.B;
-//				act(note);
+				if ((tick + note.note()) % 2 == 0)
+					state = State.PLAYING_A;
+				else
+					state = State.PLAYING_B;
+				musician.receiveMessage(note);
 			} else {
-//				musician.receiveMessage(note);
+				musician.receiveMessage(note);
 				System.out.println(musician.getId() + " put note back, queuesize=" + musician.getQueueSize());
 			}
 			break;
-		case B:
-			if (note != null) {
-				state = State.PLAYING;
-				act(tick);
-			}
-			if (musician.getQueueSize() == 0) {
-				state = State.START;
-			} else {
-				state = State.PLAYING;
-				act(tick);
-			}
+		case PLAYING_A:
+			if (note.note() != -1) {
+				var noteUp = musician.getKey().upInterval(note.note(), 3);
+				var ni = new NoteInfo(noteUp, musician.getVelocity(), note.length());
+				musician.playNote(ni);
+			} else
+				musician.playNote(note);
+//			if (musician.getQueueSize() == 0)
+			state = State.START;
 			break;
-		case PLAYING:
-			var noteUp = musician.getKey().upInterval(note.note(), 3);
-			var ni = new NoteInfo(noteUp, musician.getOctave(), musician.getVelocity(), note.length());
-			musician.playNote(ni);
-			state = State.B;
+		case PLAYING_B:
+			if (note.note() != -1) {
+				var noteDown = musician.getKey().downInterval(note.note(), 4);
+				var ni = new NoteInfo(noteDown, musician.getVelocity(), note.length());
+				musician.playNote(ni);
+			} else
+				musician.playNote(note);
+//			if (musician.getQueueSize() == 0)
+			state = State.START;
 			break;
 		default:
 			break;

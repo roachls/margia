@@ -8,14 +8,14 @@ import org.junit.jupiter.params.provider.CsvSource;
 class KeyTest {
 
 	@ParameterizedTest
-	@CsvSource({"C,3,E","C,4,F","G,1,G","G,2,A","G,3,B","G,4,C","G,5,D","G,6,E","G,7,F"})
-	void testUpInterval(Note start, int interval, Note expected) {
+	@CsvSource({"0,3,4","0,4,5","7,1,7","7,2,9","7,3,11","7,4,12","7,5,14","7,6,16","7,7,17"})
+	void testUpInterval(int start, int interval, int expected) {
 		assertEquals(expected, Key.CMajor.upInterval(start, interval));
 	}
 
 	@ParameterizedTest
-	@CsvSource({"C,3,A","C,4,G","G,1,G","G,2,F","G,3,E","G,4,D","G,5,C","G,6,B","G,7,A"})
-	void testDownInterval(Note start, int interval, Note expected) {
+	@CsvSource({"7,3,4","12,4,7","12,1,12","7,2,5","14,3,11"})
+	void testDownInterval(int start, int interval, int expected) {
 		assertEquals(expected, Key.CMajor.downInterval(start, interval));
 	}
 

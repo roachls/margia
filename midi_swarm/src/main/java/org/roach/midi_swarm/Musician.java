@@ -40,7 +40,6 @@ public class Musician {
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
-	private int octave = 4;
 	private int velocity = 64;
 	private Transport transport;
 
@@ -174,13 +173,6 @@ public class Musician {
 	}
 
 	/**
-	 * @return current octave this musician is playing in
-	 */
-	public int getOctave() {
-		return octave;
-	}
-
-	/**
 	 * @return current velocity at which this musician is playing
 	 */
 	public int getVelocity() {
@@ -241,29 +233,9 @@ public class Musician {
 	}
 
 	/**
-	 * decrease the octave this musician is playing, but no lower than {@link #MIN_OCTAVE}
-	 */
-	public void decrementOctave() {
-		octave--;
-		if (octave < MIN_OCTAVE)
-			octave = MIN_OCTAVE;
-		logger.atDebug().log("{}: decremented octave to {}", id, octave);
-	}
-
-	/**
-	 * Increase octave by 1, up to max of {@link #MAX_OCTAVE}
-	 */
-	public void incrementOctave() {
-		octave++;
-		if (octave > MAX_OCTAVE)
-			octave = MAX_OCTAVE;
-		logger.atDebug().log("{}: incremented octave to {}", id, octave);
-	}
-
-	/**
 	 * Rest for one 16th
 	 */
 	public void rest() {
-		controller.playNote(channel, new NoteInfo(Note.REST, 0, 0, Length.L1_16));
+		controller.playNote(channel, new NoteInfo(-1, 0, Length.L1_16));
 	}
 }

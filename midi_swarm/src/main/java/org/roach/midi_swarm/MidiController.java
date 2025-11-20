@@ -93,11 +93,11 @@ public class MidiController {
 		// cut off note before start of next note to avoid notes that never get cut off
 		var noteCutoffTime = note.length().getMillisForTempo(tempo) - 10;
 		executors[midiChannel].schedule(() -> {
-			if (note.note() != Note.REST)
+			if (note.note() != -1)
 				play(midiChannel, note, NOTE_ON);
 			try {
 				TimeUnit.MILLISECONDS.sleep(noteCutoffTime);
-				if (note.note() != Note.REST)
+				if (note.note() != -1)
 					play(midiChannel, note, NOTE_OFF);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
@@ -106,7 +106,7 @@ public class MidiController {
 	}
 
 	private void play(int midiChannel, NoteInfo note, int eventType) {
-		var noteNumber = note.getNoteNumber();
+		int noteNumber = note.note();
 		try {
 			switch (eventType) {
 			case NOTE_ON:
