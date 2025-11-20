@@ -14,7 +14,7 @@ public class StateBasedRule extends MusicianRule {
 	private State state = State.START;
 
 	@Override
-	public void act(long tick) {
+	public void calculateAction(long tick) {
 		var note = musician.getNextNoteHeard();
 		logger.atDebug().log("{}: ({}) heard {}, queue size={}", musician.getId(), state, note,
 				musician.getQueueSize());
@@ -26,36 +26,34 @@ public class StateBasedRule extends MusicianRule {
 		switch (state) {
 		case START:
 			if (note != null) {
-				musician.playNote(note);
+				actionsToTake.add(() -> musician.playNote(note));
 			}
 			if (musician.getQueueSize() >= 3) {
 				if ((tick + note.note()) % 2 == 0)
 					state = State.PLAYING_A;
 				else
 					state = State.PLAYING_B;
-				musician.receiveMessage(note);
+				actionsToTake.add(() -> musician.receiveMessage(note));
 			} else {
-				musician.receiveMessage(note);
+				actionsToTake.add(() -> musician.receiveMessage(note));
 				System.out.println(musician.getId() + " put note back, queuesize=" + musician.getQueueSize());
 			}
 			break;
 		case PLAYING_A:
 			if (note.note() != -1) {
 				var noteUp = musician.getKey().upInterval(note.note(), 3);
-				var ni = new NoteInfo(noteUp, note.velocity(), note.length());
-				musician.playNote(ni);
+				actionsToTake.add(() -> musician.playNote(new NoteInfo(noteUp, note.velocity(), note.length())));
 			} else
-				musician.playNote(note);
+				actionsToTake.add(() -> musician.playNote(note));
 //			if (musician.getQueueSize() == 0)
 			state = State.START;
 			break;
 		case PLAYING_B:
 			if (note.note() != -1) {
 				var noteDown = musician.getKey().downInterval(note.note(), 2);
-				var ni = new NoteInfo(noteDown, note.velocity(), note.length());
-				musician.playNote(ni);
+				actionsToTake.add(() -> musician.playNote(new NoteInfo(noteDown, note.velocity(), note.length())));
 			} else
-				musician.playNote(note);
+				actionsToTake.add(() -> musician.playNote(note));
 //			if (musician.getQueueSize() == 0)
 			state = State.START;
 			break;

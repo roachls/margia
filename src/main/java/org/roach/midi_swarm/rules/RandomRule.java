@@ -9,74 +9,82 @@ import org.roach.midi_swarm.random.DieRoller;
 public class RandomRule extends MusicianRule {
 
 	@Override
-	public void act(long tick) {
+	public void calculateAction(long tick) {
 		if (musician.getLastTickIPlayedANote() == tick) {
 			logger.atDebug().log("{}: I already played a note this tick", musician.getId());
 			return;
 		}
 		if (musician.getNotesIvePlayed() >= 5) {
 			logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
-			musician.rest();
-			musician.resetNotesIvePlayed();
+			actionsToTake.add(() -> musician.playNote(REST));
+			actionsToTake.add(() -> musician.resetNotesIvePlayed());
 			return;
 		}
 		if (musician.getQueueSize() == 0) {
 			logger.atDebug().log("{} queue is empty", musician.getId());
-			var rand = DieRoller.rollDice("2d6");
-			if (rand <= 4) {
-				var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, Length.L1_16);
-				logger.atDebug().log("{}: playing {}", musician.getId(), randomNote);
-				musician.playNote(randomNote);
-				musician.setLastTickIPlayedANote(tick);
+			if (musician.getId() == 0) {
+				var rand = DieRoller.rollDice("2d6");
+				if (rand <= 4) {
+					var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY,
+							Length.L1_16);
+					logger.atDebug().log("{}: playing {}", musician.getId(), randomNote);
+					actionsToTake.add(() -> musician.playNote(randomNote));
+					actionsToTake.add(() -> musician.setLastTickIPlayedANote(tick));
+				}
 			}
+			return;
 		}
 
 		var note = musician.getNextNoteHeard();
 		logger.atDebug().log("{}: heard {}", musician.getId(), note);
-		if (note == null)
+		if (note == null || note.equals(REST)) {
+			logger.atDebug().log("{}: heard null or rest, returning");
 			return;
+		}
 
 		var r = DieRoller.rollDice("2d5");
 		switch (r) {
 		case 2: {
-			var ni = new NoteInfo(musician.getKey().upInterval(note.note(), 4), note.velocity(), Length.L1_16);
-			musician.playNote(ni);
+			actionsToTake.add(() -> musician.playNote(
+					new NoteInfo(musician.getKey().upInterval(note.note(), 4), note.velocity(), Length.L1_16)));
 			break;
 		}
 		case 3:
-			musician.repeatLastNote();
+			actionsToTake.add(() -> musician.playNote(musician.getMyLastNote()));
 			break;
 		case 4: {
 			var coinToss = DieRoller.rollDice("1d2");
 			if (coinToss == 1) {
-				// TODO decrease velocity of played note
+				var vel = Math.max(Musician.MIN_VELOCITY, note.velocity() - 10);
+				actionsToTake.add(() -> musician.playNote(new NoteInfo(note.note(), vel, note.length())));
 			} else {
-				// TODO increase velocity of played note
+				var vel = Math.min(Musician.MAX_VELOCITY, note.velocity() + 10);
+				actionsToTake.add(() -> musician.playNote(new NoteInfo(note.note(), vel, note.length())));
 			}
 			break;
 		}
 		case 5:
-			// TODO what to do here?
-//			musician.decrementOctave();
+			actionsToTake.add(() -> musician
+					.playNote(new NoteInfo(Math.min(note.note() + 12, 127), note.velocity(), note.length())));
 			break;
 		case 6:
-			musician.setMyLastNote(note);
-			musician.rest();
+			actionsToTake.add(() -> musician.setMyLastNote(note));
+			actionsToTake.add(() -> musician.rest());
 			break;
 		case 7:
-			musician.receiveMessage(note);
+			actionsToTake.add(() -> musician.receiveMessage(note));
 			break;
 		case 8:
-			// TODO what to do here?
-//			musician.incrementOctave();
+			actionsToTake.add(() -> musician
+					.playNote(new NoteInfo(Math.max(note.note() - 12, 0), note.velocity(), note.length())));
 			break;
 		case 9: {
-			var ni = new NoteInfo(musician.getKey().downInterval(note.note(), 4), note.velocity(), Length.L1_8);
-			musician.playNote(ni);
+			actionsToTake.add(() -> musician.playNote(
+					new NoteInfo(musician.getKey().downInterval(note.note(), 4), note.velocity(), Length.L1_8)));
 			break;
 		}
 		case 10:
-			musician.playNote(note);
+			actionsToTake.add(() -> musician.playNote(note));
 			break;
 		default:
 			break;

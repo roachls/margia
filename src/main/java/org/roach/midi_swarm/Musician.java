@@ -94,9 +94,13 @@ public class Musician {
 	 * 
 	 * @param tick the tick number
 	 */
-	public void doTick(long tick) {
+	public void calculateAction(long tick) {
 		logger.atDebug().log("{}: tick={}, lastTickIPlayedANote={}", id, tick, lastTickIPlayedANote);
-		rule.act(tick);
+		rule.calculateAction(tick);
+	}
+	
+	public void doAction(long tick) {
+		rule.doAction(tick);
 	}
 
 	/**
@@ -176,7 +180,11 @@ public class Musician {
 	public void setLastTickIPlayedANote(long lastTickIPlayedANote) {
 		this.lastTickIPlayedANote = lastTickIPlayedANote;
 	}
-
+	
+	public NoteInfo getMyLastNote() {
+		return myLastNote;
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(id);

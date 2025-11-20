@@ -54,7 +54,8 @@ public class Transport {
 	public void start() {
 		future = executor.scheduleAtFixedRate(() -> {
 			logger.atInfo().log("Tick: {}", tick);
-			musicians.forEach(m -> m.doTick(tick));
+			musicians.forEach(m -> m.calculateAction(tick));
+			musicians.forEach(m -> m.doAction(tick));
 			tick++;
 		}, 0, tickLength, TimeUnit.MILLISECONDS);
 	}
