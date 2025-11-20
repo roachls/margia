@@ -85,6 +85,8 @@ public class MidiController {
 	 * @param note        note to send
 	 */
 	public void playNote(int midiChannel, NoteInfo note) {
+		if (note.note() == -1)
+			return;
 		if (receiver == null) {
 			System.err.println("MIDI receiver not available.");
 			return;
@@ -93,12 +95,10 @@ public class MidiController {
 		// cut off note before start of next note to avoid notes that never get cut off
 		var noteCutoffTime = note.length().getMillisForTempo(tempo) - 10;
 		executors[midiChannel].schedule(() -> {
-			if (note.note() != -1)
-				play(midiChannel, note, NOTE_ON);
+			play(midiChannel, note, NOTE_ON);
 			try {
 				TimeUnit.MILLISECONDS.sleep(noteCutoffTime);
-				if (note.note() != -1)
-					play(midiChannel, note, NOTE_OFF);
+				play(midiChannel, note, NOTE_OFF);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}

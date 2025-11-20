@@ -24,7 +24,7 @@ public class RandomRule extends MusicianRule {
 			logger.atDebug().log("{} queue is empty", musician.getId());
 			var rand = DieRoller.rollDice("2d6");
 			if (rand <= 4) {
-				var randomNote = new NoteInfo(musician.getKey().randomNote(), musician.getVelocity(), Length.L1_16);
+				var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, Length.L1_16);
 				logger.atDebug().log("{}: playing {}", musician.getId(), randomNote);
 				musician.playNote(randomNote);
 				musician.setLastTickIPlayedANote(tick);
@@ -39,7 +39,7 @@ public class RandomRule extends MusicianRule {
 		var r = DieRoller.rollDice("2d5");
 		switch (r) {
 		case 2: {
-			var ni = new NoteInfo(musician.getKey().upInterval(note.note(), 4), musician.getVelocity(), Length.L1_16);
+			var ni = new NoteInfo(musician.getKey().upInterval(note.note(), 4), note.velocity(), Length.L1_16);
 			musician.playNote(ni);
 			break;
 		}
@@ -49,13 +49,14 @@ public class RandomRule extends MusicianRule {
 		case 4: {
 			var coinToss = DieRoller.rollDice("1d2");
 			if (coinToss == 1) {
-				musician.decreaseVelocity(10);
+				// TODO decrease velocity of played note
 			} else {
-				musician.increaseVelocity(10);
+				// TODO increase velocity of played note
 			}
 			break;
 		}
 		case 5:
+			// TODO what to do here?
 //			musician.decrementOctave();
 			break;
 		case 6:
@@ -66,10 +67,11 @@ public class RandomRule extends MusicianRule {
 			musician.receiveMessage(note);
 			break;
 		case 8:
+			// TODO what to do here?
 //			musician.incrementOctave();
 			break;
 		case 9: {
-			var ni = new NoteInfo(musician.getKey().upInterval(note.note(), 6), musician.getVelocity(), Length.L1_8);
+			var ni = new NoteInfo(musician.getKey().downInterval(note.note(), 4), note.velocity(), Length.L1_8);
 			musician.playNote(ni);
 			break;
 		}

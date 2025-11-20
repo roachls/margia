@@ -24,7 +24,7 @@ public class MainStateBased {
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
 			musicians.add(
-					new Musician(i, controller, Key.CMajor, tempo, i % numExternalInstruments, new StateBasedRule()));
+					new Musician(i, controller, Key.Chromatic, tempo, i % numExternalInstruments, new StateBasedRule()));
 		}
 
 		/*
@@ -77,10 +77,10 @@ public class MainStateBased {
 
 		musicians.get(15).addPeer(musicians.get(0));
 
-		musicians.get(0).receiveMessage(new NoteInfo(57, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(60, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(-1, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(65, musicians.get(0).getVelocity(), Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(57, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(-1, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(65, Musician.START_VELOCITY, Length.L1_16));
 
 		var transport = new Transport(musicians, tempo);
 		for (var musician : musicians) {

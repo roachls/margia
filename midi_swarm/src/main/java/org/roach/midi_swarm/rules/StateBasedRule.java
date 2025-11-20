@@ -42,7 +42,7 @@ public class StateBasedRule extends MusicianRule {
 		case PLAYING_A:
 			if (note.note() != -1) {
 				var noteUp = musician.getKey().upInterval(note.note(), 3);
-				var ni = new NoteInfo(noteUp, musician.getVelocity(), note.length());
+				var ni = new NoteInfo(noteUp, note.velocity(), note.length());
 				musician.playNote(ni);
 			} else
 				musician.playNote(note);
@@ -51,8 +51,8 @@ public class StateBasedRule extends MusicianRule {
 			break;
 		case PLAYING_B:
 			if (note.note() != -1) {
-				var noteDown = musician.getKey().downInterval(note.note(), 4);
-				var ni = new NoteInfo(noteDown, musician.getVelocity(), note.length());
+				var noteDown = musician.getKey().downInterval(note.note(), 2);
+				var ni = new NoteInfo(noteDown, note.velocity(), note.length());
 				musician.playNote(ni);
 			} else
 				musician.playNote(note);

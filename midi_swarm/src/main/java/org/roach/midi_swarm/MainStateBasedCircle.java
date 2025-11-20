@@ -40,10 +40,10 @@ public class MainStateBasedCircle {
 		musicians.get(6).addPeer(musicians.get(0));
 //		musicians.get(7).addPeer(musicians.get(0));
 
-		musicians.get(0).receiveMessage(new NoteInfo(57, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(60, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(-1, musicians.get(0).getVelocity(), Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(65, musicians.get(0).getVelocity(), Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(57, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(-1, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new NoteInfo(65, Musician.START_VELOCITY, Length.L1_16));
 
 		var transport = new Transport(musicians, tempo);
 		for (var musician : musicians) {

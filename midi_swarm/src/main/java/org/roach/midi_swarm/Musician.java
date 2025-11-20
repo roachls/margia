@@ -14,14 +14,6 @@ import org.apache.logging.log4j.Logger;
  */
 public class Musician {
 	/**
-	 * Minimum octave a musician is allowed to go down to
-	 */
-	public static final int MIN_OCTAVE = -1;
-	/**
-	 * Maximum octave a musician is allowed to go up to
-	 */
-	public static final int MAX_OCTAVE = 6;
-	/**
 	 * Minimum velocity a note may be played at
 	 */
 	public static final int MIN_VELOCITY = 0;
@@ -29,6 +21,10 @@ public class Musician {
 	 * Maximum velocity a note may be played at
 	 */
 	public static final int MAX_VELOCITY = 127;
+	/**
+	 * Medium velocity starting point
+	 */
+	public static final int START_VELOCITY = 64;
 	private final int id;
 	private final MidiController controller;
 	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
@@ -40,7 +36,6 @@ public class Musician {
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
-	private int velocity = 64;
 	private Transport transport;
 
 	/**
@@ -112,32 +107,6 @@ public class Musician {
 	}
 
 	/**
-	 * Decrease the velocity by the given amount but no lower than
-	 * {@link #MIN_VELOCITY}
-	 * 
-	 * @param amount amount of decrease
-	 */
-	public void decreaseVelocity(int amount) {
-		velocity -= amount;
-		if (velocity < MIN_VELOCITY)
-			velocity = MIN_VELOCITY;
-		logger.atDebug().log("{}: decreased velocity to {}", id, velocity);
-	}
-
-	/**
-	 * Increase velocity by the given amount but no higher than
-	 * {@link #MAX_VELOCITY}
-	 * 
-	 * @param amount amount of increase
-	 */
-	public void increaseVelocity(int amount) {
-		velocity += amount;
-		if (velocity > MAX_VELOCITY)
-			velocity = MAX_VELOCITY;
-		logger.atDebug().log("{}: increased velocity to {}", id, velocity);
-	}
-
-	/**
 	 * @param myLastNote the last note that this musician played
 	 */
 	public void setMyLastNote(NoteInfo myLastNote) {
@@ -170,13 +139,6 @@ public class Musician {
 	 */
 	public int getQueueSize() {
 		return this.messageQueue.size();
-	}
-
-	/**
-	 * @return current velocity at which this musician is playing
-	 */
-	public int getVelocity() {
-		return velocity;
 	}
 
 	/**
