@@ -1,6 +1,6 @@
 package org.roach.midi_swarm;
 
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,6 +14,7 @@ public class Transport {
 	private final List<Musician> musicians;
 	private long tick;
 	private final Logger logger = LogManager.getLogger(getClass());
+	private final Map<Long, Runnable> tickActions = new HashMap<>();
 	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 
 		@Override
@@ -31,7 +32,7 @@ public class Transport {
 	 */
 	public Transport(final List<Musician> musicians, int tempo) {
 		this.musicians = musicians;
-		this.tickLength = Length.L1_16.getMillisForTempo(tempo);
+		this.tickLength = Length.getMillisForTempo(1, tempo);
 	}
 
 	/**
@@ -54,6 +55,11 @@ public class Transport {
 	public void start() {
 		future = executor.scheduleAtFixedRate(() -> {
 			logger.atInfo().log("Tick: {}", tick);
+			if (tickActions.containsKey(tick)) {
+				logger.atDebug().log("Transport playing tick action {}", tick);
+				tickActions.get(tick).run();
+				tickActions.remove(tick);
+			}
 			musicians.forEach(m -> m.calculateAction(tick));
 			musicians.forEach(m -> m.doAction(tick));
 			tick++;
@@ -69,5 +75,9 @@ public class Transport {
 		}
 		executor.shutdownNow();
 		future = null;
+	}
+	
+	public void addTickAction(long tick, Runnable action) {
+		tickActions.put(tick, action);
 	}
 }

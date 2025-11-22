@@ -6,6 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.midi_swarm.messages.*;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -37,6 +38,10 @@ public class Musician {
 	private NoteInfo myLastNote;
 	private final Logger logger;
 	private Transport transport;
+	private int numNotesRemainingInSequence;
+	private NoteSequence sequence;
+	private final List<NoteInfo> notesToAddToSequence = new LinkedList<>();
+	private long repeatSequenceAtTick;
 
 	/**
 	 * @param id         unique id of this {@link Musician}
@@ -75,9 +80,7 @@ public class Musician {
 		controller.playNote(channel, note);
 		myLastNote = note;
 		notesIvePlayed++;
-		for (var peer : peers) {
-			peer.receiveMessage(note);
-		}
+		sendMessageToPeers(new HeardNoteInfo(transport.getTick(), note));
 		this.lastTickIPlayedANote = transport.getTick();
 	}
 
@@ -90,7 +93,8 @@ public class Musician {
 	}
 
 	/**
-	 * Performs actions after receiving a tick from the {@link Transport}
+	 * Calculates actions to be performed after receiving a tick from the
+	 * {@link Transport}
 	 * 
 	 * @param tick the tick number
 	 */
@@ -98,16 +102,34 @@ public class Musician {
 		logger.atDebug().log("{}: tick={}, lastTickIPlayedANote={}", id, tick, lastTickIPlayedANote);
 		rule.calculateAction(tick);
 	}
-	
+
+	/**
+	 * Actually perform the actions calculaated in {@link #calculateAction(long)}
+	 * 
+	 * @param tick tick number
+	 */
 	public void doAction(long tick) {
 		rule.doAction(tick);
 	}
 
 	/**
-	 * @param message receive a message and place it on the message queue
+	 * @param message receive a note and place it on the message queue
 	 */
-	public void receiveMessage(NoteInfo message) {
-		this.messageQueue.offer(message);
+	public void receiveMessage(MusicianMessage message) {
+		if (message instanceof HeardNoteInfo heardNote) {
+			if (isReceivingSequence()) {
+				notesToAddToSequence.add(heardNote.noteInfo());
+				numNotesRemainingInSequence--;
+				if (numNotesRemainingInSequence == 0) {
+					this.sequence = new NoteSequence(new ArrayList<>(notesToAddToSequence));
+				}
+			} else {
+				this.messageQueue.offer(heardNote.noteInfo());
+			}
+		}
+		if (message instanceof StartSequence startSequence) {
+			this.numNotesRemainingInSequence = startSequence.numNotesInSequence();
+		}
 	}
 
 	/**
@@ -122,6 +144,10 @@ public class Musician {
 	 */
 	public void setTransport(Transport transport) {
 		this.transport = transport;
+	}
+	
+	public Transport getTransport() {
+		return this.transport;
 	}
 
 	/**
@@ -180,11 +206,14 @@ public class Musician {
 	public void setLastTickIPlayedANote(long lastTickIPlayedANote) {
 		this.lastTickIPlayedANote = lastTickIPlayedANote;
 	}
-	
+
+	/**
+	 * @return the last note that this musician played
+	 */
 	public NoteInfo getMyLastNote() {
 		return myLastNote;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(id);
@@ -206,6 +235,20 @@ public class Musician {
 	 * Rest for one 16th
 	 */
 	public void rest() {
-		controller.playNote(channel, new NoteInfo(-1, 0, Length.L1_16));
+		controller.playNote(channel, MusicianRule.REST);
+	}
+	
+	public boolean isReceivingSequence() {
+		return numNotesRemainingInSequence > 0;
+	}
+	
+	public NoteSequence getSequence() {
+		return this.sequence;
+	}
+	
+	public void sendMessageToPeers(MusicianMessage message) {
+		for (var peer : peers) {
+			peer.receiveMessage(message);
+		}
 	}
 }

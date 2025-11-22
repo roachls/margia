@@ -14,7 +14,7 @@ public abstract class MusicianRule {
 	protected Musician musician;
 	protected final Logger logger = LogManager.getLogger(getClass());
 	protected List<Runnable> actionsToTake = new ArrayList<>();
-	protected static final NoteInfo REST = new NoteInfo(-1, 0, Length.L1_16);
+	protected static final NoteInfo REST = new NoteInfo(-1, 0, 1);
 
 	/**
 	 * @param musician the {@link Musician} that this rule applies to

@@ -1,6 +1,7 @@
 package org.roach.midi_swarm.rules;
 
 import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.messages.HeardNoteInfo;
 import org.roach.midi_swarm.random.DieRoller;
 
 /**
@@ -25,8 +26,7 @@ public class RandomRule extends MusicianRule {
 			if (musician.getId() == 0) {
 				var rand = DieRoller.rollDice("2d6");
 				if (rand <= 4) {
-					var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY,
-							Length.L1_16);
+					var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, 1);
 					logger.atDebug().log("{}: playing {}", musician.getId(), randomNote);
 					actionsToTake.add(() -> musician.playNote(randomNote));
 					actionsToTake.add(() -> musician.setLastTickIPlayedANote(tick));
@@ -45,8 +45,8 @@ public class RandomRule extends MusicianRule {
 		var r = DieRoller.rollDice("2d5");
 		switch (r) {
 		case 2: {
-			actionsToTake.add(() -> musician.playNote(
-					new NoteInfo(musician.getKey().upInterval(note.note(), 4), note.velocity(), Length.L1_16)));
+			actionsToTake.add(() -> musician
+					.playNote(new NoteInfo(musician.getKey().upInterval(note.note(), 4), note.velocity(), 1)));
 			break;
 		}
 		case 3:
@@ -72,7 +72,7 @@ public class RandomRule extends MusicianRule {
 			actionsToTake.add(() -> musician.rest());
 			break;
 		case 7:
-			actionsToTake.add(() -> musician.receiveMessage(note));
+			actionsToTake.add(() -> musician.receiveMessage(new HeardNoteInfo(tick, note)));
 			break;
 		case 8:
 			actionsToTake.add(() -> musician
@@ -80,7 +80,7 @@ public class RandomRule extends MusicianRule {
 			break;
 		case 9: {
 			actionsToTake.add(() -> musician.playNote(
-					new NoteInfo(musician.getKey().downInterval(note.note(), 4), note.velocity(), Length.L1_8)));
+					new NoteInfo(musician.getKey().downInterval(note.note(), 4), note.velocity(), 2)));
 			break;
 		}
 		case 10:

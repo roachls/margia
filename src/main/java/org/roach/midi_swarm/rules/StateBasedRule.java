@@ -1,6 +1,7 @@
 package org.roach.midi_swarm.rules;
 
 import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.messages.HeardNoteInfo;
 
 /**
  * A state-machine based agent
@@ -33,9 +34,9 @@ public class StateBasedRule extends MusicianRule {
 					state = State.PLAYING_A;
 				else
 					state = State.PLAYING_B;
-				actionsToTake.add(() -> musician.receiveMessage(note));
+				actionsToTake.add(() -> musician.receiveMessage(new HeardNoteInfo(tick, note)));
 			} else {
-				actionsToTake.add(() -> musician.receiveMessage(note));
+				actionsToTake.add(() -> musician.receiveMessage(new HeardNoteInfo(tick, note)));
 				System.out.println(musician.getId() + " put note back, queuesize=" + musician.getQueueSize());
 			}
 			break;

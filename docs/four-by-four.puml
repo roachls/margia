@@ -1,0 +1,46 @@
+@startuml
+
+agent a01
+agent a02
+agent a03
+agent a04
+agent a05
+agent a06
+agent a07
+agent a08
+agent a09
+agent a10
+agent a11
+agent a12
+agent a13
+agent a14
+agent a15
+agent a16
+
+a01 <-r-> a02
+a02 <-r-> a03
+a03 <-r-> a04
+a05 <-r-> a06
+a06 <-r-> a07
+a07 <-r-> a08
+a09 <-r-> a10
+a10 <-r-> a11
+a11 <-r-> a12
+a13 <-r-> a14
+a14 <-r-> a15
+a15 <-r-> a16
+
+a01 <-d-> a05
+a02 <-d-> a06
+a03 <-d-> a07
+a04 <-d-> a08
+a05 <-d-> a09
+a06 <-d-> a10
+a07 <-d-> a11
+a08 <-d-> a12
+a09 <-d-> a13
+a10 <-d-> a14
+a11 <-d-> a15
+a12 <-d-> a16
+
+@enduml

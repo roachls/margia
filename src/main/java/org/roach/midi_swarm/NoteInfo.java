@@ -6,5 +6,5 @@ package org.roach.midi_swarm;
  * @param length   the length of the note
  * 
  */
-public record NoteInfo(int note, int velocity, Length length) {
+public record NoteInfo(int note, int velocity, int length) {
 }

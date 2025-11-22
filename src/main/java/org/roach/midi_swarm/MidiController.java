@@ -93,7 +93,7 @@ public class MidiController {
 		}
 
 		// cut off note before start of next note to avoid notes that never get cut off
-		var noteCutoffTime = note.length().getMillisForTempo(tempo) - 10;
+		var noteCutoffTime = Length.getMillisForTempo(note.length(), tempo) - 10;
 		executors[midiChannel].schedule(() -> {
 			play(midiChannel, note, NOTE_ON);
 			try {

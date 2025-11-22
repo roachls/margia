@@ -3,6 +3,7 @@ package org.roach.midi_swarm;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import org.roach.midi_swarm.messages.HeardNoteInfo;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 public class MainStateBasedCircle {
@@ -40,10 +41,10 @@ public class MainStateBasedCircle {
 		musicians.get(6).addPeer(musicians.get(0));
 //		musicians.get(7).addPeer(musicians.get(0));
 
-		musicians.get(0).receiveMessage(new NoteInfo(57, Musician.START_VELOCITY, Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(-1, Musician.START_VELOCITY, Length.L1_16));
-		musicians.get(0).receiveMessage(new NoteInfo(65, Musician.START_VELOCITY, Length.L1_16));
+		musicians.get(0).receiveMessage(new HeardNoteInfo(0, new NoteInfo(57, Musician.START_VELOCITY, 1)));
+		musicians.get(0).receiveMessage(new HeardNoteInfo(1, new NoteInfo(60, Musician.START_VELOCITY, 1)));
+		musicians.get(0).receiveMessage(new HeardNoteInfo(2, new NoteInfo(-1, Musician.START_VELOCITY, 1)));
+		musicians.get(0).receiveMessage(new HeardNoteInfo(3, new NoteInfo(65, Musician.START_VELOCITY, 1)));
 
 		var transport = new Transport(musicians, tempo);
 		for (var musician : musicians) {
