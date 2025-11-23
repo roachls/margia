@@ -2,6 +2,7 @@ package org.roach.midi_swarm;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,7 +15,7 @@ public abstract class MusicianRule {
 	protected Musician musician;
 	protected final Logger logger = LogManager.getLogger(getClass());
 	protected List<Runnable> actionsToTake = new ArrayList<>();
-	protected static final NoteInfo REST = new NoteInfo(-1, 0, 1);
+	protected static final Function<Integer, NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
 
 	/**
 	 * @param musician the {@link Musician} that this rule applies to

@@ -21,7 +21,7 @@ public class Transport {
 		public Thread newThread(Runnable r) {
 			return new Thread(r, "transport");
 		}
-		
+
 	});
 	private Future<?> future;
 	private final int tickLength;
@@ -76,8 +76,14 @@ public class Transport {
 		executor.shutdownNow();
 		future = null;
 	}
-	
-	public void addTickAction(long tick, Runnable action) {
-		tickActions.put(tick, action);
+
+	/**
+	 * Register an action to be performed at a certain tick number
+	 * 
+	 * @param tickNum the tick in which to perform the action
+	 * @param action  the action to perform
+	 */
+	public void addTickAction(long tickNum, Runnable action) {
+		tickActions.put(tickNum, action);
 	}
 }

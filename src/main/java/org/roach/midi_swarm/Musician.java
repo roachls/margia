@@ -6,7 +6,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.midi_swarm.messages.HeardNoteInfo;
 import org.roach.midi_swarm.messages.MusicianMessage;
 
 /**
@@ -29,14 +28,13 @@ public class Musician {
 	public static final int START_VELOCITY = 64;
 	private final int id;
 	private final MidiController controller;
-	private final BlockingQueue<HeardNoteInfo> messageQueue = new LinkedBlockingQueue<>();
+	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
 	private final int channel;
 	private final List<Musician> peers = new ArrayList<>();
 	private final MusicianRule rule;
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
-	private Transport transport;
 
 	/**
 	 * @param id         unique id of this {@link Musician}
@@ -73,7 +71,7 @@ public class Musician {
 		controller.playNote(channel, note);
 		myLastNote = note;
 		notesIvePlayed++;
-		sendMessageToPeers(new HeardNoteInfo(transport.getTick(), note));
+		sendMessageToPeers(note);
 	}
 
 	/**
@@ -108,7 +106,7 @@ public class Musician {
 	 * @param message receive a note and place it on the message queue
 	 */
 	public void receiveMessage(MusicianMessage message) {
-		if (message instanceof HeardNoteInfo heardNote) {
+		if (message instanceof NoteInfo heardNote) {
 				this.messageQueue.offer(heardNote);
 		}
 	}
@@ -118,17 +116,6 @@ public class Musician {
 	 */
 	public void setMyLastNote(NoteInfo myLastNote) {
 		this.myLastNote = myLastNote;
-	}
-
-	/**
-	 * @param transport the transport that controls timing
-	 */
-	public void setTransport(Transport transport) {
-		this.transport = transport;
-	}
-	
-	public Transport getTransport() {
-		return this.transport;
 	}
 
 	/**
@@ -148,7 +135,7 @@ public class Musician {
 	/**
 	 * @return the next note in this musician's queue of heard notes
 	 */
-	public HeardNoteInfo getNextNoteHeard() {
+	public NoteInfo getNextNoteHeard() {
 		return messageQueue.poll();
 	}
 
@@ -194,10 +181,10 @@ public class Musician {
 	 * Rest for one 16th
 	 */
 	public void rest() {
-		controller.playNote(channel, MusicianRule.REST);
+		controller.playNote(channel, MusicianRule.REST.apply(1));
 	}
 	
-	public void sendMessageToPeers(MusicianMessage message) {
+	private void sendMessageToPeers(MusicianMessage message) {
 		for (var peer : peers) {
 			peer.receiveMessage(message);
 		}

@@ -3,7 +3,6 @@ package org.roach.midi_swarm;
 import java.util.List;
 import java.util.Scanner;
 
-import org.roach.midi_swarm.messages.HeardNoteInfo;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
@@ -19,8 +18,8 @@ public class TestSingleAgent {
 	public static void main(String[] args) {
 		var tempo = 60;
 		var controller = new MidiController("loopMIDI Port", tempo);
-		var r1 = new StateBasedRule();
-		var r2 = new StateBasedRule();
+		var r1 = new StateBasedRule(4);
+		var r2 = new StateBasedRule(4);
 		var musician1 = new Musician(0, controller, tempo, 0, r1);
 		r1.setMusician(musician1);
 		var musician2 = new Musician(1, controller, tempo, 1, r2);
@@ -29,14 +28,12 @@ public class TestSingleAgent {
 		musician2.addPeer(musician1);
 
 		var transport = new Transport(List.of(musician1, musician2), tempo);
-		musician1.setTransport(transport);
-		musician2.setTransport(transport);
 		transport.start();
 
-		musician1.receiveMessage(new HeardNoteInfo(0, new NoteInfo(60, 60, 1)));
-		musician1.receiveMessage(new HeardNoteInfo(1, new NoteInfo(62, 127, 2)));
-		musician1.receiveMessage(new HeardNoteInfo(3, new NoteInfo(63, 60, 1)));
-		musician1.receiveMessage(new HeardNoteInfo(4, new NoteInfo(65, 60, 4)));
+		musician1.receiveMessage(new NoteInfo(60, 60, 1));
+		musician1.receiveMessage(new NoteInfo(62, 127, 2));
+		musician1.receiveMessage(new NoteInfo(63, 60, 1));
+		musician1.receiveMessage(new NoteInfo(65, 60, 4));
 
 		try (var scanner = new Scanner(System.in)) {
 			scanner.nextLine();

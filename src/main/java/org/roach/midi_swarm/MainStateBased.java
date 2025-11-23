@@ -3,7 +3,6 @@ package org.roach.midi_swarm;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-import org.roach.midi_swarm.messages.HeardNoteInfo;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
@@ -27,7 +26,10 @@ public class MainStateBased {
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new StateBasedRule()));
+			var rule = new StateBasedRule(4);
+			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
+			rule.setMusician(musician);
+			musicians.add(musician);
 		}
 
 		/*
@@ -102,15 +104,12 @@ public class MainStateBased {
 		musicians.get(15).addPeer(musicians.get(14));
 		musicians.get(15).addPeer(musicians.get(11));
 
-		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(60, Musician.START_VELOCITY, 1)));
-		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(67, Musician.START_VELOCITY, 2)));
-		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(72, Musician.START_VELOCITY, 1)));
-		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(77, Musician.START_VELOCITY, 4)));
+		musicians.get(5).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, 1));
+		musicians.get(5).receiveMessage(new NoteInfo(67, Musician.START_VELOCITY, 2));
+		musicians.get(5).receiveMessage(new NoteInfo(72, Musician.START_VELOCITY, 1));
+		musicians.get(5).receiveMessage(new NoteInfo(77, Musician.START_VELOCITY, 4));
 
 		var transport = new Transport(musicians, tempo);
-		for (var musician : musicians) {
-			musician.setTransport(transport);
-		}
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {
