@@ -26,7 +26,7 @@ public class MainStateBasedCircle {
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			var rule = new StateBasedRule(5);
+			var rule = new StateBasedRule(5, 1);
 			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
@@ -45,7 +45,7 @@ public class MainStateBasedCircle {
 
 		musicians.get(0).receiveMessage(new NoteInfo(50, Musician.START_VELOCITY, 1));
 		musicians.get(0).receiveMessage(new NoteInfo(62, Musician.START_VELOCITY, 1));
-		musicians.get(0).receiveMessage(MusicianRule.REST.apply(2));
+		musicians.get(0).receiveMessage(MusicianRule.REST.apply(1));
 		musicians.get(0).receiveMessage(new NoteInfo(65, Musician.START_VELOCITY, 1));
 		musicians.get(0).receiveMessage(new NoteInfo(57, Musician.START_VELOCITY, 2));
 

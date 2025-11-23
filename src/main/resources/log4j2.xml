@@ -1,7 +1,7 @@
 <Configuration>
 	<Appenders>
 		<Console name="Console">
-			<PatternLayout pattern="%-5p [%t]: %m%n" />>
+			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />>
 		</Console>
 	</Appenders>
 	<Loggers>

@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class Transport {
 	private final List<Musician> musicians;
-	private long tick;
+	private long tick = 1;
 	private final Logger logger = LogManager.getLogger(getClass());
 	private final Map<Long, Runnable> tickActions = new HashMap<>();
 	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {

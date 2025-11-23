@@ -18,8 +18,8 @@ public class TestSingleAgent {
 	public static void main(String[] args) {
 		var tempo = 60;
 		var controller = new MidiController("loopMIDI Port", tempo);
-		var r1 = new StateBasedRule(4);
-		var r2 = new StateBasedRule(4);
+		var r1 = new StateBasedRule(4, 2);
+		var r2 = new StateBasedRule(4, 2);
 		var musician1 = new Musician(0, controller, tempo, 0, r1);
 		r1.setMusician(musician1);
 		var musician2 = new Musician(1, controller, tempo, 1, r2);
