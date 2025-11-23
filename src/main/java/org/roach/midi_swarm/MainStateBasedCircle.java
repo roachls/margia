@@ -22,8 +22,7 @@ public class MainStateBasedCircle {
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			musicians.add(
-					new Musician(i, controller, Key.CMajor, tempo, i % numExternalInstruments, new StateBasedRule()));
+			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new StateBasedRule()));
 		}
 
 		/*

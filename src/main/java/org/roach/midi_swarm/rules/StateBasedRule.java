@@ -1,65 +1,69 @@
 package org.roach.midi_swarm.rules;
 
-import org.roach.midi_swarm.*;
-import org.roach.midi_swarm.messages.HeardNoteInfo;
+import java.awt.image.DirectColorModel;
+
+import org.roach.midi_swarm.MusicianRule;
+import org.roach.midi_swarm.NoteInfo;
+import org.roach.midi_swarm.random.DieRoller;
 
 /**
  * A state-machine based agent
  */
 public class StateBasedRule extends MusicianRule {
-
-	private enum State {
-		START, PLAYING_A, PLAYING_B;
-	}
-
-	private State state = State.START;
+	private static final int SEQUENCE_LENGTH = 4;
+	private static final String DIRECT_REPEAT = "direct repeat";
+	private static final String UP_FOURTH = "up a 4th";
+	private static final String DOWN_THIRD = "down a third";
+	private int sequenceCountdown = SEQUENCE_LENGTH;
+	private String state = DIRECT_REPEAT;
+	private int tickCountdown;
 
 	@Override
 	public void calculateAction(long tick) {
-		var note = musician.getNextNoteHeard();
-		logger.atDebug().log("{}: ({}) heard {}, queue size={}", musician.getId(), state, note,
-				musician.getQueueSize());
-		if (note == null) {
-			logger.atDebug().log("{} heard nothing, returning", musician.getId());
+		if (tickCountdown > 0) {
+			tickCountdown--;
+		}
+		if (tickCountdown > 0) {
+			logger.atDebug().log("{}: tickCountdown={}, returning", musician.getId(), tickCountdown);
 			return;
 		}
+		var note = musician.getNextNoteHeard();
+		if (note == null) {
+			logger.atDebug().log("{}: note heard was null, returning", musician.getId());
+			return;
+		}
+		tickCountdown = note.noteInfo().length();
+		sequenceCountdown--;
 
 		switch (state) {
-		case START:
-			if (note != null) {
-				actionsToTake.add(() -> musician.playNote(note));
-			}
-			if (musician.getQueueSize() >= 3) {
-				if ((tick + note.note()) % 2 == 0)
-					state = State.PLAYING_A;
-				else
-					state = State.PLAYING_B;
-				actionsToTake.add(() -> musician.receiveMessage(new HeardNoteInfo(tick, note)));
-			} else {
-				actionsToTake.add(() -> musician.receiveMessage(new HeardNoteInfo(tick, note)));
-				System.out.println(musician.getId() + " put note back, queuesize=" + musician.getQueueSize());
-			}
+		case DIRECT_REPEAT:
+			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, note.noteInfo());
+			actionsToTake.add(() -> musician.playNote(note.noteInfo()));
 			break;
-		case PLAYING_A:
-			if (note.note() != -1) {
-				var noteUp = musician.getKey().upInterval(note.note(), 3);
-				actionsToTake.add(() -> musician.playNote(new NoteInfo(noteUp, note.velocity(), note.length())));
-			} else
-				actionsToTake.add(() -> musician.playNote(note));
-//			if (musician.getQueueSize() == 0)
-			state = State.START;
+		case UP_FOURTH: {
+			var fourthUp = Math.min(127, note.noteInfo().note() + 5);
+			var newNote = new NoteInfo(fourthUp, note.noteInfo().velocity(), note.noteInfo().length());
+			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
+			actionsToTake.add(() -> musician.playNote(newNote));
 			break;
-		case PLAYING_B:
-			if (note.note() != -1) {
-				var noteDown = musician.getKey().downInterval(note.note(), 2);
-				actionsToTake.add(() -> musician.playNote(new NoteInfo(noteDown, note.velocity(), note.length())));
-			} else
-				actionsToTake.add(() -> musician.playNote(note));
-//			if (musician.getQueueSize() == 0)
-			state = State.START;
+		}
+		case DOWN_THIRD: {
+			var thirdDown = Math.max(note.noteInfo().note() - 3, 0);
+			var newNote = new NoteInfo(thirdDown, note.noteInfo().velocity(), note.noteInfo().length());
+			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
+			actionsToTake.add(() -> musician.playNote(newNote));
 			break;
+		}
 		default:
-			break;
+			throw new IllegalStateException("Bad state: " + state);
+		}
+
+		if (sequenceCountdown == 0) {
+			var newState = DieRoller.rollDice("1d2") == 1 ? UP_FOURTH : DOWN_THIRD;
+//			var newState = (tick + musician.getMyLastNote().note() % 2 + musician.getId() == 0) ? UP_FOURTH : DOWN_THIRD;
+			logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
+			state = newState;
+			sequenceCountdown = SEQUENCE_LENGTH;
 		}
 	}
 

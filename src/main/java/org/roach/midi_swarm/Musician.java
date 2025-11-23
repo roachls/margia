@@ -6,7 +6,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.midi_swarm.messages.*;
+import org.roach.midi_swarm.messages.HeardNoteInfo;
+import org.roach.midi_swarm.messages.MusicianMessage;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -28,35 +29,27 @@ public class Musician {
 	public static final int START_VELOCITY = 64;
 	private final int id;
 	private final MidiController controller;
-	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
-	private final Key key;
+	private final BlockingQueue<HeardNoteInfo> messageQueue = new LinkedBlockingQueue<>();
 	private final int channel;
 	private final List<Musician> peers = new ArrayList<>();
-	private long lastTickIPlayedANote;
 	private final MusicianRule rule;
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
 	private Transport transport;
-	private int numNotesRemainingInSequence;
-	private NoteSequence sequence;
-	private final List<NoteInfo> notesToAddToSequence = new LinkedList<>();
-	private long repeatSequenceAtTick;
 
 	/**
 	 * @param id         unique id of this {@link Musician}
 	 * @param controller MIDI controller that will actually play the notes
-	 * @param key        key to use for generating notes
 	 * @param tempo      tempo to play at
 	 * @param channel    MIDI channel
 	 * @param rule       The rule that governs a musician's behavior
 	 */
-	public Musician(final int id, final MidiController controller, Key key, int tempo, int channel,
+	public Musician(final int id, final MidiController controller, int tempo, int channel,
 			final MusicianRule rule) {
 		this.id = id;
 		this.logger = LogManager.getLogger("Musician_" + id);
 		this.controller = controller;
-		this.key = key;
 		this.channel = channel;
 		this.rule = rule;
 		this.rule.setMusician(this);
@@ -81,7 +74,6 @@ public class Musician {
 		myLastNote = note;
 		notesIvePlayed++;
 		sendMessageToPeers(new HeardNoteInfo(transport.getTick(), note));
-		this.lastTickIPlayedANote = transport.getTick();
 	}
 
 	/**
@@ -99,7 +91,7 @@ public class Musician {
 	 * @param tick the tick number
 	 */
 	public void calculateAction(long tick) {
-		logger.atDebug().log("{}: tick={}, lastTickIPlayedANote={}", id, tick, lastTickIPlayedANote);
+		logger.atDebug().log("{}: tick={} calculateAction", id, tick);
 		rule.calculateAction(tick);
 	}
 
@@ -117,18 +109,7 @@ public class Musician {
 	 */
 	public void receiveMessage(MusicianMessage message) {
 		if (message instanceof HeardNoteInfo heardNote) {
-			if (isReceivingSequence()) {
-				notesToAddToSequence.add(heardNote.noteInfo());
-				numNotesRemainingInSequence--;
-				if (numNotesRemainingInSequence == 0) {
-					this.sequence = new NoteSequence(new ArrayList<>(notesToAddToSequence));
-				}
-			} else {
-				this.messageQueue.offer(heardNote.noteInfo());
-			}
-		}
-		if (message instanceof StartSequence startSequence) {
-			this.numNotesRemainingInSequence = startSequence.numNotesInSequence();
+				this.messageQueue.offer(heardNote);
 		}
 	}
 
@@ -158,13 +139,6 @@ public class Musician {
 	}
 
 	/**
-	 * @return the key in which this {@link Musician} is playing
-	 */
-	public Key getKey() {
-		return key;
-	}
-
-	/**
 	 * @return current number of notes in this {@link Musician musician's} queue
 	 */
 	public int getQueueSize() {
@@ -174,15 +148,8 @@ public class Musician {
 	/**
 	 * @return the next note in this musician's queue of heard notes
 	 */
-	public NoteInfo getNextNoteHeard() {
+	public HeardNoteInfo getNextNoteHeard() {
 		return messageQueue.poll();
-	}
-
-	/**
-	 * @return the tick number of the last time this musician played a note
-	 */
-	public long getLastTickIPlayedANote() {
-		return lastTickIPlayedANote;
 	}
 
 	/**
@@ -197,14 +164,6 @@ public class Musician {
 	 */
 	public void resetNotesIvePlayed() {
 		this.notesIvePlayed = 0;
-	}
-
-	/**
-	 * @param lastTickIPlayedANote the tick number of the last time this musician
-	 *                             played a note
-	 */
-	public void setLastTickIPlayedANote(long lastTickIPlayedANote) {
-		this.lastTickIPlayedANote = lastTickIPlayedANote;
 	}
 
 	/**
@@ -236,14 +195,6 @@ public class Musician {
 	 */
 	public void rest() {
 		controller.playNote(channel, MusicianRule.REST);
-	}
-	
-	public boolean isReceivingSequence() {
-		return numNotesRemainingInSequence > 0;
-	}
-	
-	public NoteSequence getSequence() {
-		return this.sequence;
 	}
 	
 	public void sendMessageToPeers(MusicianMessage message) {

@@ -27,8 +27,7 @@ public class MainStateBased {
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			musicians.add(
-					new Musician(i, controller, Key.Chromatic, tempo, i % numExternalInstruments, new StateBasedRule()));
+			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new StateBasedRule()));
 		}
 
 		/*
@@ -42,49 +41,71 @@ public class MainStateBased {
 		musicians.get(0).addPeer(musicians.get(1));
 		musicians.get(0).addPeer(musicians.get(4));
 
+		musicians.get(1).addPeer(musicians.get(0));
 		musicians.get(1).addPeer(musicians.get(2));
 		musicians.get(1).addPeer(musicians.get(5));
 
+		musicians.get(2).addPeer(musicians.get(1));
 		musicians.get(2).addPeer(musicians.get(3));
 		musicians.get(2).addPeer(musicians.get(6));
 
+		musicians.get(3).addPeer(musicians.get(2));
 		musicians.get(3).addPeer(musicians.get(7));
 
+		musicians.get(4).addPeer(musicians.get(0));
 		musicians.get(4).addPeer(musicians.get(5));
 		musicians.get(4).addPeer(musicians.get(8));
 
+		musicians.get(5).addPeer(musicians.get(1));
+		musicians.get(5).addPeer(musicians.get(4));
 		musicians.get(5).addPeer(musicians.get(6));
 		musicians.get(5).addPeer(musicians.get(9));
 
+		musicians.get(6).addPeer(musicians.get(2));
+		musicians.get(6).addPeer(musicians.get(5));
 		musicians.get(6).addPeer(musicians.get(7));
 		musicians.get(6).addPeer(musicians.get(10));
 
+		musicians.get(7).addPeer(musicians.get(3));
 		musicians.get(7).addPeer(musicians.get(6));
 		musicians.get(7).addPeer(musicians.get(11));
 
+		musicians.get(8).addPeer(musicians.get(4));
 		musicians.get(8).addPeer(musicians.get(9));
 		musicians.get(8).addPeer(musicians.get(12));
 
+		musicians.get(9).addPeer(musicians.get(5));
+		musicians.get(9).addPeer(musicians.get(8));
 		musicians.get(9).addPeer(musicians.get(10));
 		musicians.get(9).addPeer(musicians.get(13));
 
+		musicians.get(10).addPeer(musicians.get(6));
+		musicians.get(10).addPeer(musicians.get(9));
 		musicians.get(10).addPeer(musicians.get(11));
 		musicians.get(10).addPeer(musicians.get(14));
 
+		musicians.get(11).addPeer(musicians.get(7));
+		musicians.get(11).addPeer(musicians.get(10));
 		musicians.get(11).addPeer(musicians.get(15));
 
+		musicians.get(12).addPeer(musicians.get(8));
 		musicians.get(12).addPeer(musicians.get(13));
 
+		musicians.get(13).addPeer(musicians.get(9));
+		musicians.get(13).addPeer(musicians.get(12));
 		musicians.get(13).addPeer(musicians.get(14));
 
+		musicians.get(14).addPeer(musicians.get(10));
+		musicians.get(14).addPeer(musicians.get(13));
 		musicians.get(14).addPeer(musicians.get(15));
 
-		musicians.get(15).addPeer(musicians.get(0));
+		musicians.get(15).addPeer(musicians.get(14));
+		musicians.get(15).addPeer(musicians.get(11));
 
-		musicians.get(0).receiveMessage(new HeardNoteInfo(0, new NoteInfo(57, Musician.START_VELOCITY, 1)));
-		musicians.get(0).receiveMessage(new HeardNoteInfo(1, new NoteInfo(60, Musician.START_VELOCITY, 1)));
-		musicians.get(0).receiveMessage(new HeardNoteInfo(2, MusicianRule.REST));
-		musicians.get(0).receiveMessage(new HeardNoteInfo(3, new NoteInfo(65, Musician.START_VELOCITY, 1)));
+		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(60, Musician.START_VELOCITY, 1)));
+		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(67, Musician.START_VELOCITY, 2)));
+		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(72, Musician.START_VELOCITY, 1)));
+		musicians.get(5).receiveMessage(new HeardNoteInfo(0, new NoteInfo(77, Musician.START_VELOCITY, 4)));
 
 		var transport = new Transport(musicians, tempo);
 		for (var musician : musicians) {
