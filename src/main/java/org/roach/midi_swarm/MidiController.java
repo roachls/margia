@@ -2,7 +2,7 @@ package org.roach.midi_swarm;
 
 import static javax.sound.midi.ShortMessage.*;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,7 +17,14 @@ import org.apache.logging.log4j.Logger;
 public class MidiController {
 
 	private static final Logger LOGGER = LogManager.getLogger(MidiController.class);
-	private static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
+	/**
+	 * Default Windows synth
+	 */
+	public static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
+	/**
+	 * External MIDI synth via loopMIDI
+	 */
+	public static final String LOOP_MIDI = "loopMIDI Port";
 	private MidiDevice outputDevice;
 	private Receiver receiver;
 	// one executor per MIDI channel
@@ -131,7 +138,7 @@ public class MidiController {
 	public void close() {
 		try {
 			for (var executor : executors) {
-				executor.shutdown();
+				executor.shutdownNow();
 				executor.awaitTermination(2, TimeUnit.SECONDS);
 			}
 		} catch (InterruptedException e) {

@@ -5,7 +5,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.roach.midi_swarm.MusicianRule;
 import org.roach.midi_swarm.NoteInfo;
-import org.roach.midi_swarm.random.DieRoller;
 
 /**
  * A state-machine based agent
@@ -13,8 +12,8 @@ import org.roach.midi_swarm.random.DieRoller;
 public class StateBasedRule extends MusicianRule {
 	private final int sequenceLength;
 	private static final String DIRECT_REPEAT = "direct repeat";
-	private static final String UP_FOURTH = "up a 4th";
-	private static final String DOWN_FOURTH = "down a third";
+	private static final String UP_MINOR_THIRD = "up m3";
+	private static final String UP_FIFTH = "up p5";
 	private int sequenceCountdown;
 	private String state = DIRECT_REPEAT;
 	private int tickCountdown;
@@ -23,7 +22,7 @@ public class StateBasedRule extends MusicianRule {
 
 	/**
 	 * @param sequenceLength sequence length
-	 * @param tickDelay number of ticks to delay before repeating a sequence
+	 * @param tickDelay      number of ticks to delay before repeating a sequence
 	 */
 	public StateBasedRule(final int sequenceLength, final int tickDelay) {
 		if (sequenceLength < 1)
@@ -65,12 +64,10 @@ public class StateBasedRule extends MusicianRule {
 			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, note);
 			actionsToTake.add(() -> musician.playNote(note));
 			break;
-		case UP_FOURTH: {
+		case UP_MINOR_THIRD: {
 			if (note.note() != -1) { // note a rest
-				var fourthUp = note.note() + 5;
-				if (fourthUp > 127)
-					fourthUp -= 128;
-				var newNote = new NoteInfo(fourthUp, note.velocity(), note.length());
+				var thirdUp = note.note() + 3;
+				var newNote = new NoteInfo(thirdUp, note.velocity(), note.length());
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
 				actionsToTake.add(() -> musician.playNote(newNote));
 			} else {
@@ -78,12 +75,10 @@ public class StateBasedRule extends MusicianRule {
 			}
 			break;
 		}
-		case DOWN_FOURTH: {
+		case UP_FIFTH: {
 			if (note.note() != -1) { // not a rest
-				var fourthDown = note.note() - 5;
-				if (fourthDown < 0)
-					fourthDown += 128;
-				var newNote = new NoteInfo(fourthDown, note.velocity(), note.length());
+				var fifthUp = note.note() + 4;
+				var newNote = new NoteInfo(fifthUp, note.velocity(), note.length());
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
 				actionsToTake.add(() -> musician.playNote(newNote));
 			} else {
@@ -96,7 +91,12 @@ public class StateBasedRule extends MusicianRule {
 		}
 
 		if (sequenceCountdown == 0) {
-			var newState = DieRoller.rollDice("1d2") == 1 ? UP_FOURTH : DOWN_FOURTH;
+			var newState = switch (state) {
+			case DIRECT_REPEAT -> UP_MINOR_THIRD;
+			case UP_MINOR_THIRD -> UP_FIFTH;
+			case UP_FIFTH -> UP_MINOR_THIRD;
+			default -> throw new IllegalStateException("No such state: " + state);
+			};
 			logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
 			state = newState;
 			sequenceCountdown = sequenceLength;

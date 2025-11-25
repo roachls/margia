@@ -23,8 +23,8 @@ public class MainRandom {
 		var numMusicians = 16;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
-		var controller = new MidiController("loopMIDI Port", tempo);
-//		var controller = new MidiController(DEFAULT_SYNTH, tempo);
+//		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
+		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
 			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new RandomRule()));

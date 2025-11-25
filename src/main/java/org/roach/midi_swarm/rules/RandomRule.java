@@ -32,7 +32,7 @@ public class RandomRule extends MusicianRule {
 
 		var note = musician.getNextNoteHeard();
 		logger.atDebug().log("{}: heard {}", musician.getId(), note);
-		if (note == null || note.equals(REST)) {
+		if (note == null || note.equals(REST.apply(1))) {
 			logger.atDebug().log("{}: heard null or rest, returning");
 			return;
 		}

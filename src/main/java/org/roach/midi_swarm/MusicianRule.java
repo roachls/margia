@@ -37,7 +37,7 @@ public abstract class MusicianRule {
 	 */
 	public void doAction(long tick) {
 		if (actionsToTake.isEmpty()) {
-			logger.atWarn().log("{}: no actions to take", musician.getId());
+			logger.atDebug().log("{}: no actions to take", musician.getId());
 			return;
 		}
 		for (var action : actionsToTake) {

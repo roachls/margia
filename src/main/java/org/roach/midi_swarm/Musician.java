@@ -35,6 +35,25 @@ public class Musician {
 	private int notesIvePlayed;
 	private NoteInfo myLastNote;
 	private final Logger logger;
+	private int rangeLow = 0;
+	private int rangeHi = 127;
+	private boolean muted;
+
+	/**
+	 * @return true if this musician is muted
+	 */
+	public boolean isMuted() {
+		return muted;
+	}
+
+	/**
+	 * @param muted true to mute this musician. A muted musician won't actually play
+	 *              a note to the MIDI controller, but other musicians will still
+	 *              hear it.
+	 */
+	public void setMuted(boolean muted) {
+		this.muted = muted;
+	}
 
 	/**
 	 * @param id         unique id of this {@link Musician}
@@ -43,8 +62,7 @@ public class Musician {
 	 * @param channel    MIDI channel
 	 * @param rule       The rule that governs a musician's behavior
 	 */
-	public Musician(final int id, final MidiController controller, int tempo, int channel,
-			final MusicianRule rule) {
+	public Musician(final int id, final MidiController controller, int tempo, int channel, final MusicianRule rule) {
 		this.id = id;
 		this.logger = LogManager.getLogger("Musician_" + id);
 		this.controller = controller;
@@ -67,10 +85,16 @@ public class Musician {
 	public void playNote(NoteInfo note) {
 		if (note == null)
 			return;
-		logger.atDebug().log("{}: playing note {} on channel {}", id, note, channel);
-		controller.playNote(channel, note);
-		myLastNote = note;
+		var n = new NoteInfo(adjustNoteInRange(note.note()), note.velocity(), note.length());
+		if (muted) {
+			logger.atDebug().log("{} is muted");
+		} else {
+			logger.atDebug().log("{}: playing note {} on channel {}", id, n, channel);
+			controller.playNote(channel, n);
+		}
+		myLastNote = n;
 		notesIvePlayed++;
+		// pass on actual note received, not note played
 		sendMessageToPeers(note);
 	}
 
@@ -107,7 +131,8 @@ public class Musician {
 	 */
 	public void receiveMessage(MusicianMessage message) {
 		if (message instanceof NoteInfo heardNote) {
-				this.messageQueue.offer(heardNote);
+			this.messageQueue.offer(heardNote);
+			logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
 		}
 	}
 
@@ -147,6 +172,42 @@ public class Musician {
 	}
 
 	/**
+	 * @param rangeLow the lowest note that this musician can  (default is 0)
+	 * @return the musician
+	 */
+	public Musician setRangeLow(int rangeLow) {
+		if (rangeLow < 0 || rangeLow > 127)
+			throw new IllegalArgumentException("range low must be between 0 and 127");
+		this.rangeLow = rangeLow;
+		return this;
+	}
+
+	/**
+	 * @param rangeHi the highest note that this musician can play (default is 127)
+	 * @return the musician
+	 */
+	public Musician setRangeHi(int rangeHi) {
+		if (rangeHi < 0 || rangeHi > 127)
+			throw new IllegalArgumentException("range high must be between 0 and 127");
+		this.rangeHi = rangeHi;
+		return this;
+	}
+
+	/**
+	 * @return the lowest note that this musician can play
+	 */
+	public int getRangeLow() {
+		return rangeLow;
+	}
+
+	/**
+	 * @return the highest note that this musician can play
+	 */
+	public int getRangeHi() {
+		return rangeHi;
+	}
+
+	/**
 	 * reset the number of notes this musician has played
 	 */
 	public void resetNotesIvePlayed() {
@@ -183,10 +244,24 @@ public class Musician {
 	public void rest() {
 		controller.playNote(channel, MusicianRule.REST.apply(1));
 	}
-	
+
 	private void sendMessageToPeers(MusicianMessage message) {
 		for (var peer : peers) {
 			peer.receiveMessage(message);
 		}
+	}
+
+	private int adjustNoteInRange(int note) {
+		var n = note;
+		if (n > rangeHi) {
+			while (n > rangeHi) {
+				n -= 12;
+			}
+		} else if (n < rangeLow) {
+			while (n < rangeLow) {
+				n += 12;
+			}
+		}
+		return n;
 	}
 }

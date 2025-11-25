@@ -19,18 +19,30 @@ public class MainStateBasedCircle {
 			System.err.println("Usage: tempo numExternalInstruments");
 			return;
 		}
-		var numMusicians = 16;
+		var numMusicians = 2;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
-		var controller = new MidiController("loopMIDI Port", tempo);
-//		var controller = new MidiController(DEFAULT_SYNTH, tempo);
+//		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
+		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
-		for (int i = 0; i < numMusicians; i++) {
-			var rule = new StateBasedRule(5, 1);
-			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
+		var rule = new StateBasedRule(4, 5);
+		var musician = new Musician(0, controller, tempo, 0, rule);
+		musicians.add(musician);
+
+		for (int i = 1; i < numMusicians; i++) {
+			rule = new StateBasedRule(4, 0);
+			musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
+//		musicians.get(1).setMuted(true);
+
+//		musicians.get(0).setRangeLow(48).setRangeHi(92);
+//		musicians.get(1).setRangeLow(48).setRangeHi(92);
+//		musicians.get(2).setRangeHi(48);
+//		musicians.get(5).setRangeLow(24).setRangeHi(48);
+//		musicians.get(7).setRangeLow(60).setRangeHi(60+15);
+//		musicians.get(8).setRangeLow(36).setRangeHi(47);
 
 		/*
 		 * @formatter:off
@@ -43,13 +55,19 @@ public class MainStateBasedCircle {
 		}
 		musicians.get(numMusicians - 1).addPeer(musicians.get(0));
 
-		musicians.get(0).receiveMessage(new NoteInfo(50, Musician.START_VELOCITY, 1));
-		musicians.get(0).receiveMessage(new NoteInfo(62, Musician.START_VELOCITY, 1));
-		musicians.get(0).receiveMessage(MusicianRule.REST.apply(1));
-		musicians.get(0).receiveMessage(new NoteInfo(65, Musician.START_VELOCITY, 1));
-		musicians.get(0).receiveMessage(new NoteInfo(57, Musician.START_VELOCITY, 2));
-
 		var transport = new Transport(musicians, tempo);
+		transport.addTickAction(0, () -> {
+			var m = musicians.get(0);
+			m.receiveMessage(new NoteInfo(-1, 0, 1));
+			m.receiveMessage(new NoteInfo(-1, 0, 1));
+			m.receiveMessage(new NoteInfo(-1, 0, 1));
+			m.receiveMessage(new NoteInfo(-1, 0, 1));
+			m.receiveMessage(new NoteInfo(-1, 0, 1));
+		});
+		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(50, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(52, Musician.START_VELOCITY, 1)));
+		transport.addTickAction(4, () -> musicians.get(0).playNote(new NoteInfo(50, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(6, () -> musicians.get(0).playNote(new NoteInfo(52, Musician.START_VELOCITY, 1)));
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

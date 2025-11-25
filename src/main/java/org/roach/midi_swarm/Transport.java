@@ -71,7 +71,7 @@ public class Transport {
 	 */
 	public void stop() {
 		if (future != null) {
-			future.cancel(false);
+			future.cancel(true);
 		}
 		executor.shutdownNow();
 		future = null;
