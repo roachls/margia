@@ -19,11 +19,11 @@ public class MainStateBasedCircle {
 			System.err.println("Usage: tempo numExternalInstruments");
 			return;
 		}
-		var numMusicians = 2;
+		var numMusicians = 8;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
-//		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
-		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
+		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
+//		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		var rule = new StateBasedRule(4, 5);
 		var musician = new Musician(0, controller, tempo, 0, rule);
@@ -37,12 +37,12 @@ public class MainStateBasedCircle {
 		}
 //		musicians.get(1).setMuted(true);
 
-//		musicians.get(0).setRangeLow(48).setRangeHi(92);
-//		musicians.get(1).setRangeLow(48).setRangeHi(92);
-//		musicians.get(2).setRangeHi(48);
-//		musicians.get(5).setRangeLow(24).setRangeHi(48);
-//		musicians.get(7).setRangeLow(60).setRangeHi(60+15);
-//		musicians.get(8).setRangeLow(36).setRangeHi(47);
+		musicians.get(0).setRangeLow(48).setRangeHi(92);
+		musicians.get(1).setRangeLow(48).setRangeHi(92);
+		musicians.get(2).setRangeHi(48);
+		musicians.get(4).setRangeLow(24).setRangeHi(48);
+		musicians.get(6).setRangeLow(60).setRangeHi(60+15);
+		musicians.get(7).setRangeLow(36).setRangeHi(47);
 
 		/*
 		 * @formatter:off
