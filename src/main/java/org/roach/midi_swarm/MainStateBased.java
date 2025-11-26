@@ -1,7 +1,6 @@
 package org.roach.midi_swarm;
 
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.*;
 
 import org.roach.midi_swarm.rules.StateBasedRule;
 
@@ -31,6 +30,12 @@ public class MainStateBased {
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
+
+		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
+		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
 
 		/*
 		 * @formatter:off
@@ -109,7 +114,7 @@ public class MainStateBased {
 		musicians.get(5).receiveMessage(new NoteInfo(72, Musician.START_VELOCITY, 1));
 		musicians.get(5).receiveMessage(new NoteInfo(77, Musician.START_VELOCITY, 1));
 
-		var transport = new Transport(musicians, tempo);
+		var transport = new Transport(musicians, tempo, controller);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

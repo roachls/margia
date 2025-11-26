@@ -17,7 +17,7 @@ public class TestSingleAgent {
 	 */
 	public static void main(String[] args) {
 		var tempo = 60;
-		var controller = new MidiController("loopMIDI Port", tempo);
+		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var r1 = new StateBasedRule(4, 2);
 		var r2 = new StateBasedRule(4, 2);
 		var musician1 = new Musician(0, controller, tempo, 0, r1);
@@ -27,7 +27,7 @@ public class TestSingleAgent {
 		musician1.addPeer(musician2);
 		musician2.addPeer(musician1);
 
-		var transport = new Transport(List.of(musician1, musician2), tempo);
+		var transport = new Transport(List.of(musician1, musician2), tempo, controller);
 		transport.start();
 
 		musician1.receiveMessage(new NoteInfo(60, 60, 1));

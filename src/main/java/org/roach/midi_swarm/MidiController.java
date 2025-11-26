@@ -2,7 +2,7 @@ package org.roach.midi_swarm;
 
 import static javax.sound.midi.ShortMessage.*;
 
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,6 +10,7 @@ import javax.sound.midi.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.midi_swarm.util.NamedThreadFactory;
 
 /**
  * Sends MIDI messages to external (or internal) MIDI instruments
@@ -28,15 +29,10 @@ public class MidiController {
 	private MidiDevice outputDevice;
 	private Receiver receiver;
 	// one executor per MIDI channel
-	private final ScheduledExecutorService[] executors = new ScheduledExecutorService[16];
+	private final ScheduledExecutorService executor = Executors
+			.newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
+	private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
 	private final int tempo;
-
-	private void initExecutors() {
-		for (var i = 0; i < 16; i++) {
-			var wrappedNum = new AtomicInteger(i);
-			executors[i] = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "player_" + wrappedNum.get()));
-		}
-	}
 
 	/**
 	 * @param busName name of MIDI bus to send notes on
@@ -79,14 +75,13 @@ public class MidiController {
 			receiver = outputDevice.getReceiver(); // Get the receiver to send MIDI messages
 
 			LOGGER.atInfo().log("Using MIDI output device: {}", outputDevice.getDeviceInfo().getName());
-			initExecutors();
 		} catch (MidiUnavailableException e) {
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * Plays the given notes as a chord
+	 * Set the given note to play next on the given MIDI channel
 	 * 
 	 * @param midiChannel MIDI channel to send on
 	 * @param note        note to send
@@ -99,17 +94,24 @@ public class MidiController {
 			return;
 		}
 
-		// cut off note before start of next note to avoid notes that never get cut off
-		var noteCutoffTime = Length.getMillisForTempo(note.length(), tempo) - 10;
-		executors[midiChannel].schedule(() -> {
-			play(midiChannel, note, NOTE_ON);
-			try {
-				TimeUnit.MILLISECONDS.sleep(noteCutoffTime);
-				play(midiChannel, note, NOTE_OFF);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
+		notesToPlayNext.put(midiChannel, note);
+	}
+
+	/**
+	 * Actually play notes for this tick to be played
+	 */
+	public void playNotesThisTick() {
+		for (var i = 0; i < 16; i++) {
+			var ai = new AtomicInteger(i);
+			if (notesToPlayNext.containsKey(i)) {
+				var noteInfo = notesToPlayNext.get(i);
+				// stop note at 95% length
+				var noteLengthInMillis = (int) ((double) Length.getMillisForTempo(noteInfo.length(), tempo) * 0.95);
+				executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON), 0L, TimeUnit.MILLISECONDS);
+				executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis, TimeUnit.MILLISECONDS);
 			}
-		}, 0, TimeUnit.MILLISECONDS);
+		}
+		notesToPlayNext.clear();
 	}
 
 	private void play(int midiChannel, NoteInfo note, int eventType) {
@@ -137,10 +139,8 @@ public class MidiController {
 	 */
 	public void close() {
 		try {
-			for (var executor : executors) {
-				executor.shutdownNow();
-				executor.awaitTermination(2, TimeUnit.SECONDS);
-			}
+			executor.shutdown();
+			executor.awaitTermination(2, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
@@ -154,7 +154,7 @@ public class MidiController {
 	}
 
 	private void allNotesOff() {
-		System.out.println("**** All notes off");
+		LOGGER.atInfo().log("**** All notes off");
 		try {
 			for (int i = 0; i < 16; i++) {
 				for (int n = 0; n < 128; n++) {

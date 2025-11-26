@@ -5,6 +5,7 @@ import java.util.concurrent.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.midi_swarm.util.NamedThreadFactory;
 
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every
@@ -15,24 +16,20 @@ public class Transport {
 	private long tick = 1;
 	private final Logger logger = LogManager.getLogger(getClass());
 	private final Map<Long, Runnable> tickActions = new HashMap<>();
-	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-
-		@Override
-		public Thread newThread(Runnable r) {
-			return new Thread(r, "transport");
-		}
-
-	});
+	private final MidiController controller;
+	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
 	private Future<?> future;
 	private final int tickLength;
 
 	/**
-	 * @param musicians the musicians
-	 * @param tempo     the tempo
+	 * @param musicians  the musicians
+	 * @param tempo      the tempo
+	 * @param controller the MIDI controller
 	 */
-	public Transport(final List<Musician> musicians, int tempo) {
+	public Transport(final List<Musician> musicians, int tempo, final MidiController controller) {
 		this.musicians = musicians;
 		this.tickLength = Length.getMillisForTempo(1, tempo);
+		this.controller = controller;
 	}
 
 	/**
@@ -62,6 +59,8 @@ public class Transport {
 			}
 			musicians.forEach(m -> m.calculateAction(tick));
 			musicians.forEach(m -> m.doAction(tick));
+			controller.playNotesThisTick();
+
 			tick++;
 		}, 0, tickLength, TimeUnit.MILLISECONDS);
 	}

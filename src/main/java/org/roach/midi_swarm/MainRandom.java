@@ -103,7 +103,7 @@ public class MainRandom {
 		musicians.get(15).addPeer(musicians.get(11));
 		musicians.get(15).addPeer(musicians.get(0));
 
-		var transport = new Transport(musicians, tempo);
+		var transport = new Transport(musicians, tempo, controller);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

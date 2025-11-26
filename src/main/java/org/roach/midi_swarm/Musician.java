@@ -26,6 +26,10 @@ public class Musician {
 	 * Medium velocity starting point
 	 */
 	public static final int START_VELOCITY = 64;
+	/**
+	 * maximum size the queue is allowed to reach before new notes are ignored
+	 */
+	public static final int MAX_QUEUE_SIZE = 12;
 	private final int id;
 	private final MidiController controller;
 	private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
@@ -132,8 +136,12 @@ public class Musician {
 	 */
 	public void receiveMessage(MusicianMessage message) {
 		if (message instanceof NoteInfo heardNote) {
-			this.messageQueue.offer(heardNote);
-			logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
+			if (messageQueue.size() <= MAX_QUEUE_SIZE) {
+				this.messageQueue.offer(heardNote);
+				logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
+			} else {
+				logger.atDebug().log("{}: ignoring message because queue is filling up");
+			}
 		}
 	}
 

@@ -38,7 +38,7 @@ public class MainRandomSimple {
 		musicians.get(0).addPeer(musicians.get(1));
 		musicians.get(1).addPeer(musicians.get(0));
 
-		var transport = new Transport(musicians, tempo);
+		var transport = new Transport(musicians, tempo, controller);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

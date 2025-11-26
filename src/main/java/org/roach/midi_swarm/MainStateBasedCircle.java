@@ -54,7 +54,7 @@ public class MainStateBasedCircle {
 		}
 		musicians.get(numMusicians - 1).addPeer(musicians.get(0));
 
-		var transport = new Transport(musicians, tempo);
+		var transport = new Transport(musicians, tempo, controller);
 		transport.addTickAction(0, () -> {
 			var m = musicians.get(0);
 			m.receiveMessage(new NoteInfo(-1, 0, 1));
