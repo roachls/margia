@@ -1,6 +1,7 @@
 package org.roach.midi_swarm.rules;
 
 import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.actions.*;
 import org.roach.midi_swarm.random.DieRoller;
 
 /**
@@ -12,20 +13,14 @@ public class RandomRule extends MusicianRule {
 	public void calculateAction(long tick) {
 		if (musician.getNotesIvePlayed() >= 5) {
 			logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
-			actionsToTake.add(() -> musician.playNote(REST.apply(1)));
-			actionsToTake.add(() -> musician.resetNotesIvePlayed());
+			actionsToTake.add(new PlayNote(musician, REST.apply(1)));
+			actionsToTake.add(new ResetPlayedNotes(musician));
 			return;
 		}
 		if (musician.getQueueSize() == 0) {
 			logger.atDebug().log("{} queue is empty", musician.getId());
 			if (musician.getId() == 0) {
-				var rand = DieRoller.rollDice("2d6");
-				if (rand <= 4) {
-					var randomNoteNum = DieRoller.rollDice("8d16") - 1;
-					var randomNote = new NoteInfo(randomNoteNum, Musician.START_VELOCITY, 1);
-					logger.atDebug().log("{}: playing {}", musician.getId(), randomNote);
-					actionsToTake.add(() -> musician.playNote(randomNote));
-				}
+				actionsToTake.add(new PlayRandomNote(musician, "2d6", 4));
 			}
 			return;
 		}
@@ -40,48 +35,40 @@ public class RandomRule extends MusicianRule {
 		var r = DieRoller.rollDice("2d5");
 		switch (r) {
 		case 2: {
-			actionsToTake.add(() -> musician
-					.playNote(new NoteInfo(Math.min(127, note.noteNum() + 7), note.velocity(), 1)));
+			actionsToTake.add(new PlayNoteUpInterval(musician, note, 5));
 			break;
 		}
 		case 3:
-			actionsToTake.add(() -> musician.playNote(musician.getMyLastNote()));
+			actionsToTake.add(new RepeatLastNote(musician));
 			break;
 		case 4: {
 			var coinToss = DieRoller.rollDice("1d2");
 			if (coinToss == 1) {
-				var vel = Math.max(Musician.MIN_VELOCITY, note.velocity() - 10);
-				actionsToTake.add(
-						() -> musician.playNote(new NoteInfo(note.noteNum(), vel, note.length())));
+				actionsToTake.add(new PlayNoteDownVelocity(musician, note, 10));
 			} else {
-				var vel = Math.min(Musician.MAX_VELOCITY, note.velocity() + 10);
-				actionsToTake.add(
-						() -> musician.playNote(new NoteInfo(note.noteNum(), vel, note.length())));
+				actionsToTake.add(new PlayNoteUpVelocity(musician, note, 10));
 			}
 			break;
 		}
 		case 5:
-			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.min(note.noteNum() + 12, 127),
-					note.velocity(), note.length())));
+			actionsToTake.add(new PlayNoteUpOctave(musician, note));
 			break;
 		case 6:
-			actionsToTake.add(() -> musician.setMyLastNote(note));
-			actionsToTake.add(() -> musician.rest());
+			actionsToTake.add(new SetLastNote(musician, note));
+			actionsToTake.add(new RestOneTick(musician));
 			break;
 		case 7:
 			actionsToTake.add(() -> musician.receiveMessage(note));
 			break;
 		case 8:
-			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.max(note.noteNum() - 12, 0),
-					note.velocity(), note.length())));
+			actionsToTake.add(new PlayNoteDownOctave(musician, note));
 			break;
 		case 9: {
-			var dNote = Math.max(0, note.noteNum() - 4);
-			actionsToTake.add(() -> musician.playNote(new NoteInfo(dNote, note.velocity(), 2)));
+			actionsToTake.add(new PlayNoteDownInterval(musician, note, 3));
 			break;
 		}
 		case 10:
-			actionsToTake.add(() -> musician.playNote(note));
+			actionsToTake.add(new PlayNote(musician, note));
 			break;
 		default:
 			break;

@@ -1,7 +1,6 @@
 package org.roach.midi_swarm.mains;
 
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.*;
 
 import org.roach.midi_swarm.*;
 import org.roach.midi_swarm.rules.RandomRule;
@@ -24,12 +23,35 @@ public class MainRandom {
 		var numMusicians = 16;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
-//		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
-		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
+		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
+//		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
 			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new RandomRule()));
 		}
+
+		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(0+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(1+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
+		musicians.get(2+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
+		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(4+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(6).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(6+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
+		musicians.get(7+8).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
+		
+		// mute 2nd and 3rd rows
+		musicians.get(4).setMuted(true);
+		musicians.get(5).setMuted(true);
+		musicians.get(6).setMuted(true);
+		musicians.get(7).setMuted(true);
+		musicians.get(8).setMuted(true);
+		musicians.get(9).setMuted(true);
+		musicians.get(10).setMuted(true);
+		musicians.get(11).setMuted(true);
 
 		/*
 		 * @formatter:off

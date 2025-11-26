@@ -269,6 +269,13 @@ public class Musician {
 	public void rest() {
 		controller.playNote(channel, MusicianRule.REST.apply(1));
 	}
+	
+	/**
+	 * @return this {@link Musician musician's logger}
+	 */
+	public Logger getLogger() {
+		return logger;
+	}
 
 	private void sendMessageToPeers(MusicianMessage message) {
 		for (var peer : peers) {

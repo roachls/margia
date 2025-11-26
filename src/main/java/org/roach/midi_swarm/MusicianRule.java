@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.midi_swarm.actions.MusicalAction;
 
 /**
  * A rule for a {@link Musician} to follow when it 'hears' a note
@@ -14,7 +15,7 @@ public abstract class MusicianRule {
 
 	protected Musician musician;
 	protected final Logger logger = LogManager.getLogger(getClass());
-	protected List<Runnable> actionsToTake = new ArrayList<>();
+	protected List<MusicalAction> actionsToTake = new ArrayList<>();
 	protected static final Function<Integer, NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
 
 	/**
@@ -41,7 +42,7 @@ public abstract class MusicianRule {
 			return;
 		}
 		for (var action : actionsToTake) {
-			action.run();
+			action.perform();
 		}
 		actionsToTake.clear();
 	}

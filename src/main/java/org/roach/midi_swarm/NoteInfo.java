@@ -18,12 +18,16 @@ public record NoteInfo(int noteNum, int velocity, int length) implements Musicia
 	 * @param length   length in ticks (&gt;= 1)
 	 */
 	public NoteInfo {
-		if (noteNum < -1 || noteNum > 127)
-			throw new IllegalArgumentException("note must be between -1 and 127 inclusive");
-		if (velocity < 0 || velocity > 127)
-			throw new IllegalArgumentException("velocity must be between 0 and 127 inclusive");
+		if (noteNum < -1)
+			noteNum = -1;
+		else if (noteNum > 127)
+			noteNum = 127;
+		if (velocity < Musician.MIN_VELOCITY)
+			velocity = Musician.MIN_VELOCITY;
+		else if (velocity > Musician.MAX_VELOCITY)
+			velocity = Musician.MAX_VELOCITY;
 		if (length < 1)
-			throw new IllegalArgumentException("length must at least 1");
+			length = 1;
 	}
 
 	/**

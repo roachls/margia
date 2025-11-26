@@ -5,6 +5,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.roach.midi_swarm.MusicianRule;
 import org.roach.midi_swarm.NoteInfo;
+import org.roach.midi_swarm.actions.PlayNote;
 
 /**
  * A state-machine based agent
@@ -12,8 +13,8 @@ import org.roach.midi_swarm.NoteInfo;
 public class StateBasedRule extends MusicianRule {
 	private final int sequenceLength;
 	private static final String DIRECT_REPEAT = "direct repeat";
-	private static final String UP_MINOR_THIRD = "up m3";
-	private static final String UP_FIFTH = "up p5";
+	private static final String UP_THIRD = "up third";
+	private static final String DOWN_SECOND = "down second";
 	private int sequenceCountdown;
 	private String state = DIRECT_REPEAT;
 	private int tickCountdown;
@@ -62,27 +63,27 @@ public class StateBasedRule extends MusicianRule {
 		switch (state) {
 		case DIRECT_REPEAT:
 			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, note);
-			actionsToTake.add(() -> musician.playNote(note));
+			actionsToTake.add(new PlayNote(musician, note));
 			break;
-		case UP_MINOR_THIRD: {
+		case UP_THIRD: {
 			if (note.noteNum() != -1) { // note a rest
 				var thirdUp = musician.getKey().up(note.noteNum(), 3);
 				var newNote = note.withNote(thirdUp);
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
-				actionsToTake.add(() -> musician.playNote(newNote));
+				actionsToTake.add(new PlayNote(musician, newNote));
 			} else {
-				actionsToTake.add(() -> musician.playNote(note));
+				actionsToTake.add(new PlayNote(musician, note));
 			}
 			break;
 		}
-		case UP_FIFTH: {
+		case DOWN_SECOND: {
 			if (note.noteNum() != -1) { // not a rest
 				var fifthUp = musician.getKey().down(note.noteNum(), 2);
 				var newNote = note.withNote(fifthUp);
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
-				actionsToTake.add(() -> musician.playNote(newNote));
+				actionsToTake.add(new PlayNote(musician, newNote));
 			} else {
-				actionsToTake.add(() -> musician.playNote(note));
+				actionsToTake.add(new PlayNote(musician, note));
 			}
 			break;
 		}
@@ -92,9 +93,9 @@ public class StateBasedRule extends MusicianRule {
 
 		if (sequenceCountdown == 0) {
 			var newState = switch (state) {
-			case DIRECT_REPEAT -> UP_MINOR_THIRD;
-			case UP_MINOR_THIRD -> UP_FIFTH;
-			case UP_FIFTH -> UP_MINOR_THIRD;
+			case DIRECT_REPEAT -> UP_THIRD;
+			case UP_THIRD -> DOWN_SECOND;
+			case DOWN_SECOND -> UP_THIRD;
 			default -> throw new IllegalStateException("No such state: " + state);
 			};
 			logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
