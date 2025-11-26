@@ -89,7 +89,7 @@ public class Musician {
 		if (muted) {
 			logger.atDebug().log("{} is muted");
 		} else {
-			var adjustedNote = note.withNote(key.adjustToKeyByOctaves(note.note()));
+			var adjustedNote = note.withNote(key.adjustToKeyByOctaves(note.noteNum()));
 			logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, channel);
 			controller.playNote(channel, adjustedNote);
 		}

@@ -92,7 +92,7 @@ public class MidiController {
 	 * @param note        note to send
 	 */
 	public void playNote(int midiChannel, NoteInfo note) {
-		if (note.note() == -1)
+		if (note.noteNum() == -1)
 			return;
 		if (receiver == null) {
 			System.err.println("MIDI receiver not available.");
@@ -113,7 +113,7 @@ public class MidiController {
 	}
 
 	private void play(int midiChannel, NoteInfo note, int eventType) {
-		int noteNumber = note.note();
+		int noteNumber = note.noteNum();
 		try {
 			switch (eventType) {
 			case NOTE_ON:

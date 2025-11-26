@@ -41,7 +41,7 @@ public class RandomRule extends MusicianRule {
 		switch (r) {
 		case 2: {
 			actionsToTake.add(() -> musician
-					.playNote(new NoteInfo(Math.min(127, note.note() + 7), note.velocity(), 1)));
+					.playNote(new NoteInfo(Math.min(127, note.noteNum() + 7), note.velocity(), 1)));
 			break;
 		}
 		case 3:
@@ -52,16 +52,16 @@ public class RandomRule extends MusicianRule {
 			if (coinToss == 1) {
 				var vel = Math.max(Musician.MIN_VELOCITY, note.velocity() - 10);
 				actionsToTake.add(
-						() -> musician.playNote(new NoteInfo(note.note(), vel, note.length())));
+						() -> musician.playNote(new NoteInfo(note.noteNum(), vel, note.length())));
 			} else {
 				var vel = Math.min(Musician.MAX_VELOCITY, note.velocity() + 10);
 				actionsToTake.add(
-						() -> musician.playNote(new NoteInfo(note.note(), vel, note.length())));
+						() -> musician.playNote(new NoteInfo(note.noteNum(), vel, note.length())));
 			}
 			break;
 		}
 		case 5:
-			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.min(note.note() + 12, 127),
+			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.min(note.noteNum() + 12, 127),
 					note.velocity(), note.length())));
 			break;
 		case 6:
@@ -72,11 +72,11 @@ public class RandomRule extends MusicianRule {
 			actionsToTake.add(() -> musician.receiveMessage(note));
 			break;
 		case 8:
-			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.max(note.note() - 12, 0),
+			actionsToTake.add(() -> musician.playNote(new NoteInfo(Math.max(note.noteNum() - 12, 0),
 					note.velocity(), note.length())));
 			break;
 		case 9: {
-			var dNote = Math.max(0, note.note() - 4);
+			var dNote = Math.max(0, note.noteNum() - 4);
 			actionsToTake.add(() -> musician.playNote(new NoteInfo(dNote, note.velocity(), 2)));
 			break;
 		}
