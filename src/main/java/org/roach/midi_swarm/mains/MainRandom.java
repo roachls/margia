@@ -1,13 +1,16 @@
-package org.roach.midi_swarm;
+package org.roach.midi_swarm.mains;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Scanner;
 
-import org.roach.midi_swarm.rules.StateBasedRule;
+import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.rules.RandomRule;
 
 /**
- * A state-based ruleset
+ * Run with random agent and a 4x4 grid
  */
-public class MainStateBased {
+public class MainRandom {
+
 	/**
 	 * Main entry point
 	 * 
@@ -15,27 +18,18 @@ public class MainStateBased {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 2) {
-			System.err.println("args: tempo numExternalInstruments");
+			System.err.println("Usage: tempo numExternalInstruments");
 			return;
 		}
 		var numMusicians = 16;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
-		var controller = new MidiController("loopMIDI Port", tempo);
-//		var controller = new MidiController(DEFAULT_SYNTH, tempo);
+//		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
+		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			var rule = new StateBasedRule(4, 2);
-			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
-			rule.setMusician(musician);
-			musicians.add(musician);
+			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new RandomRule()));
 		}
-
-		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
-		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
 
 		/*
 		 * @formatter:off
@@ -108,11 +102,7 @@ public class MainStateBased {
 
 		musicians.get(15).addPeer(musicians.get(14));
 		musicians.get(15).addPeer(musicians.get(11));
-
-		musicians.get(5).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, 1));
-		musicians.get(5).receiveMessage(new NoteInfo(67, Musician.START_VELOCITY, 2));
-		musicians.get(5).receiveMessage(new NoteInfo(72, Musician.START_VELOCITY, 1));
-		musicians.get(5).receiveMessage(new NoteInfo(77, Musician.START_VELOCITY, 1));
+		musicians.get(15).addPeer(musicians.get(0));
 
 		var transport = new Transport(musicians, tempo, controller);
 		transport.start();

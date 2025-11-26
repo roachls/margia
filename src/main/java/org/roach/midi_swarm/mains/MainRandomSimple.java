@@ -1,8 +1,9 @@
-package org.roach.midi_swarm;
+package org.roach.midi_swarm.mains;
 
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import org.roach.midi_swarm.*;
 import org.roach.midi_swarm.rules.RandomRule;
 
 /**

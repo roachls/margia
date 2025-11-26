@@ -1,7 +1,8 @@
-package org.roach.midi_swarm;
+package org.roach.midi_swarm.mains;
 
 import java.util.*;
 
+import org.roach.midi_swarm.*;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
