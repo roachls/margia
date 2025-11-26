@@ -66,8 +66,8 @@ public class StateBasedRule extends MusicianRule {
 			break;
 		case UP_MINOR_THIRD: {
 			if (note.note() != -1) { // note a rest
-				var thirdUp = note.note() + 3;
-				var newNote = new NoteInfo(thirdUp, note.velocity(), note.length());
+				var thirdUp = musician.getKey().up(note.note(), 3);
+				var newNote = note.withNote(thirdUp);
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
 				actionsToTake.add(() -> musician.playNote(newNote));
 			} else {
@@ -77,8 +77,8 @@ public class StateBasedRule extends MusicianRule {
 		}
 		case UP_FIFTH: {
 			if (note.note() != -1) { // not a rest
-				var fifthUp = note.note() + 4;
-				var newNote = new NoteInfo(fifthUp, note.velocity(), note.length());
+				var fifthUp = musician.getKey().down(note.note(), 2);
+				var newNote = note.withNote(fifthUp);
 				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
 				actionsToTake.add(() -> musician.playNote(newNote));
 			} else {

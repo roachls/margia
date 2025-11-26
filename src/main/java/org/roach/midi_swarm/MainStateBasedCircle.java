@@ -1,7 +1,6 @@
 package org.roach.midi_swarm;
 
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.*;
 
 import org.roach.midi_swarm.rules.StateBasedRule;
 
@@ -37,12 +36,12 @@ public class MainStateBasedCircle {
 		}
 //		musicians.get(1).setMuted(true);
 
-		musicians.get(0).setRangeLow(48).setRangeHi(92);
-		musicians.get(1).setRangeLow(48).setRangeHi(92);
-		musicians.get(2).setRangeHi(48);
-		musicians.get(4).setRangeLow(24).setRangeHi(48);
-		musicians.get(6).setRangeLow(60).setRangeHi(60+15);
-		musicians.get(7).setRangeLow(36).setRangeHi(47);
+		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
+		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+//		musicians.get(6).setRangeLow(60).setRangeHi(60 + 15);
+		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
 
 		/*
 		 * @formatter:off
@@ -64,10 +63,10 @@ public class MainStateBasedCircle {
 			m.receiveMessage(new NoteInfo(-1, 0, 1));
 			m.receiveMessage(new NoteInfo(-1, 0, 1));
 		});
-		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(50, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(52, Musician.START_VELOCITY, 1)));
-		transport.addTickAction(4, () -> musicians.get(0).playNote(new NoteInfo(50, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(6, () -> musicians.get(0).playNote(new NoteInfo(52, Musician.START_VELOCITY, 1)));
+		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(60, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 1)));
+		transport.addTickAction(4, () -> musicians.get(0).playNote(new NoteInfo(64, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(6, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 1)));
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

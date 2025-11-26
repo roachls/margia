@@ -38,6 +38,7 @@ public class Musician {
 	private int rangeLow = 0;
 	private int rangeHi = 127;
 	private boolean muted;
+	private Key key = Key.CPentatonic;
 
 	/**
 	 * @return true if this musician is muted
@@ -85,14 +86,14 @@ public class Musician {
 	public void playNote(NoteInfo note) {
 		if (note == null)
 			return;
-		var n = new NoteInfo(adjustNoteInRange(note.note()), note.velocity(), note.length());
 		if (muted) {
 			logger.atDebug().log("{} is muted");
 		} else {
-			logger.atDebug().log("{}: playing note {} on channel {}", id, n, channel);
-			controller.playNote(channel, n);
+			var adjustedNote = note.withNote(key.adjustToKeyByOctaves(note.note()));
+			logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, channel);
+			controller.playNote(channel, adjustedNote);
 		}
-		myLastNote = n;
+		myLastNote = note;
 		notesIvePlayed++;
 		// pass on actual note received, not note played
 		sendMessageToPeers(note);
@@ -172,26 +173,26 @@ public class Musician {
 	}
 
 	/**
-	 * @param rangeLow the lowest note that this musician can  (default is 0)
+	 * @param rangeLow the lowest note that this musician can (default is 0)
 	 * @return the musician
 	 */
-	public Musician setRangeLow(int rangeLow) {
-		if (rangeLow < 0 || rangeLow > 127)
-			throw new IllegalArgumentException("range low must be between 0 and 127");
-		this.rangeLow = rangeLow;
-		return this;
-	}
+//	public Musician setRangeLow(int rangeLow) {
+//		if (rangeLow < 0 || rangeLow > 127)
+//			throw new IllegalArgumentException("range low must be between 0 and 127");
+//		this.rangeLow = rangeLow;
+//		return this;
+//	}
 
 	/**
 	 * @param rangeHi the highest note that this musician can play (default is 127)
 	 * @return the musician
 	 */
-	public Musician setRangeHi(int rangeHi) {
-		if (rangeHi < 0 || rangeHi > 127)
-			throw new IllegalArgumentException("range high must be between 0 and 127");
-		this.rangeHi = rangeHi;
-		return this;
-	}
+//	public Musician setRangeHi(int rangeHi) {
+//		if (rangeHi < 0 || rangeHi > 127)
+//			throw new IllegalArgumentException("range high must be between 0 and 127");
+//		this.rangeHi = rangeHi;
+//		return this;
+//	}
 
 	/**
 	 * @return the lowest note that this musician can play
@@ -205,6 +206,22 @@ public class Musician {
 	 */
 	public int getRangeHi() {
 		return rangeHi;
+	}
+
+	/**
+	 * @return the key that this musician plays in
+	 */
+	public Key getKey() {
+		return key;
+	}
+
+	/**
+	 * @param key The key for this musician (default is {@link Key#CPentatonic})
+	 */
+	public void setKey(Key key) {
+		this.key = key;
+		this.rangeLow = key.lowestNote();
+		this.rangeHi = key.highestNote();
 	}
 
 	/**
@@ -251,17 +268,4 @@ public class Musician {
 		}
 	}
 
-	private int adjustNoteInRange(int note) {
-		var n = note;
-		if (n > rangeHi) {
-			while (n > rangeHi) {
-				n -= 12;
-			}
-		} else if (n < rangeLow) {
-			while (n < rangeLow) {
-				n += 12;
-			}
-		}
-		return n;
-	}
 }
