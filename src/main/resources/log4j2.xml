@@ -4,7 +4,7 @@
 			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />> </Console>
 	</Appenders>
 	<Loggers>
-<!--		<Logger name="Musician_7" level="debug" additivity="false">-->
+<!--		<Logger name="Musician_15" level="debug" additivity="false">-->
 <!--			<AppenderRef ref="Console" />-->
 <!--		</Logger>-->
 		<!--		<Logger name="Musician_13" level="debug" additivity="false">-->

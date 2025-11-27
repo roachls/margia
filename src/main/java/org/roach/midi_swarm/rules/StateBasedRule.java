@@ -5,7 +5,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.roach.midi_swarm.MusicianRule;
 import org.roach.midi_swarm.NoteInfo;
-import org.roach.midi_swarm.actions.PlayNote;
+import org.roach.midi_swarm.actions.*;
+import org.roach.midi_swarm.random.DieRoller;
 
 /**
  * A state-machine based agent
@@ -13,8 +14,13 @@ import org.roach.midi_swarm.actions.PlayNote;
 public class StateBasedRule extends MusicianRule {
 	private final int sequenceLength;
 	private static final String DIRECT_REPEAT = "direct repeat";
-	private static final String UP_THIRD = "up third";
-	private static final String DOWN_SECOND = "down second";
+	private static final String UP_FOURTH = "up 4th";
+	private static final String DOWN_FOURTH = "down 4th";
+	private static final String DOUBLE_SPEED = "double speed";
+	private static final String HALF_SPEED = "half speed";
+	private static final String INCREASE_VELOCITY = "increase velocity";
+	private static final String DECREASE_VELOCITY = "decrease velocity";
+
 	private int sequenceCountdown;
 	private String state = DIRECT_REPEAT;
 	private int tickCountdown;
@@ -65,42 +71,74 @@ public class StateBasedRule extends MusicianRule {
 			logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, note);
 			actionsToTake.add(new PlayNote(musician, note));
 			break;
-		case UP_THIRD: {
+		case UP_FOURTH: {
 			if (note.noteNum() != -1) { // note a rest
-				var thirdUp = musician.getKey().up(note.noteNum(), 3);
-				var newNote = note.withNote(thirdUp);
-				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
-				actionsToTake.add(new PlayNote(musician, newNote));
+				actionsToTake.add(new PlayNoteUpInterval(musician, note, 5));
 			} else {
 				actionsToTake.add(new PlayNote(musician, note));
 			}
 			break;
 		}
-		case DOWN_SECOND: {
+		case DOWN_FOURTH: {
 			if (note.noteNum() != -1) { // not a rest
-				var fifthUp = musician.getKey().down(note.noteNum(), 2);
-				var newNote = note.withNote(fifthUp);
-				logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, newNote);
-				actionsToTake.add(new PlayNote(musician, newNote));
+				actionsToTake.add(new PlayNoteDownInterval(musician, note, 5));
 			} else {
 				actionsToTake.add(new PlayNote(musician, note));
 			}
+			break;
+		}
+		case HALF_SPEED: {
+			logger.atDebug().log("{} ({}): playing note half length {}", musician.getId(), state, note);
+			actionsToTake.add(new PlayNoteHalfLength(musician, note));
+			break;
+		}
+		case DOUBLE_SPEED: {
+			logger.atDebug().log("{} ({}): playing note double length {}", musician.getId(), state, note);
+			actionsToTake.add(new PlayNoteTwiceLength(musician, note));
+			break;
+		}
+		case INCREASE_VELOCITY: {
+			logger.atDebug().log("{} ({}): playing note with increased velocity {}", musician.getId(), state, note);
+			actionsToTake.add(new PlayNoteUpVelocity(musician, note, 15));
+			break;
+		}
+		case DECREASE_VELOCITY: {
+			logger.atDebug().log("{} ({}): playing note with decreased velocity {}", musician.getId(), state, note);
+			actionsToTake.add(new PlayNoteDownVelocity(musician, note, 15));
 			break;
 		}
 		default:
 			throw new IllegalStateException("Bad state: " + state);
 		}
 
-		if (sequenceCountdown == 0) {
+		if (sequenceCountdown <= 0) {
 			var newState = switch (state) {
-			case DIRECT_REPEAT -> UP_THIRD;
-			case UP_THIRD -> DOWN_SECOND;
-			case DOWN_SECOND -> UP_THIRD;
+			case DIRECT_REPEAT -> {
+				var rand = DieRoller.rollDice("1d30");
+				if (rand >= 1 && rand <= 3)
+					yield UP_FOURTH;
+				else if (rand >= 4 && rand <= 6)
+					yield DOWN_FOURTH;
+				else if (rand >= 7 && rand <= 8)
+					yield HALF_SPEED;
+				else if (rand >= 9 && rand <= 10)
+					yield DOUBLE_SPEED;
+				else if (rand >= 11 && rand <= 12)
+					yield INCREASE_VELOCITY;
+				else if (rand >= 13 && rand <= 14)
+					yield DECREASE_VELOCITY;
+				else
+					yield DIRECT_REPEAT;
+			}
+			case UP_FOURTH, DOWN_FOURTH, HALF_SPEED, DOUBLE_SPEED, INCREASE_VELOCITY, DECREASE_VELOCITY -> DIRECT_REPEAT;
 			default -> throw new IllegalStateException("No such state: " + state);
 			};
-			logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
+			if (!state.equals(newState))
+				logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
 			state = newState;
 			sequenceCountdown = sequenceLength;
+		} else {
+			logger.atDebug().log("{}: sequence countdown = {}", musician.getId(), sequenceCountdown);
 		}
 	}
 

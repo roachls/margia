@@ -25,23 +25,23 @@ public class MainStateBasedCircle {
 		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
 //		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
-		var rule = new StateBasedRule(4, 5);
+		var rule = new StateBasedRule(4, 7);
 		var musician = new Musician(0, controller, tempo, 0, rule);
 		musicians.add(musician);
 
 		for (int i = 1; i < numMusicians; i++) {
-			rule = new StateBasedRule(4, 0);
+			rule = new StateBasedRule(8, 0);
 			musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
-//		musicians.get(1).setMuted(true);
-
-		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
-		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-//		musicians.get(6).setRangeLow(60).setRangeHi(60 + 15);
+		musicians.get(0).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(1).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
+		musicians.get(2).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
+		musicians.get(3).setKey(Key.Chromatic);
+		musicians.get(4).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
+		musicians.get(5).setKey(Key.Chromatic);
+		musicians.get(6).setKey(Key.Chromatic);
 		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
 
 		/*
@@ -58,16 +58,19 @@ public class MainStateBasedCircle {
 		var transport = new Transport(musicians, tempo, controller);
 		transport.addTickAction(0, () -> {
 			var m = musicians.get(0);
-			m.receiveMessage(new NoteInfo(-1, 0, 1));
-			m.receiveMessage(new NoteInfo(-1, 0, 1));
-			m.receiveMessage(new NoteInfo(-1, 0, 1));
-			m.receiveMessage(new NoteInfo(-1, 0, 1));
-			m.receiveMessage(new NoteInfo(-1, 0, 1));
+			// number of ticks in starting sequence -1
+			var n = 16 - 1;
+			for (var i = 0; i < n; i++) {
+				m.receiveMessage(new NoteInfo(-1, 0, 1));
+			}
 		});
 		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(60, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 1)));
-		transport.addTickAction(4, () -> musicians.get(0).playNote(new NoteInfo(64, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(6, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 1)));
+		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 4)));
+		transport.addTickAction(7, () -> musicians.get(0).playNote(new NoteInfo(64, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(9, () -> musicians.get(0).playNote(new NoteInfo(65, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(11, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(13, () -> musicians.get(0).playNote(new NoteInfo(69, Musician.START_VELOCITY, 2)));
+		transport.addTickAction(15, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

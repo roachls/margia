@@ -25,9 +25,12 @@ public class MainStateBased {
 		var controller = new MidiController("loopMIDI Port", tempo);
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
-		for (int i = 0; i < numMusicians; i++) {
-			var rule = new StateBasedRule(4, 2);
-			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
+		var rule = new StateBasedRule(4, 5);
+		var musician = new Musician(0, controller, tempo, 0, rule);
+		musicians.add(musician);
+		for (int i = 1; i < numMusicians; i++) {
+			rule = new StateBasedRule(4, 2);
+			musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}

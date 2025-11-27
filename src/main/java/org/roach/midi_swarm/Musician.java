@@ -91,7 +91,7 @@ public class Musician {
 		if (note == null)
 			return;
 		if (muted) {
-			logger.atDebug().log("{} is muted");
+			logger.atDebug().log("{} is muted", id);
 		} else {
 			var adjustedNote = note.withNote(key.adjustToKeyByOctaves(note.noteNum()));
 			logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, channel);
@@ -136,11 +136,11 @@ public class Musician {
 	 */
 	public void receiveMessage(MusicianMessage message) {
 		if (message instanceof NoteInfo heardNote) {
-			if (messageQueue.size() <= MAX_QUEUE_SIZE) {
-				this.messageQueue.offer(heardNote);
-				logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
-			} else {
-				logger.atDebug().log("{}: ignoring message because queue is filling up");
+			this.messageQueue.offer(heardNote);
+			logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
+			if (messageQueue.size() > MAX_QUEUE_SIZE) {
+				logger.atDebug().log("{}: pulling old message to make room for new", id);
+				messageQueue.poll();
 			}
 		}
 	}
