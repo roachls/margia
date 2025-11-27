@@ -17,9 +17,15 @@ public class Transport {
 	private final Logger logger = LogManager.getLogger(getClass());
 	private final Map<Long, Runnable> tickActions = new HashMap<>();
 	private final MidiController controller;
-	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
+	private ScheduledExecutorService executor = Executors
+			.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
+	private ScheduledExecutorService clockExecutor = Executors
+			.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
 	private Future<?> future;
+	private Future<?> clockFuture;
 	private final int tickLength;
+	private final long timePulseInterval;
+	private boolean controlDawTiming;
 
 	/**
 	 * @param musicians  the musicians
@@ -30,6 +36,7 @@ public class Transport {
 		this.musicians = musicians;
 		this.tickLength = Length.getMillisForTempo(1, tempo);
 		this.controller = controller;
+		this.timePulseInterval = (long) ((60000.0 / tempo) / 24.0);
 	}
 
 	/**
@@ -50,6 +57,11 @@ public class Transport {
 	 * Start the clock
 	 */
 	public void start() {
+		if (controlDawTiming) {
+			controller.sendStart();
+			clockFuture = clockExecutor.scheduleAtFixedRate(() -> controller.sendClockPulse(), 0, timePulseInterval,
+					TimeUnit.MILLISECONDS);
+		}
 		future = executor.scheduleAtFixedRate(() -> {
 			logger.atInfo().log("Tick: {}", tick);
 			if (tickActions.containsKey(tick)) {
@@ -72,7 +84,13 @@ public class Transport {
 		if (future != null) {
 			future.cancel(true);
 		}
+		if (clockFuture != null) {
+			clockFuture.cancel(true);
+		}
+		if (controlDawTiming)
+			controller.sendStop();
 		executor.shutdownNow();
+		clockExecutor.shutdownNow();
 		future = null;
 	}
 

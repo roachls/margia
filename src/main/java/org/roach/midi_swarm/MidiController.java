@@ -33,6 +33,7 @@ public class MidiController {
 			.newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
 	private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
 	private final int tempo;
+	private final ShortMessage timingPulse;
 
 	/**
 	 * @param busName name of MIDI bus to send notes on
@@ -41,6 +42,12 @@ public class MidiController {
 	public MidiController(final String busName, final int tempo) {
 		Objects.requireNonNull(busName, "bus name cannot be null");
 		this.tempo = tempo;
+		this.timingPulse = new ShortMessage();
+		try {
+			timingPulse.setMessage(ShortMessage.TIMING_CLOCK);
+		} catch (InvalidMidiDataException e) {
+			LOGGER.atError().withThrowable(e).log("Error sending MIDI timing pulse");
+		}
 		try {
 			// Get information about all available MIDI devices
 			MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
@@ -112,6 +119,39 @@ public class MidiController {
 			}
 		}
 		notesToPlayNext.clear();
+	}
+
+	/**
+	 * Send a clock pulse. Pulses should be sent 24 per beat
+	 */
+	public void sendClockPulse() {
+		receiver.send(timingPulse, -1);
+	}
+
+	/**
+	 * Send a MIDI clock start message
+	 */
+	public void sendStart() {
+		var startMsg = new ShortMessage();
+		try {
+			startMsg.setMessage(ShortMessage.START);
+			receiver.send(startMsg, -1);
+		} catch (InvalidMidiDataException e) {
+			LOGGER.atError().withThrowable(e).log("Error sending MIDI clock start message");
+		}
+	}
+
+	/**
+	 * Send a MIDI clock stop message
+	 */
+	public void sendStop() {
+		var stopMsg = new ShortMessage();
+		try {
+			stopMsg.setMessage(ShortMessage.STOP);
+			receiver.send(stopMsg, -1);
+		} catch (InvalidMidiDataException e) {
+			LOGGER.atError().withThrowable(e).log("Error sending MIDI clock stop message");
+		}
 	}
 
 	private void play(int midiChannel, NoteInfo note, int eventType) {

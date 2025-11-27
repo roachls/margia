@@ -14,9 +14,9 @@ public class Length {
 	 * @return number of milliseconds to play the note in the given tempo
 	 */
 	public static int getMillisForTempo(final int ticks, final double bpm) {
-		var qpb = 60.0 / bpm;
+		var qpb = 60000 / bpm;
 		var partOfBeat = (double) ticks / 4.0;
-		return (int) (partOfBeat * qpb * 1000.0);
+		return (int) (partOfBeat * qpb);
 	}
 
 }

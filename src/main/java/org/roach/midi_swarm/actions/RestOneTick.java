@@ -1,8 +1,12 @@
 package org.roach.midi_swarm.actions;
 
 import org.roach.midi_swarm.Musician;
-import org.roach.midi_swarm.NoteInfo;
 
+/**
+ * Have the musician rest one tick
+ * 
+ * @param musician the musician
+ */
 public record RestOneTick(Musician musician) implements MusicalAction {
 
 	@Override

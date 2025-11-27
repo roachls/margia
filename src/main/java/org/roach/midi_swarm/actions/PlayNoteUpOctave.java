@@ -3,6 +3,18 @@ package org.roach.midi_swarm.actions;
 import org.roach.midi_swarm.Musician;
 import org.roach.midi_swarm.NoteInfo;
 
+/**
+ * Command to play the given note up an octave. Note that this is different from
+ * {@link PlayNoteUpInterval} with an interval of 12 or 8, which may not be
+ * octaves depending on the current scale. (If the scale is
+ * {@link org.roach.midi_swarm.Key#Chromatic}, then this is the equivalent of
+ * {@link PlayNoteUpInterval} with an interval of 12. Note that if the
+ * transformed note ends up above the key's range, it will be automatically
+ * adjusted back.
+ * 
+ * @param musician {@link Musician} that will play the note
+ * @param note     note to transform
+ */
 public record PlayNoteUpOctave(Musician musician, NoteInfo note) implements MusicalAction {
 
 	@Override
