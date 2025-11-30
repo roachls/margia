@@ -6,7 +6,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.roach.midi_swarm.MusicianRule;
 import org.roach.midi_swarm.NoteInfo;
 import org.roach.midi_swarm.actions.*;
-import org.roach.midi_swarm.random.DieRoller;
 
 /**
  * A state-machine based agent
@@ -121,7 +120,12 @@ public class StateBasedRule extends MusicianRule {
 		if (sequenceCountdown <= 0) {
 			var newState = switch (state) {
 			case DIRECT_REPEAT -> {
-				var rand = DieRoller.rollDice("1d30");
+				var rand = tick + musician.getId();
+				if (lastNote != null) {
+					rand += lastNote.noteNum();
+				}
+				rand %= 30;
+				logger.atWarn().log("{}: 'random' number: {}", musician.getId(), rand);
 				if (rand >= 1 && rand <= 3)
 					yield UP_FOURTH;
 				else if (rand >= 4 && rand <= 6)

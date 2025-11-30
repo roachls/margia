@@ -1,8 +1,10 @@
 package org.roach.midi_swarm.mains;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.rules.RandomRule;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
@@ -25,28 +27,31 @@ public class MainStateBased {
 		var controller = new MidiController("loopMIDI Port", tempo);
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
-		var rule = new StateBasedRule(4, 5);
-		var musician = new Musician(0, controller, tempo, 0, rule);
-		musicians.add(musician);
-		for (int i = 1; i < numMusicians; i++) {
-			rule = new StateBasedRule(4, 2);
-			musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
+		for (int i = 0; i < numMusicians; i++) {
+			var rule = new StateBasedRule(4, 2);
+			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
 
-		musicians.get(0).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(0+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(1).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(1+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(2).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
-		musicians.get(2+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
-		musicians.get(4).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(4+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(6).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(6+8).setKey(Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
-		musicians.get(7+8).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
+		var baseKey = Key.CMajor;
+		Key.setRandomSeed(1);
+		musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
+		musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
+		musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
+		musicians.get(3).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
+		musicians.get(4).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
+		musicians.get(5).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
+		musicians.get(6).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getLow() + 2));
+		musicians.get(7).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
+		musicians.get(0+8).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
+		musicians.get(1+8).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
+		musicians.get(2+8).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
+		musicians.get(3+8).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
+		musicians.get(4+8).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
+		musicians.get(5+8).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
+		musicians.get(6+8).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getLow() + 2));
+		musicians.get(7+8).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
 		
 		// mute 2nd and 3rd rows
 		musicians.get(4).setMuted(true);
@@ -58,6 +63,8 @@ public class MainStateBased {
 		musicians.get(10).setMuted(true);
 		musicians.get(11).setMuted(true);
 
+		var numCols = 4;
+		var numRows = 4;
 		/*
 		 * @formatter:off
 		 *  0  1  2  3
@@ -66,76 +73,32 @@ public class MainStateBased {
 		 * 12 13 14 15
 		 * @formatter:on
 		 */
-		musicians.get(0).addPeer(musicians.get(1));
-		musicians.get(0).addPeer(musicians.get(4));
-
-		musicians.get(1).addPeer(musicians.get(0));
-		musicians.get(1).addPeer(musicians.get(2));
-		musicians.get(1).addPeer(musicians.get(5));
-
-		musicians.get(2).addPeer(musicians.get(1));
-		musicians.get(2).addPeer(musicians.get(3));
-		musicians.get(2).addPeer(musicians.get(6));
-
-		musicians.get(3).addPeer(musicians.get(2));
-		musicians.get(3).addPeer(musicians.get(7));
-
-		musicians.get(4).addPeer(musicians.get(0));
-		musicians.get(4).addPeer(musicians.get(5));
-		musicians.get(4).addPeer(musicians.get(8));
-
-		musicians.get(5).addPeer(musicians.get(1));
-		musicians.get(5).addPeer(musicians.get(4));
-		musicians.get(5).addPeer(musicians.get(6));
-		musicians.get(5).addPeer(musicians.get(9));
-
-		musicians.get(6).addPeer(musicians.get(2));
-		musicians.get(6).addPeer(musicians.get(5));
-		musicians.get(6).addPeer(musicians.get(7));
-		musicians.get(6).addPeer(musicians.get(10));
-
-		musicians.get(7).addPeer(musicians.get(3));
-		musicians.get(7).addPeer(musicians.get(6));
-		musicians.get(7).addPeer(musicians.get(11));
-
-		musicians.get(8).addPeer(musicians.get(4));
-		musicians.get(8).addPeer(musicians.get(9));
-		musicians.get(8).addPeer(musicians.get(12));
-
-		musicians.get(9).addPeer(musicians.get(5));
-		musicians.get(9).addPeer(musicians.get(8));
-		musicians.get(9).addPeer(musicians.get(10));
-		musicians.get(9).addPeer(musicians.get(13));
-
-		musicians.get(10).addPeer(musicians.get(6));
-		musicians.get(10).addPeer(musicians.get(9));
-		musicians.get(10).addPeer(musicians.get(11));
-		musicians.get(10).addPeer(musicians.get(14));
-
-		musicians.get(11).addPeer(musicians.get(7));
-		musicians.get(11).addPeer(musicians.get(10));
-		musicians.get(11).addPeer(musicians.get(15));
-
-		musicians.get(12).addPeer(musicians.get(8));
-		musicians.get(12).addPeer(musicians.get(13));
-
-		musicians.get(13).addPeer(musicians.get(9));
-		musicians.get(13).addPeer(musicians.get(12));
-		musicians.get(13).addPeer(musicians.get(14));
-
-		musicians.get(14).addPeer(musicians.get(10));
-		musicians.get(14).addPeer(musicians.get(13));
-		musicians.get(14).addPeer(musicians.get(15));
-
-		musicians.get(15).addPeer(musicians.get(14));
-		musicians.get(15).addPeer(musicians.get(11));
-
-		musicians.get(5).receiveMessage(new NoteInfo(60, Musician.START_VELOCITY, 1));
-		musicians.get(5).receiveMessage(new NoteInfo(67, Musician.START_VELOCITY, 2));
-		musicians.get(5).receiveMessage(new NoteInfo(72, Musician.START_VELOCITY, 1));
-		musicians.get(5).receiveMessage(new NoteInfo(77, Musician.START_VELOCITY, 1));
+		for (var row = 0; row < numRows; row++) {
+			for (var col = 0; col < numCols; col++) {
+				var index = row * numCols + col;
+				if (col > 0) {
+					musicians.get(index).addPeer(musicians.get(index - 1));
+				}
+				if (col < numCols - 1) {
+					musicians.get(index).addPeer(musicians.get(index + 1));
+				}
+				if (row > 0) {
+					musicians.get(index).addPeer(musicians.get(index - numCols));
+				}
+				if (row < numRows - 1) {
+					musicians.get(index).addPeer(musicians.get(index + numCols));
+				}
+			}
+		}
+		
+		// add a single random musician that is heard only by #0 and can't hear anyone else
+		var rMusician = new Musician(16, controller, tempo, 0, new RandomRule());
+		rMusician.addPeer(musicians.get(0));
+		musicians.get(numMusicians - 1).addPeer(rMusician);
+		musicians.add(rMusician);
 
 		var transport = new Transport(musicians, tempo, controller);
+		transport.setControlDawTiming(true);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

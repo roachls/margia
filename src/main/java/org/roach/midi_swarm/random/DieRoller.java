@@ -18,6 +18,9 @@ public class DieRoller {
 		// no instantiation
 	}
 	
+	/**
+	 * @param seed the seed for the random generator
+	 */
 	public static void setSeed(long seed) {
 		RANDOM.setSeed(seed);
 	}

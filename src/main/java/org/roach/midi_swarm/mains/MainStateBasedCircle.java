@@ -1,9 +1,11 @@
 package org.roach.midi_swarm.mains;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 import org.roach.midi_swarm.*;
 import org.roach.midi_swarm.random.DieRoller;
+import org.roach.midi_swarm.rules.RandomRule;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
@@ -26,7 +28,7 @@ public class MainStateBasedCircle {
 		var controller = new MidiController(MidiController.LOOP_MIDI, tempo);
 //		var controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
-		var rule = new StateBasedRule(4, 7);
+		MusicianRule rule = new RandomRule();
 		var musician = new Musician(0, controller, tempo, 0, rule);
 		musicians.add(musician);
 
@@ -36,9 +38,9 @@ public class MainStateBasedCircle {
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
-		var baseKey = Key.CPentatonic;
+		var baseKey = Key.CMajor;
 		musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
-		musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
+		musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
 		musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
 		musicians.get(3).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
 		musicians.get(4).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
@@ -58,21 +60,21 @@ public class MainStateBasedCircle {
 		musicians.get(numMusicians - 1).addPeer(musicians.get(0));
 
 		var transport = new Transport(musicians, tempo, controller);
-		transport.addTickAction(0, () -> {
-			var m = musicians.get(0);
-			// number of ticks in starting sequence -1
-			var n = 16 - 1;
-			for (var i = 0; i < n; i++) {
-				m.receiveMessage(new NoteInfo(-1, 0, 1));
-			}
-		});
-		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(60, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 4)));
-		transport.addTickAction(7, () -> musicians.get(0).playNote(new NoteInfo(64, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(9, () -> musicians.get(0).playNote(new NoteInfo(65, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(11, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(13, () -> musicians.get(0).playNote(new NoteInfo(69, Musician.START_VELOCITY, 2)));
-		transport.addTickAction(15, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(0, () -> {
+//			var m = musicians.get(0);
+//			// number of ticks in starting sequence -1
+//			var n = 16 - 1;
+//			for (var i = 0; i < n; i++) {
+//				m.receiveMessage(new NoteInfo(-1, 0, 1));
+//			}
+//		});
+//		transport.addTickAction(1, () -> musicians.get(0).playNote(new NoteInfo(60, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(3, () -> musicians.get(0).playNote(new NoteInfo(62, Musician.START_VELOCITY, 4)));
+//		transport.addTickAction(7, () -> musicians.get(0).playNote(new NoteInfo(64, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(9, () -> musicians.get(0).playNote(new NoteInfo(65, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(11, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(13, () -> musicians.get(0).playNote(new NoteInfo(69, Musician.START_VELOCITY, 2)));
+//		transport.addTickAction(15, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
 		transport.setControlDawTiming(true);
 		DieRoller.setSeed(1);
 		transport.start();

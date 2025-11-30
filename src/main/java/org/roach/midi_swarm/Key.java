@@ -10,6 +10,13 @@ public interface Key {
 	static final List<Integer> MAJOR_INTERVALS = List.of(2, 2, 1, 2, 2, 2, 1);
 	static final List<Integer> PENTATONIC_INTERVALS = List.of(2, 2, 3, 2, 3);
 	static final List<Integer> CHROMATIC_INTERVALS = List.of(1);
+	
+	/**
+	 * @param seed random seed to use
+	 */
+	static void setRandomSeed(long seed) {
+		RANDOM.setSeed(seed);
+	}
 
 	/**
 	 * Generate a key using the specified intervals starting at the given start note

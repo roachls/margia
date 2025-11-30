@@ -1,20 +1,23 @@
 <Configuration monitorInterval="5">
 	<Appenders>
 		<Console name="Console">
-			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />> </Console>
+			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />
+			>
+		</Console>
 	</Appenders>
 	<Loggers>
-<!--		<Logger name="Musician_15" level="debug" additivity="false">-->
-<!--			<AppenderRef ref="Console" />-->
-<!--		</Logger>-->
-		<!--		<Logger name="Musician_13" level="debug" additivity="false">-->
-		<!--			<AppenderRef ref="Console" />>-->
-		<!--		</Logger>-->
-		<!--		<Logger name="org.roach.midi_swarm.Transport" level="debug"-->
-		<!--			additivity="false">-->
-		<!--			<AppenderRef ref="Console" />-->
-		<!--		</Logger>-->
+		<Logger name="Musician_16" level="debug" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<!-- <Logger name="Musician_13" level="debug" additivity="false"> -->
+		<!-- <AppenderRef ref="Console" />> -->
+		<!-- </Logger> -->
+		<!-- <Logger name="org.roach.midi_swarm.Transport" level="debug" -->
+		<!-- additivity="false"> -->
+		<!-- <AppenderRef ref="Console" /> -->
+		<!-- </Logger> -->
 		<Root level="warn">
-			<AppenderRef ref="Console" />> </Root>
+			<AppenderRef ref="Console" />
+		</Root>
 	</Loggers>
 </Configuration>

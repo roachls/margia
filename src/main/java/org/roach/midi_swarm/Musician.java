@@ -43,6 +43,7 @@ public class Musician {
 	private int rangeHi = 127;
 	private boolean muted;
 	private Key key = Key.CPentatonic;
+	private long currentTick;
 
 	/**
 	 * @return true if this musician is muted
@@ -118,6 +119,7 @@ public class Musician {
 	 * @param tick the tick number
 	 */
 	public void calculateAction(long tick) {
+		this.currentTick = tick;
 		logger.atDebug().log("{}: tick={} calculateAction", id, tick);
 		rule.calculateAction(tick);
 	}
@@ -275,6 +277,13 @@ public class Musician {
 	 */
 	public Logger getLogger() {
 		return logger;
+	}
+	
+	/**
+	 * @return the current tick number
+	 */
+	public long getCurrentTick() {
+		return currentTick;
 	}
 
 	private void sendMessageToPeers(MusicianMessage message) {
