@@ -17,6 +17,10 @@ public class DieRoller {
 	private DieRoller() {
 		// no instantiation
 	}
+	
+	public static void setSeed(long seed) {
+		RANDOM.setSeed(seed);
+	}
 
 	/**
 	 * @param diceDescription description of dice in the form xny, where x is number

@@ -103,4 +103,19 @@ public class Transport {
 	public void addTickAction(long tickNum, Runnable action) {
 		tickActions.put(tickNum, action);
 	}
+
+	/**
+	 * @return true if set to send MIDI clock pulses
+	 */
+	public boolean isControlDawTiming() {
+		return controlDawTiming;
+	}
+
+	/**
+	 * @param controlDawTiming set to true to send MIDI clock pulses, 24 each
+	 *                         quarter note
+	 */
+	public void setControlDawTiming(boolean controlDawTiming) {
+		this.controlDawTiming = controlDawTiming;
+	}
 }

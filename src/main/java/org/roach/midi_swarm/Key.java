@@ -54,6 +54,21 @@ public interface Key {
 	Key Chromatic = generateKey(CHROMATIC_INTERVALS, 0, 127);
 
 	List<Integer> notes();
+	
+	default Key of(int rangeLow, int rangeHi) {
+		var origNotes = this.notes();
+		int indexOfNearestNoteToRangeLow = 0;
+		while (origNotes.get(indexOfNearestNoteToRangeLow) < rangeLow) {
+			indexOfNearestNoteToRangeLow++;
+		}
+		var indexOfNearestNoteToRangeHi = origNotes.size() - 1;
+		while (origNotes.get(indexOfNearestNoteToRangeHi) > rangeHi) {
+			indexOfNearestNoteToRangeHi--;
+		}
+		var indexLow = indexOfNearestNoteToRangeLow;
+		var indexHi = indexOfNearestNoteToRangeHi;
+		return () -> origNotes.subList(indexLow, indexHi + 1);
+	}
 
 	default int randomNote() {
 		var noteNum = RANDOM.nextInt(notes().size());

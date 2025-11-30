@@ -34,4 +34,11 @@ class KeyTest {
 		assertEquals(List.of(0, 2, 4, 7, 9, 12, 14, 16, 19, 21),
 				Key.generateKey(Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
 	}
+
+	@Test
+	void testOf() {
+		assertEquals(List.of(21, 23, 24, 26, 28, 29, 31, 33, 35, 36), Key.CMajor.of(21, 36).notes());
+		assertEquals(List.of(36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51),
+				Key.Chromatic.of(36, 51).notes());
+	}
 }

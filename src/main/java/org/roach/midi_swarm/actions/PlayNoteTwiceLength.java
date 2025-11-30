@@ -14,7 +14,8 @@ public record PlayNoteTwiceLength(Musician musician, NoteInfo note) implements M
 
 	@Override
 	public void perform() {
-		musician.playNote(note.withLength(note.length() * 2));
+		var newLength = Math.max(note.length() * 2, 16);
+		musician.playNote(note.withLength(newLength));
 	}
 
 }

@@ -3,6 +3,7 @@ package org.roach.midi_swarm.mains;
 import java.util.*;
 
 import org.roach.midi_swarm.*;
+import org.roach.midi_swarm.random.DieRoller;
 import org.roach.midi_swarm.rules.StateBasedRule;
 
 /**
@@ -35,14 +36,15 @@ public class MainStateBasedCircle {
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
-		musicians.get(0).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(1).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O2, Octave.O6)));
-		musicians.get(2).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O1)));
-		musicians.get(3).setKey(Key.Chromatic);
-		musicians.get(4).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O3, Octave.O4)));
-		musicians.get(5).setKey(Key.Chromatic);
-		musicians.get(6).setKey(Key.Chromatic);
-		musicians.get(7).setKey(Key.generateKey(Key.CHROMATIC_INTERVALS, List.of(Octave.O1)));
+		var baseKey = Key.CPentatonic;
+		musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
+		musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
+		musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
+		musicians.get(3).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
+		musicians.get(4).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
+		musicians.get(5).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
+		musicians.get(6).setKey(baseKey);
+		musicians.get(7).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
 
 		/*
 		 * @formatter:off
@@ -71,6 +73,8 @@ public class MainStateBasedCircle {
 		transport.addTickAction(11, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
 		transport.addTickAction(13, () -> musicians.get(0).playNote(new NoteInfo(69, Musician.START_VELOCITY, 2)));
 		transport.addTickAction(15, () -> musicians.get(0).playNote(new NoteInfo(67, Musician.START_VELOCITY, 2)));
+		transport.setControlDawTiming(true);
+		DieRoller.setSeed(1);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {

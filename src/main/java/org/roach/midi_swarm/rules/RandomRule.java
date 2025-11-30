@@ -25,7 +25,15 @@ public class RandomRule extends MusicianRule {
 			return;
 		}
 
-		var note = musician.getNextNoteHeard();
+		var heardNote = musician.getNextNoteHeard();
+		// never play the same note twice
+		var lastNote = musician.getMyLastNote();
+		if (lastNote != null) {
+			while (lastNote.equals(heardNote)) {
+				heardNote = musician.getNextNoteHeard();
+			}
+		}
+		var note = heardNote; // need a final version for lambdas
 		logger.atDebug().log("{}: heard {}", musician.getId(), note);
 		if (note == null || note.equals(REST.apply(1))) {
 			logger.atDebug().log("{}: heard null or rest, returning");

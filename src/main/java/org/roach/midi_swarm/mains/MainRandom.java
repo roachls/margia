@@ -127,6 +127,7 @@ public class MainRandom {
 		musicians.get(15).addPeer(musicians.get(0));
 
 		var transport = new Transport(musicians, tempo, controller);
+		transport.setControlDawTiming(true);
 		transport.start();
 
 		try (var scanner = new Scanner(System.in)) {
