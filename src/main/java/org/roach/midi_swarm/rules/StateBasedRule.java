@@ -11,7 +11,7 @@ import org.roach.midi_swarm.actions.*;
  * A state-machine based agent
  */
 public class StateBasedRule extends MusicianRule {
-	private final int sequenceLength;
+	private int sequenceLength;
 	private static final String DIRECT_REPEAT = "direct repeat";
 	private static final String UP_FOURTH = "up 4th";
 	private static final String DOWN_FOURTH = "down 4th";
@@ -125,7 +125,7 @@ public class StateBasedRule extends MusicianRule {
 					rand += lastNote.noteNum();
 				}
 				rand %= 30;
-				logger.atWarn().log("{}: 'random' number: {}", musician.getId(), rand);
+				logger.atDebug().log("{}: 'random' number: {}", musician.getId(), rand);
 				if (rand >= 1 && rand <= 3)
 					yield UP_FOURTH;
 				else if (rand >= 4 && rand <= 6)
@@ -141,7 +141,8 @@ public class StateBasedRule extends MusicianRule {
 				else
 					yield DIRECT_REPEAT;
 			}
-			case UP_FOURTH, DOWN_FOURTH, HALF_SPEED, DOUBLE_SPEED, INCREASE_VELOCITY, DECREASE_VELOCITY -> DIRECT_REPEAT;
+			case UP_FOURTH, DOWN_FOURTH, HALF_SPEED, DOUBLE_SPEED, INCREASE_VELOCITY, DECREASE_VELOCITY ->
+				DIRECT_REPEAT;
 			default -> throw new IllegalStateException("No such state: " + state);
 			};
 			if (!state.equals(newState))
@@ -153,4 +154,26 @@ public class StateBasedRule extends MusicianRule {
 		}
 	}
 
+	/**
+	 * Decrement the current sequence length by 1, but not lower than 1
+	 */
+	public void decrementSequenceLength() {
+		this.sequenceLength--;
+		if (this.sequenceLength < 1)
+			this.sequenceLength = 1;
+	}
+
+	/**
+	 * Increment the current sequence length by 1
+	 */
+	public void incrementSequenceLength() {
+		this.sequenceLength++;
+	}
+
+	/**
+	 * @return the current sequence length
+	 */
+	public int getSequenceLength() {
+		return sequenceLength;
+	}
 }

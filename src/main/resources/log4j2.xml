@@ -6,16 +6,16 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-		<Logger name="Musician_16" level="debug" additivity="false">
-			<AppenderRef ref="Console" />
-		</Logger>
+		<!-- <Logger name="Musician_16" level="warn" additivity="false"> -->
+		<!-- <AppenderRef ref="Console" /> -->
+		<!-- </Logger> -->
 		<!-- <Logger name="Musician_13" level="debug" additivity="false"> -->
 		<!-- <AppenderRef ref="Console" />> -->
 		<!-- </Logger> -->
-		<!-- <Logger name="org.roach.midi_swarm.Transport" level="debug" -->
-		<!-- additivity="false"> -->
-		<!-- <AppenderRef ref="Console" /> -->
-		<!-- </Logger> -->
+		<Logger name="org.roach.midi_swarm.Transport" level="debug"
+			additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
 		<Root level="warn">
 			<AppenderRef ref="Console" />
 		</Root>
