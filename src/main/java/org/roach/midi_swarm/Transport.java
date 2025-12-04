@@ -2,6 +2,7 @@ package org.roach.midi_swarm;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,10 +22,10 @@ public class Transport {
 			.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
 	private ScheduledExecutorService clockExecutor = Executors
 			.newSingleThreadScheduledExecutor(new NamedThreadFactory("transport"));
-	private Future<?> future;
+//	private Future<?> future;
 	private Future<?> clockFuture;
 	private final int tickLength;
-	private final long timePulseInterval;
+	private final long timePulseIntervalMicros;
 	private boolean controlDawTiming;
 
 	/**
@@ -36,7 +37,7 @@ public class Transport {
 		this.musicians = musicians;
 		this.tickLength = Length.getMillisForTempo(1, tempo);
 		this.controller = controller;
-		this.timePulseInterval = (long) ((60000.0 / tempo) / 24.0);
+		this.timePulseIntervalMicros = 60000000 / (tempo * 24);
 	}
 
 	/**
@@ -59,31 +60,36 @@ public class Transport {
 	public void start() {
 		if (controlDawTiming) {
 			controller.sendStart();
-			clockFuture = clockExecutor.scheduleAtFixedRate(() -> controller.sendClockPulse(), 0, timePulseInterval,
-					TimeUnit.MILLISECONDS);
 		}
-		future = executor.scheduleAtFixedRate(() -> {
-			logger.atInfo().log("Tick: {}", tick);
-			if (tickActions.containsKey(tick)) {
-				logger.atDebug().log("Transport playing tick action {}", tick);
-				tickActions.get(tick).run();
-				tickActions.remove(tick);
-			}
-			musicians.forEach(m -> m.calculateAction(tick));
-			musicians.forEach(m -> m.doAction(tick));
-			controller.playNotesThisTick();
+		var clockPulseCounter = new AtomicInteger(0);
+		clockFuture = clockExecutor.scheduleAtFixedRate(() -> {
+			if (controlDawTiming) {
+				controller.sendClockPulse();
+				var cp = clockPulseCounter.getAndAccumulate(1, (x, y) -> (x + y) % 6);
+				logger.atTrace().log("cp: {}", cp);
+				if (cp == 0) {
+					logger.atDebug().log("Tick: {}", tick);
+					if (tickActions.containsKey(tick)) {
+						logger.atDebug().log("Transport playing tick action {}", tick);
+						tickActions.get(tick).run();
+						tickActions.remove(tick);
+					}
+					musicians.forEach(m -> m.calculateAction(tick));
+					musicians.forEach(m -> m.doAction(tick));
+					controller.playNotesThisTick();
 
-			tick++;
-		}, 0, tickLength, TimeUnit.MILLISECONDS);
+					tick++;
+				}
+			}
+		}, 0, timePulseIntervalMicros, TimeUnit.MICROSECONDS);
+//		future = executor.scheduleAtFixedRate(() -> {
+//		}, 0, tickLength, TimeUnit.MILLISECONDS);
 	}
 
 	/**
 	 * Stop the clock
 	 */
 	public void stop() {
-		if (future != null) {
-			future.cancel(true);
-		}
 		if (clockFuture != null) {
 			clockFuture.cancel(true);
 		}
@@ -91,7 +97,7 @@ public class Transport {
 			controller.sendStop();
 		executor.shutdownNow();
 		clockExecutor.shutdownNow();
-		future = null;
+		clockFuture = null;
 	}
 
 	/**
