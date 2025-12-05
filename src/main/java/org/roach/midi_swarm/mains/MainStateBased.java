@@ -17,19 +17,21 @@ public class MainStateBased {
 	 * @param args args[0] = number of musicians
 	 */
 	public static void main(String[] args) {
-		if (args.length < 2) {
-			System.err.println("args: tempo numExternalInstruments");
+		if (args.length < 4) {
+			System.err.println("args: tempo numExternalInstruments startingSeqLength randomSeed");
 			return;
 		}
 		var numMusicians = 16;
 		var tempo = Integer.parseInt(args[0]);
 		var numExternalInstruments = Integer.parseInt(args[1]);
+		var startingSequenceLength = Integer.parseInt(args[2]);
+		var randomSeed = Long.parseLong(args[3]);
 		var controller = new MidiController("loopMIDI Port", tempo);
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		var rules = new ArrayList<StateBasedRule>();
 		for (int i = 0; i < numMusicians; i++) {
-			var rule = new StateBasedRule(20, 2);
+			var rule = new StateBasedRule(startingSequenceLength, 2);
 			rules.add(rule);
 			var musician = new Musician(i, controller, tempo, i % numExternalInstruments, rule);
 			rule.setMusician(musician);
@@ -37,7 +39,7 @@ public class MainStateBased {
 		}
 
 		var baseKey = Key.CMajor;
-		Key.setRandomSeed(101);
+		Key.setRandomSeed(randomSeed);
 		musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
 		musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
 		musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));

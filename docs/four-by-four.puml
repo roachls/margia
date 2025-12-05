@@ -1,22 +1,31 @@
 @startuml
 
-agent a01
-agent a02
-agent a03
-agent a04
-agent a05
-agent a06
-agent a07
-agent a08
-agent a09
-agent a10
-agent a11
-agent a12
-agent a13
-agent a14
-agent a15
-agent a16
+skinparam rectangle {
+	BorderColor transparent
+}
 
+agent random
+rectangle musicians {
+	agent a01 #lightgreen
+	agent a02 #lightgreen
+	agent a03 #lightgreen
+	agent a04 #lightgreen
+	agent a05
+	agent a06
+	agent a07
+	agent a08
+	agent a09
+	agent a10
+	agent a11
+	agent a12
+	agent a13 #lightgreen
+	agent a14 #lightgreen
+	agent a15 #lightgreen
+	agent a16 #lightgreen
+}
+
+
+random -r-> a01
 a01 <-r-> a02
 a02 <-r-> a03
 a03 <-r-> a04
