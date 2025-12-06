@@ -1,7 +1,6 @@
 package org.roach.midi_swarm.actions;
 
-import org.roach.midi_swarm.Musician;
-import org.roach.midi_swarm.NoteInfo;
+import org.roach.midi_swarm.*;
 
 /**
  * 
@@ -22,6 +21,9 @@ public record PlayPseudoRandomNote(Musician musician, int spread, int num) imple
 			var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, 1);
 			musician.getLogger().atDebug().log("{}: playing {}", musician.getId(), randomNote);
 			musician.playNote(randomNote);
+		} else {
+			musician.getLogger().atDebug().log("{}: playing rest", musician.getId());
+			musician.playNote(MusicianRule.REST.apply(1));
 		}
 	}
 
