@@ -56,6 +56,8 @@ public class StateBasedRule extends MusicianRule {
 		var heardNote = musician.getNextNoteHeard();
 		if (heardNote != null)
 			delayQueue.offer(heardNote);
+		else
+			delayQueue.offer(REST.apply(1));
 
 		var note = delayQueue.poll();
 		// never play the same note twice
