@@ -1,11 +1,32 @@
 @startuml
+hide empty members
 
-[*] -> Start
-Start -> B : at least 4 notes in queue
-B : take note from queue
-B -> Playing
-Playing : play note a fourth up
-Playing -> B
-B -> Start : queue is empty
+state "Direct Repeat" as dr
+state "Up 4th" as u4
+state "Down 4th" as d4
+state "Double speed" as ds
+state "Half speed" as hs
+state "Increase velocity" as uv
+state "Decrease velocity" as dv
+
+[*] --> dr
+dr --> u4 : sequence = 0
+dr --> d4 : sequence = 0
+dr --> ds : sequence = 0
+dr --> hs : sequence = 0
+dr --> uv : sequence = 0
+dr --> dv : sequence = 0
+u4 -> u4 : sequence > 0
+d4 -> d4 : sequence > 0
+ds -> ds : sequence > 0
+hs -> hs : sequence > 0
+uv -> uv : sequence > 0
+dv -> dv : sequence > 0
+u4 --> dr : sequence = 0
+d4 --> dr : sequence = 0
+ds --> dr : sequence = 0
+hs --> dr : sequence = 0
+uv --> dr : sequence = 0
+dv --> dr : sequence = 0
 
 @enduml

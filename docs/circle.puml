@@ -1,0 +1,30 @@
+@startuml
+
+skinparam rectangle {
+	BorderColor transparent
+}
+
+agent random
+rectangle {
+	agent a01 #lightgreen
+	agent a02 #lightgreen
+	agent a03 #lightgreen
+	agent a04 #lightgreen
+	agent a05 #lightgreen
+	agent a06 #lightgreen
+	agent a07 #lightgreen
+	agent a08 #lightgreen
+}
+
+random -r-> a01
+a01 -> a02
+a02 -> a03
+a03 -> a04
+a04 -> a05
+a05 -> a06
+a06 -> a07
+a07 -> a08
+a08 -> a01
+a08 --> random
+
+@enduml

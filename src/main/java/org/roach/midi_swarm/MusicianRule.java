@@ -16,7 +16,10 @@ public abstract class MusicianRule {
 	protected Musician musician;
 	protected final Logger logger = LogManager.getLogger(getClass());
 	protected List<MusicalAction> actionsToTake = new ArrayList<>();
-	protected static final Function<Integer, NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
+	/**
+	 * Generates a rest of the given length in ticks
+	 */
+	public static final Function<Integer, NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
 
 	/**
 	 * @param musician the {@link Musician} that this rule applies to
