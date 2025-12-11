@@ -1,6 +1,6 @@
-# MIDI Swarm
+# MARGIA (Music and Rhythm Generating Intelligent Agents)
 
-Intelligent agents with limited intelligence that act as a swarm by playing music through MIDI and sharing information.
+Intelligent agents with limited intelligence that play music through MIDI and sharing information.
 
 ### Setup
 
