@@ -12,7 +12,7 @@
 		<!-- <Logger name="Musician_13" level="debug" additivity="false"> -->
 		<!-- <AppenderRef ref="Console" />> -->
 		<!-- </Logger> -->
-		<Logger name="org.roach.margia.Transport" level="trace"
+		<Logger name="org.roach.margia.Transport" level="info"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>

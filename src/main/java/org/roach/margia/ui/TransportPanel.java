@@ -72,7 +72,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 		rewindBtn.addActionListener(_ -> {
 			timing.stop();
 			transport.reset();
-			startBtn.setText("Start");
+			startBtn.setIcon(startIcon);
 		});
 		add(rewindBtn);
 	}
@@ -82,16 +82,16 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 		var propName = evt.getPropertyName();
 		SwingUtilities.invokeLater(() -> {
 			switch (propName) {
-			case "measure":
+			case Transport.MEASURE_PROPERTY:
 				measure.setText(String.format("%03d", (int) evt.getNewValue()));
 				break;
-			case "beat":
+			case Transport.BEAT_PROPERTY:
 				beat.setText(String.format("%01d", (int) evt.getNewValue()));
 				break;
-			case "clockPulse":
+			case Transport.CLOCK_PULSE_PROPERTY:
 				clockPulse.setText(String.format("%02d", (int) evt.getNewValue()));
 				break;
-			case "tick":
+			case Transport.TICK_PROPERTY:
 				tick.setText(String.format(" (%03d)", (long) evt.getNewValue()));
 				break;
 			default:

@@ -12,6 +12,22 @@ import org.roach.margia.timing.TimingSource;
  * 16th note.
  */
 public class Transport {
+	/**
+	 * Property fired when tick updates
+	 */
+	public static final String TICK_PROPERTY = "tick";
+	/**
+	 * Property fired when clock pulse updates
+	 */
+	public static final String CLOCK_PULSE_PROPERTY = "clockPulse";
+	/**
+	 * Property fired when measureNum updates
+	 */
+	public static final String MEASURE_PROPERTY = "measure";
+	/**
+	 * Property fired when beatNum updates
+	 */
+	public static final String BEAT_PROPERTY = "beat";
 	private final List<Musician> musicians;
 	private long tick = 1;
 	private final Logger logger = LogManager.getLogger(getClass());
@@ -90,7 +106,7 @@ public class Transport {
 		}
 		if (currentClockPulse % 6 == 0) {
 			var oldValue = tick++;
-			propertyChangeSupport.firePropertyChange("tick", oldValue, tick);
+			propertyChangeSupport.firePropertyChange(TICK_PROPERTY, oldValue, tick);
 		}
 		var oldClockPulse = currentClockPulse++;
 		if (currentClockPulse > 24) {
@@ -99,11 +115,11 @@ public class Transport {
 			if (beatNum > 4) {
 				beatNum = 1;
 				var oldMeasure = measureNum++;
-				propertyChangeSupport.firePropertyChange("measure", oldMeasure, measureNum);
+				propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, oldMeasure, measureNum);
 			}
-			propertyChangeSupport.firePropertyChange("beat", oldBeatNum, beatNum);
+			propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, oldBeatNum, beatNum);
 		}
-		propertyChangeSupport.firePropertyChange("clockPulse", oldClockPulse, currentClockPulse);
+		propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, oldClockPulse, currentClockPulse);
 	}
 
 	/**
@@ -143,10 +159,10 @@ public class Transport {
 	 * Reset measure, beat, current clock pulse, and tick to 1
 	 */
 	public void reset() {
-		propertyChangeSupport.firePropertyChange("measure", measureNum, 1);
-		propertyChangeSupport.firePropertyChange("beat", beatNum, 1);
-		propertyChangeSupport.firePropertyChange("clockPulse", currentClockPulse, 1);
-		propertyChangeSupport.firePropertyChange("tick", tick, 1L);
+		propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, measureNum, 1);
+		propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, beatNum, 1);
+		propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, currentClockPulse, 1);
+		propertyChangeSupport.firePropertyChange(TICK_PROPERTY, tick, 1L);
 		this.measureNum = 1;
 		this.beatNum = 1;
 		this.currentClockPulse = 1;

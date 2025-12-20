@@ -37,6 +37,9 @@ public class MainStateBased {
 		@Parameter(names = {
 				"--tickDecrementLength" }, description = "How often to decrement the sequence length (in ticks)")
 		int tickDecrementCount = 100;
+		@Parameter(names = { "--sendExternalMidi",
+				"-ext" }, description = "Set to true to send over external MIDI to a DAW")
+		boolean sendExternalMidi;
 	}
 
 	/**
@@ -55,8 +58,12 @@ public class MainStateBased {
 			return;
 		}
 		var numMusicians = params.numRows * params.numCols;
-//		var controller = new MidiController("loopMIDI Port", params.tempo);
-		var controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
+		MidiController controller;
+		if (params.sendExternalMidi) {
+			controller = new MidiController("loopMIDI Port", params.tempo);
+		} else {
+			controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
+		}
 		var musicians = new ArrayList<Musician>();
 		var rules = new ArrayList<StateBasedRule>();
 		for (int i = 0; i < numMusicians; i++) {
@@ -130,7 +137,7 @@ public class MainStateBased {
 						() -> rules.forEach(m -> m.decrementSequenceLength()));
 			}
 		}
-		
+
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			timing.stop();
 			transport.stop();
@@ -138,7 +145,7 @@ public class MainStateBased {
 		}));
 
 		SwingUtilities.invokeLater(() -> {
-			var ui = new MargiaWindow(timing, transport);
+			var ui = new MargiaWindow(timing, transport, musicians);
 			ui.setVisible(true);
 		});
 

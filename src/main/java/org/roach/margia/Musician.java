@@ -1,5 +1,7 @@
 package org.roach.margia;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,6 +16,10 @@ import org.roach.margia.messages.MusicianMessage;
  * order they were received.
  */
 public class Musician {
+	/**
+	 * the property to fire when the last note changes
+	 */
+	public static final String LAST_NOTE_PROPERTY = "lastNote";
 	/**
 	 * Minimum velocity a note may be played at
 	 */
@@ -44,6 +50,7 @@ public class Musician {
 	private boolean muted;
 	private Key key = Key.CPentatonic;
 	private long currentTick;
+	private final PropertyChangeSupport propertyChange;
 
 	/**
 	 * @return true if this musician is muted
@@ -75,6 +82,7 @@ public class Musician {
 		this.channel = channel;
 		this.rule = rule;
 		this.rule.setMusician(this);
+		propertyChange = new PropertyChangeSupport(this);
 	}
 
 	/**
@@ -98,6 +106,7 @@ public class Musician {
 			logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, channel);
 			controller.playNote(channel, adjustedNote);
 		}
+		propertyChange.firePropertyChange(LAST_NOTE_PROPERTY, myLastNote, note);
 		myLastNote = note;
 		notesIvePlayed++;
 		// pass on actual note received, not note played
@@ -290,6 +299,13 @@ public class Musician {
 		for (var peer : peers) {
 			peer.receiveMessage(message);
 		}
+	}
+
+	/**
+	 * @param listener a listener for property changes
+	 */
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		propertyChange.addPropertyChangeListener(listener);
 	}
 
 }
