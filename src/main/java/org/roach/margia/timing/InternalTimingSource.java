@@ -1,6 +1,7 @@
 package org.roach.margia.timing;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.roach.margia.Transport;
 
@@ -12,6 +13,7 @@ public class InternalTimingSource implements TimingSource {
 	private Future<?> clockFuture;
 	private final int tickLengthMicros;
 	private final ScheduledExecutorService clockExecutor;
+	private final AtomicBoolean running = new AtomicBoolean(false);
 
 	/**
 	 * @param transport the transport to control
@@ -25,6 +27,8 @@ public class InternalTimingSource implements TimingSource {
 
 	@Override
 	public void start() {
+		transport.start();
+		running.set(true);
 		clockFuture = clockExecutor.scheduleAtFixedRate(() -> {
 			transport.receiveClockPulse();
 		}, 0, tickLengthMicros, TimeUnit.MICROSECONDS);
@@ -32,10 +36,17 @@ public class InternalTimingSource implements TimingSource {
 
 	@Override
 	public void stop() {
+		transport.stop();
 		if (clockFuture != null) {
 			clockFuture.cancel(true);
+			clockFuture = null;
 		}
-		clockExecutor.shutdownNow();
+		running.set(false);
+	}
+
+	@Override
+	public boolean isRunning() {
+		return running.get();
 	}
 
 }

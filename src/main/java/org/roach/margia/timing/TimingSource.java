@@ -13,4 +13,9 @@ public interface TimingSource {
 	 * Stop the clock
 	 */
 	void stop();
+	
+	/**
+	 * @return true if the clock is running
+	 */
+	boolean isRunning();
 }

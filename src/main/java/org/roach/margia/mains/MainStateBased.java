@@ -1,12 +1,14 @@
 package org.roach.margia.mains;
 
 import java.util.ArrayList;
-import java.util.Scanner;
+
+import javax.swing.SwingUtilities;
 
 import org.roach.margia.*;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
 import org.roach.margia.timing.InternalTimingSource;
+import org.roach.margia.ui.MargiaWindow;
 
 import com.beust.jcommander.*;
 
@@ -128,16 +130,17 @@ public class MainStateBased {
 						() -> rules.forEach(m -> m.decrementSequenceLength()));
 			}
 		}
-		transport.start();
-		timing.start();
-
-		try (var scanner = new Scanner(System.in)) {
-			scanner.nextLine();
-
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			timing.stop();
 			transport.stop();
 			controller.close();
-		}
+		}));
+
+		SwingUtilities.invokeLater(() -> {
+			var ui = new MargiaWindow(timing, transport);
+			ui.setVisible(true);
+		});
 
 	}
 

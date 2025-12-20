@@ -1,5 +1,7 @@
 package org.roach.margia;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.util.*;
 
 import org.apache.logging.log4j.*;
@@ -20,6 +22,7 @@ public class Transport {
 	private int currentClockPulse = 1;
 	private int beatNum = 1;
 	private int measureNum = 1;
+	private final PropertyChangeSupport propertyChangeSupport;
 
 	/**
 	 * @param musicians  the musicians
@@ -30,6 +33,14 @@ public class Transport {
 		this.musicians = musicians;
 		this.tickLength = Length.getMillisForTempo(1, tempo);
 		this.controller = controller;
+		this.propertyChangeSupport = new PropertyChangeSupport(this);
+	}
+
+	/**
+	 * @param listener a listener to add
+	 */
+	public void addPropertyListener(PropertyChangeListener listener) {
+		propertyChangeSupport.addPropertyChangeListener(listener);
 	}
 
 	/**
@@ -77,17 +88,22 @@ public class Transport {
 			// controller actually play notes from each musician
 			controller.playNotesThisTick();
 		}
-		if (currentClockPulse % 6 == 0)
-			tick++;
-		currentClockPulse++;
+		if (currentClockPulse % 6 == 0) {
+			var oldValue = tick++;
+			propertyChangeSupport.firePropertyChange("tick", oldValue, tick);
+		}
+		var oldClockPulse = currentClockPulse++;
 		if (currentClockPulse > 24) {
 			currentClockPulse = 1;
-			beatNum++;
+			var oldBeatNum = beatNum++;
 			if (beatNum > 4) {
 				beatNum = 1;
-				measureNum++;
+				var oldMeasure = measureNum++;
+				propertyChangeSupport.firePropertyChange("measure", oldMeasure, measureNum);
 			}
+			propertyChangeSupport.firePropertyChange("beat", oldBeatNum, beatNum);
 		}
+		propertyChangeSupport.firePropertyChange("clockPulse", oldClockPulse, currentClockPulse);
 	}
 
 	/**
@@ -121,5 +137,19 @@ public class Transport {
 	 */
 	public void setControlDawTiming(boolean controlDawTiming) {
 		this.controlDawTiming = controlDawTiming;
+	}
+
+	/**
+	 * Reset measure, beat, current clock pulse, and tick to 1
+	 */
+	public void reset() {
+		propertyChangeSupport.firePropertyChange("measure", measureNum, 1);
+		propertyChangeSupport.firePropertyChange("beat", beatNum, 1);
+		propertyChangeSupport.firePropertyChange("clockPulse", currentClockPulse, 1);
+		propertyChangeSupport.firePropertyChange("tick", tick, 1L);
+		this.measureNum = 1;
+		this.beatNum = 1;
+		this.currentClockPulse = 1;
+		this.tick = 1;
 	}
 }
