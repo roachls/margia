@@ -308,4 +308,7 @@ public class Musician {
 		propertyChange.addPropertyChangeListener(listener);
 	}
 
+	public float noteToRange(int noteNum) {
+		return key.noteToRange(noteNum);
+	}
 }

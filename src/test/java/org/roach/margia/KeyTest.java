@@ -1,6 +1,6 @@
 package org.roach.margia;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
@@ -40,5 +40,21 @@ class KeyTest {
 		assertEquals(List.of(21, 23, 24, 26, 28, 29, 31, 33, 35, 36), Key.CMajor.of(21, 36).notes());
 		assertEquals(List.of(36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51),
 				Key.Chromatic.of(36, 51).notes());
+	}
+	
+	@Test
+	void testRange() {
+		var key = Key.generateKey(Key.MAJOR_INTERVALS, List.of(Octave.O1, Octave.O5));
+		for (int i = 0; i < 128; i++) {
+			var n = key.noteToRange(i);
+			if (i <= 36) {
+				assertEquals(0f, n);
+			} else if (i >= 95) {
+				assertEquals(1f, n);
+			} else {
+				assertTrue(0f < n);
+				assertTrue(n < 1f);
+			}
+		}
 	}
 }

@@ -47,7 +47,7 @@ public class AgentComponent extends JComponent implements PropertyChangeListener
 				repaint();
 			} else {
 				var delay = 1000 / (tickLengthMillis * noteInfo.length());
-				var normalizedColor = (float) noteInfo.noteNum() / 127f;
+				var normalizedColor = agent.noteToRange(noteInfo.noteNum());
 				var normalizedSaturation = (float) noteInfo.velocity() / 127f;
 				brightness = 1f;
 				timer = new Timer(delay, _ -> {
