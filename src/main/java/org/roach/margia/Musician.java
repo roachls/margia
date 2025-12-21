@@ -9,13 +9,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
+import org.roach.margia.ui.PropertyChangeEmitter;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
  * polls its own message queue and responds to any messages it receives in the
  * order they were received.
  */
-public class Musician {
+public class Musician implements PropertyChangeEmitter {
 	/**
 	 * the property to fire when the last note changes
 	 */
@@ -280,14 +281,14 @@ public class Musician {
 	public void rest() {
 		controller.playNote(channel, MusicianRule.REST.apply(1));
 	}
-	
+
 	/**
 	 * @return this {@link Musician musician's logger}
 	 */
 	public Logger getLogger() {
 		return logger;
 	}
-	
+
 	/**
 	 * @return the current tick number
 	 */
@@ -301,13 +302,16 @@ public class Musician {
 		}
 	}
 
-	/**
-	 * @param listener a listener for property changes
-	 */
+	@Override
 	public void addPropertyChangeListener(PropertyChangeListener listener) {
 		propertyChange.addPropertyChangeListener(listener);
 	}
 
+	/**
+	 * @param noteNum note to check
+	 * @return a number from 0.0 to 1.0, based on where the given noteNum falls in
+	 *         relation to this {@link Musician}'s range
+	 */
 	public float noteToRange(int noteNum) {
 		return key.noteToRange(noteNum);
 	}

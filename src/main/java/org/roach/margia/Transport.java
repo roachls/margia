@@ -87,12 +87,12 @@ public class Transport {
 	 */
 	public void receiveClockPulse() {
 		logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
+		if (controlDawTiming) {
+			controller.sendClockPulse();
+		}
 		// Once each 16th note (every 6 clock pulses) we kick off musician actions
 		// TODO should we do more than just 4/4?
 		if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13 || currentClockPulse == 19) {
-			if (controlDawTiming) {
-				controller.sendClockPulse();
-			}
 			if (tickActions.containsKey(tick)) {
 				logger.atDebug().log("Transport playing tick action {}", tick);
 				tickActions.remove(tick).run();

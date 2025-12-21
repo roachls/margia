@@ -19,6 +19,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 	private final JLabel beat;
 	private final JLabel clockPulse;
 	private final JLabel tick;
+	private final JSpinner tempo;
 
 	/**
 	 * @param timing    the {@link TimingSource}
@@ -40,6 +41,12 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 		add(clockPulse);
 		tick = new JLabel(" (000)");
 		add(tick);
+
+		add(new JLabel("Tempo: "));
+		var tempoModel = new SpinnerNumberModel(timing.getTempo(), 1, 400, 1);
+		tempo = new JSpinner(tempoModel);
+		tempo.addChangeListener(_ -> timing.setTempo((int) tempo.getValue()));
+		add(tempo);
 
 		var startIconUrl = getClass().getResource("/icons/start.png");
 		var stopIconUrl = getClass().getResource("/icons/pause.png");
