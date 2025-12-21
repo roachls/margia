@@ -315,4 +315,11 @@ public class Musician implements PropertyChangeEmitter {
 	public float noteToRange(int noteNum) {
 		return key.noteToRange(noteNum);
 	}
+	
+	/**
+	 * @return a list of IDs of all peers
+	 */
+	public List<Integer> peerIds() {
+		return peers.stream().map(Musician::getId).toList();
+	}
 }

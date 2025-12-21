@@ -37,8 +37,20 @@ public class MargiaWindow extends JFrame {
 		setupMenu();
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		getContentPane().add(new TransportPanel(timing, transport), BorderLayout.SOUTH);
-		getContentPane().add(new AgentPanel(musicians, transport.getTickLength()), BorderLayout.CENTER);
+		getContentPane().add(new AgentPanel(musicians, transport.getTickLength(), calcConnections(musicians)), BorderLayout.CENTER);
 		pack();
+	}
+	
+	private static boolean[][] calcConnections(List<Musician> musicians) {
+		var conn = new boolean[musicians.size()][musicians.size()];
+		for (int i = 0; i < musicians.size(); i++) {
+			var mus = musicians.get(i);
+			var peerIds = mus.peerIds();
+			for (var peerId : peerIds) {
+				conn[i][peerId] = true;
+			}
+		}
+		return conn;
 	}
 
 	private void setupMenu() {

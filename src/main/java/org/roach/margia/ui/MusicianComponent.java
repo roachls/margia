@@ -1,11 +1,11 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-import javax.swing.JComponent;
-import javax.swing.Timer;
+import javax.swing.*;
 
 import org.roach.margia.Musician;
 import org.roach.margia.NoteInfo;
@@ -13,26 +13,31 @@ import org.roach.margia.NoteInfo;
 /**
  * GUI element that displays an agent as a colored circle
  */
-public class AgentComponent extends JComponent implements PropertyChangeListener {
+public class MusicianComponent extends JComponent implements PropertyChangeListener {
+	private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
 	private final Musician agent;
 	private Color color;
 	private final int tickLengthMillis;
 	private Timer timer;
 	private volatile float brightness = 1f;
-	private static final Stroke LINE_3PX = new BasicStroke(3);
 	private static final Stroke LINE_1PX = new BasicStroke(1);
+	private static int circleRadius = 20;
+	private static int circleDiameter = circleRadius * 2;
 
 	/**
-	 * @param agent            the {@link Musician} being displayed
+	 * @param musician            the {@link Musician} being displayed
 	 * @param tickLengthMillis length of a tick in milliseconds
 	 */
-	public AgentComponent(Musician agent, int tickLengthMillis) {
-		this.agent = agent;
+	public MusicianComponent(Musician musician, int tickLengthMillis) {
+		this.agent = musician;
 		this.tickLengthMillis = tickLengthMillis;
-		agent.addPropertyChangeListener(this);
+		musician.addPropertyChangeListener(this);
 		this.color = Color.black;
-		this.setSize(40, 40);
-		this.setPreferredSize(new Dimension(40, 40));
+		var dim = new Dimension(circleRadius * 2, circleRadius * 2);
+		setPreferredSize(dim);
+		setMinimumSize(dim);
+		setSize(dim);
+		setMaximumSize(dim);
 	}
 
 	@Override
@@ -51,7 +56,7 @@ public class AgentComponent extends JComponent implements PropertyChangeListener
 				var normalizedSaturation = (float) noteInfo.velocity() / 127f;
 				brightness = 1f;
 				timer = new Timer(delay, _ -> {
-					this.color = Color.getHSBColor(normalizedColor, normalizedSaturation, brightness);
+					color = Color.getHSBColor(normalizedColor, normalizedSaturation, brightness);
 					brightness -= 0.004f;
 					if (brightness < 0.0f)
 						brightness = 0.0f;
@@ -70,12 +75,17 @@ public class AgentComponent extends JComponent implements PropertyChangeListener
 		var g2d = (Graphics2D) g;
 		g2d.setColor(color);
 		g2d.setStroke(LINE_1PX);
-		g2d.fillOval(0, 0, this.getWidth(), this.getHeight());
+		var centerX = getWidth() / 2;
+		var centerY = getHeight() / 2;
+		var topLeftX = centerX - circleRadius;
+		var topLeftY = centerY - circleRadius;
+		var paint = new RadialGradientPaint(new Point2D.Float(centerX + 3, centerY + 3), circleRadius, FRACTIONS,
+				new Color[] { Color.white, color });
+		g2d.setPaint(paint);
+		g2d.fillOval(topLeftX, topLeftY, circleDiameter, circleDiameter);
 		if (agent.isMuted()) {
 			g2d.setColor(Color.black);
-			g2d.setStroke(LINE_3PX);
-			g2d.drawLine(0, 0, getWidth(), getHeight());
-			g2d.drawLine(0, getHeight(), getWidth(), 0);
+			g2d.drawOval(topLeftX, topLeftY, circleDiameter, circleDiameter);
 		}
 	}
 }
