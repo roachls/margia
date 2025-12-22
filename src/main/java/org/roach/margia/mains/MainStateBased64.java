@@ -1,11 +1,18 @@
 package org.roach.margia.mains;
 
 import java.util.ArrayList;
-import java.util.Scanner;
+
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 import org.roach.margia.*;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
+import org.roach.margia.timing.InternalTimingSource;
+import org.roach.margia.ui.MargiaWindow;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 
 /**
  * A state-based ruleset
@@ -17,26 +24,33 @@ public class MainStateBased64 {
 	 * @param args args[0] = number of musicians
 	 */
 	public static void main(String[] args) {
-		if (args.length < 2) {
-			System.err.println("args: tempo randomSeed");
+		var params = new StateBasedParams();
+		var jCommander = new JCommander(params);
+		try {
+			jCommander.parse(args);
+		} catch (ParameterException e) {
+			System.err.println(e.getMessage());
+			jCommander.usage();
 			return;
 		}
-		var tempo = Integer.parseInt(args[0]);
-		var randomSeed = Long.parseLong(args[1]);
-		var controller = new MidiController("loopMIDI Port", tempo);
-//		var controller = new MidiController(DEFAULT_SYNTH, tempo);
+		MidiController controller;
+		if (params.sendExternalMidi) {
+			controller = new MidiController("loopMIDI Port", params.tempo);
+		} else {
+			controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
+		}
 		var musicians = new ArrayList<Musician>();
 		var rules = new ArrayList<MusicianRule>();
-		for (var x = 0; x < 8; x++) {
-			for (var y = 0; y < 8; y++) {
+		for (var x = 0; x < params.numCols; x++) {
+			for (var y = 0; y < params.numRows; y++) {
 				MusicianRule rule;
 				if (x == 0)
 					rule = new RandomRule();
 				else
-					rule = new StateBasedRule(16, 8 - y);
+					rule = new StateBasedRule(16, params.numCols - y);
 				rules.add(rule);
-				var index = x * 8 + y;
-				var musician = new Musician(index, controller, tempo, y, rule);
+				var index = x * params.numRows + y;
+				var musician = new Musician(index, controller, params.tempo, y, rule);
 				if (x != 3 && x != 7)
 					musician.setMuted(true);
 				musician.setKey(Key.Chromatic.of(Octave.O0.getLow(), Octave.O4.getHigh()));
@@ -153,18 +167,24 @@ public class MainStateBased64 {
 		musicians.get(62).addPeer(musicians.get(6));
 		musicians.get(63).addPeer(musicians.get(7));
 
-		Key.setRandomSeed(randomSeed);
+		Key.setRandomSeed(params.randomSeed);
 
-		var transport = new Transport(musicians, tempo, controller);
-		transport.setControlDawTiming(true);
-		transport.start();
+		var transport = new Transport(musicians, params.tempo, controller);
+		transport.setControlDawTiming(params.sendExternalMidi);
 
-		try (var scanner = new Scanner(System.in)) {
-			scanner.nextLine();
+		var timing = new InternalTimingSource(transport, params.tempo);
 
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			timing.stop();
 			transport.stop();
 			controller.close();
-		}
+		}));
+
+		SwingUtilities.invokeLater(() -> {
+			var ui = new MargiaWindow("State Based 64", timing, transport, musicians);
+			ui.setExtendedState(JFrame.MAXIMIZED_BOTH);
+			ui.setVisible(true);
+		});
 
 	}
 

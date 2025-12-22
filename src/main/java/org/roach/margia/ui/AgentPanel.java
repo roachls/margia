@@ -1,8 +1,9 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,21 +18,24 @@ import org.roach.margia.Musician;
  * GUI element that displays multiple {@link Musician Musicians} in a
  * {@link JPanel}
  */
-public class AgentPanel extends JPanel implements ActionListener {
+public class AgentPanel extends JPanel implements ActionListener, ComponentListener {
 	private final Random rand = new SecureRandom();
 	int numMusicians;
 	private List<MusicianComponent> musicianComponents;
 	private List<Edge> edges = new ArrayList<>();
 	private final double K_REPULSION = 10000; // Repulsion constant
 	private final double K_SPRING = 0.13; // Spring constant
-	private final double DAMPING = 0.9; // Damping factor
+	private final double DAMPING = 0.6; // Damping factor
 	private final double TIMESTEP = 0.3; // Simulation speed/stability
+	private Dimension panelSize;
 
 	/**
 	 * @param musicians        {@link Musician musicians} to display
 	 * @param tickLengthMillis length of a tick in milliseconds
 	 */
 	public AgentPanel(List<Musician> musicians, int tickLengthMillis) {
+		setLayout(null);
+		addComponentListener(this);
 		this.numMusicians = musicians.size();
 		this.musicianComponents = new ArrayList<>();
 		var size = 500;
@@ -39,10 +43,11 @@ public class AgentPanel extends JPanel implements ActionListener {
 		setSize(dim);
 		setPreferredSize(dim);
 		setDoubleBuffered(true);
+		setBackground(Color.LIGHT_GRAY);
 		for (var musician : musicians) {
 			var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
-			n.px = rand.nextInt(size);
-			n.py = rand.nextInt(size);
+			n.px = rand.nextInt(size - MusicianComponent.circleRadius * 2);
+			n.py = rand.nextInt(size - MusicianComponent.circleRadius * 2);
 			n.updateLocation();
 			musicianComponents.add(n);
 			add(n);
@@ -63,9 +68,17 @@ public class AgentPanel extends JPanel implements ActionListener {
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		var g2d = (Graphics2D) g;
-		g.setColor(Color.BLACK);
+		var gradient = new GradientPaint(new Point2D.Float(getWidth() / 2, 0), getBackground(),
+				new Point2D.Float(getWidth() / 2, getHeight()), Color.black);
+		g2d.setPaint(gradient);
+		g2d.fillRect(0, 0, getWidth(), getHeight());
+		g2d.setColor(Color.BLACK);
 		for (Edge edge : edges) {
 			g2d.drawLine((int) edge.source.px + edge.source.getWidth() / 2,
+					(int) edge.source.py + edge.source.getHeight() / 2,
+					(int) edge.target.px + edge.target.getWidth() / 2,
+					(int) edge.target.py + edge.target.getHeight() / 2);
+			drawArrow(g, (int) edge.source.px + edge.source.getWidth() / 2,
 					(int) edge.source.py + edge.source.getHeight() / 2,
 					(int) edge.target.px + edge.target.getWidth() / 2,
 					(int) edge.target.py + edge.target.getHeight() / 2);
@@ -77,7 +90,7 @@ public class AgentPanel extends JPanel implements ActionListener {
 			var mus = musicians.get(i);
 			var peerIds = mus.peerIds();
 			for (var peerId : peerIds) {
-				edges.add(new Edge(musicianComponents.get(i), musicianComponents.get(peerId), 100));
+				edges.add(new Edge(musicianComponents.get(i), musicianComponents.get(peerId), 60));
 			}
 		}
 	}
@@ -137,11 +150,31 @@ public class AgentPanel extends JPanel implements ActionListener {
 			node.py += node.vy * TIMESTEP;
 
 			// Simple boundary constraints (optional)
-			node.px = Math.max(10, Math.min(getWidth() - 10, node.px));
-			node.py = Math.max(10, Math.min(getHeight() - 10, node.py));
+			node.px = Math.max(MusicianComponent.circleRadius,
+					Math.min(getWidth() - MusicianComponent.circleRadius, node.px));
+			node.py = Math.max(MusicianComponent.circleRadius,
+					Math.min(getHeight() - MusicianComponent.circleRadius, node.py));
 
 			node.updateLocation();
 		}
+	}
+
+	private static final int ARR_SIZE = 4;
+
+	void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
+		Graphics2D g = (Graphics2D) g1.create();
+
+		double dx = x2 - x1, dy = y2 - y1;
+		double angle = Math.atan2(dy, dx);
+		int len = (int) Math.sqrt(dx * dx + dy * dy);
+		AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
+		at.concatenate(AffineTransform.getRotateInstance(angle));
+		g.transform(at);
+
+		// Draw horizontal arrow starting in (0, 0)
+		g.drawLine(0, 0, len, 0);
+		g.fillPolygon(new int[] { len, len - ARR_SIZE, len - ARR_SIZE, len }, new int[] { 0, -ARR_SIZE, ARR_SIZE, 0 },
+				4);
 	}
 
 	static class Edge {
@@ -153,6 +186,34 @@ public class AgentPanel extends JPanel implements ActionListener {
 			this.target = target;
 			this.idealLength = idealLength;
 		}
+	}
+
+	@Override
+	public void componentResized(ComponentEvent e) {
+		for (var musician : musicianComponents) {
+			musician.px = rand.nextInt(getWidth());
+			musician.py = rand.nextInt(getHeight());
+			musician.updateLocation();
+		}
+		invalidate();
+	}
+
+	@Override
+	public void componentMoved(ComponentEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void componentShown(ComponentEvent e) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void componentHidden(ComponentEvent e) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

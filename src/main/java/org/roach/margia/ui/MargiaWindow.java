@@ -24,23 +24,24 @@ public class MargiaWindow extends JFrame {
 			""";
 
 	/**
+	 * @param title     window title
 	 * @param timing    the {@link TimingSource}
 	 * @param transport the {@link Transport}
 	 * @param musicians the musicians to display
 	 * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
 	 *                           true
 	 */
-	public MargiaWindow(TimingSource timing, Transport transport, List<Musician> musicians) throws HeadlessException {
-		super("MARGIA");
+	public MargiaWindow(String title, TimingSource timing, Transport transport, List<Musician> musicians)
+			throws HeadlessException {
+		super("MARGIA - " + title);
 		this.getContentPane().setLayout(new BorderLayout());
-//		this.setLocationRelativeTo(null);
 		setupMenu();
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		getContentPane().add(new TransportPanel(timing, transport), BorderLayout.SOUTH);
 		getContentPane().add(new AgentPanel(musicians, transport.getTickLength()), BorderLayout.CENTER);
 		pack();
 	}
-	
+
 	private void setupMenu() {
 		var menubar = new JMenuBar();
 		var helpMenu = new JMenu("Help");

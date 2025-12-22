@@ -20,8 +20,11 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	private final int tickLengthMillis;
 	private Timer timer;
 	private volatile float brightness = 1f;
-	private static final Stroke LINE_1PX = new BasicStroke(1);
-	private static int circleRadius = 20;
+	private static final Stroke LINE_3PX = new BasicStroke(3);
+	/**
+	 * size of circle to draw
+	 */
+	public static int circleRadius = 20;
 	final double mass;
 	double px, py;
 	double vx, vy; // velocity
@@ -38,6 +41,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 		this.mass = mass;
 		musician.addPropertyChangeListener(this);
 		this.color = Color.black;
+//		setBorder(BorderFactory.createLineBorder(Color.red));
 		var dim = new Dimension(circleRadius * 2, circleRadius * 2);
 		setPreferredSize(dim);
 		setMinimumSize(dim);
@@ -60,13 +64,14 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 				var normalizedColor = agent.noteToRange(noteInfo.noteNum());
 				var normalizedSaturation = (float) noteInfo.velocity() / 127f;
 				brightness = 1f;
-				new Timer(delay, _ -> {
+				timer = new Timer(delay, _ -> {
 					color = Color.getHSBColor(normalizedColor, normalizedSaturation, brightness);
 					brightness -= 0.004f;
 					if (brightness < 0.0f)
 						brightness = 0.0f;
 					repaint();
-				}).start();
+				});
+				timer.start();
 			}
 			break;
 		default:
@@ -82,14 +87,16 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 				FRACTIONS, new Color[] { Color.white, color });
 		g2d.setPaint(paint);
 		g2d.fillOval(0, 0, getWidth(), getHeight());
-		if (agent.isMuted()) {
-			g2d.setStroke(LINE_1PX);
-			g2d.setColor(Color.black);
-			g2d.drawOval(0, 0, getWidth(), getHeight());
-		}
+		g2d.setColor(Color.LIGHT_GRAY);
+		g2d.drawString(Integer.toString(agent.getId()), (int) circleRadius - 6, (int) circleRadius - 3);
+//		if (agent.isMuted()) {
+//			g2d.setStroke(LINE_3PX);
+//			g2d.setColor(Color.black);
+//			g2d.drawOval(0, 0, getWidth(), getHeight());
+//		}
 	}
-	
-	public void updateLocation() {
+
+	void updateLocation() {
 		setLocation((int) px, (int) py);
 	}
 }
