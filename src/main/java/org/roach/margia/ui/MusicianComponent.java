@@ -22,15 +22,20 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	private volatile float brightness = 1f;
 	private static final Stroke LINE_1PX = new BasicStroke(1);
 	private static int circleRadius = 20;
-	private static int circleDiameter = circleRadius * 2;
+	final double mass;
+	double px, py;
+	double vx, vy; // velocity
+	double fx, fy; // total force
 
 	/**
-	 * @param musician            the {@link Musician} being displayed
+	 * @param musician         the {@link Musician} being displayed
 	 * @param tickLengthMillis length of a tick in milliseconds
+	 * @param mass             mass to use in position calculations
 	 */
-	public MusicianComponent(Musician musician, int tickLengthMillis) {
+	public MusicianComponent(Musician musician, int tickLengthMillis, double mass) {
 		this.agent = musician;
 		this.tickLengthMillis = tickLengthMillis;
+		this.mass = mass;
 		musician.addPropertyChangeListener(this);
 		this.color = Color.black;
 		var dim = new Dimension(circleRadius * 2, circleRadius * 2);
@@ -55,14 +60,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 				var normalizedColor = agent.noteToRange(noteInfo.noteNum());
 				var normalizedSaturation = (float) noteInfo.velocity() / 127f;
 				brightness = 1f;
-				timer = new Timer(delay, _ -> {
+				new Timer(delay, _ -> {
 					color = Color.getHSBColor(normalizedColor, normalizedSaturation, brightness);
 					brightness -= 0.004f;
 					if (brightness < 0.0f)
 						brightness = 0.0f;
 					repaint();
-				});
-				timer.start();
+				}).start();
 			}
 			break;
 		default:
@@ -74,18 +78,18 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 		super.paintComponent(g);
 		var g2d = (Graphics2D) g;
 		g2d.setColor(color);
-		g2d.setStroke(LINE_1PX);
-		var centerX = getWidth() / 2;
-		var centerY = getHeight() / 2;
-		var topLeftX = centerX - circleRadius;
-		var topLeftY = centerY - circleRadius;
-		var paint = new RadialGradientPaint(new Point2D.Float(centerX + 3, centerY + 3), circleRadius, FRACTIONS,
-				new Color[] { Color.white, color });
+		var paint = new RadialGradientPaint(new Point2D.Float(circleRadius + 3, circleRadius + 3), circleRadius,
+				FRACTIONS, new Color[] { Color.white, color });
 		g2d.setPaint(paint);
-		g2d.fillOval(topLeftX, topLeftY, circleDiameter, circleDiameter);
+		g2d.fillOval(0, 0, getWidth(), getHeight());
 		if (agent.isMuted()) {
+			g2d.setStroke(LINE_1PX);
 			g2d.setColor(Color.black);
-			g2d.drawOval(topLeftX, topLeftY, circleDiameter, circleDiameter);
+			g2d.drawOval(0, 0, getWidth(), getHeight());
 		}
+	}
+	
+	public void updateLocation() {
+		setLocation((int) px, (int) py);
 	}
 }

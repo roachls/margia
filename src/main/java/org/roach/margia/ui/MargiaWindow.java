@@ -33,26 +33,14 @@ public class MargiaWindow extends JFrame {
 	public MargiaWindow(TimingSource timing, Transport transport, List<Musician> musicians) throws HeadlessException {
 		super("MARGIA");
 		this.getContentPane().setLayout(new BorderLayout());
-		this.setLocationRelativeTo(null);
+//		this.setLocationRelativeTo(null);
 		setupMenu();
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		getContentPane().add(new TransportPanel(timing, transport), BorderLayout.SOUTH);
-		getContentPane().add(new AgentPanel(musicians, transport.getTickLength(), calcConnections(musicians)), BorderLayout.CENTER);
+		getContentPane().add(new AgentPanel(musicians, transport.getTickLength()), BorderLayout.CENTER);
 		pack();
 	}
 	
-	private static boolean[][] calcConnections(List<Musician> musicians) {
-		var conn = new boolean[musicians.size()][musicians.size()];
-		for (int i = 0; i < musicians.size(); i++) {
-			var mus = musicians.get(i);
-			var peerIds = mus.peerIds();
-			for (var peerId : peerIds) {
-				conn[i][peerId] = true;
-			}
-		}
-		return conn;
-	}
-
 	private void setupMenu() {
 		var menubar = new JMenuBar();
 		var helpMenu = new JMenu("Help");
