@@ -3,7 +3,13 @@ package org.roach.margia.timing;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
+
 import org.roach.margia.Transport;
+
+import tech.units.indriya.quantity.Quantities;
+import tech.units.indriya.quantity.time.TimeQuantities;
 
 /**
  * Use internal system clock as timing source
@@ -12,7 +18,7 @@ public class InternalTimingSource implements TimingSource {
 	private final Transport transport;
 	private Future<?> clockFuture;
 	private volatile int tempo;
-	private volatile int tickLengthMicros;
+	private volatile Quantity<Time> tickLengthMicros;
 	private final ScheduledExecutorService clockExecutor;
 	private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -29,8 +35,8 @@ public class InternalTimingSource implements TimingSource {
 	@Override
 	public void setTempo(int tempo) {
 		this.tempo = tempo;
-		this.tickLengthMicros = 60000000 / (tempo * 24);
-		
+		this.tickLengthMicros = Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND);
+
 		if (isRunning()) {
 			stopClock();
 			startClock();
@@ -44,10 +50,10 @@ public class InternalTimingSource implements TimingSource {
 
 	private void startClock() {
 		running.set(true);
-		clockFuture = clockExecutor.scheduleAtFixedRate(transport::receiveClockPulse, 0, tickLengthMicros,
-				TimeUnit.MICROSECONDS);
+		clockFuture = clockExecutor.scheduleAtFixedRate(transport::receiveClockPulse, 0,
+				tickLengthMicros.getValue().longValue(), TimeUnit.MICROSECONDS);
 	}
-	
+
 	@Override
 	public void start() {
 		transport.start();
@@ -59,9 +65,9 @@ public class InternalTimingSource implements TimingSource {
 			clockFuture.cancel(true);
 			clockFuture = null;
 		}
-		
+
 	}
-	
+
 	@Override
 	public void stop() {
 		transport.stop();

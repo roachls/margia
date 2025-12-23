@@ -30,6 +30,11 @@
 			<artifactId>jcommander</artifactId>
 			<version>1.82</version>
 		</dependency>
+		<dependency>
+			<groupId>tech.units</groupId>
+			<artifactId>indriya</artifactId>
+			<version>2.2.3</version>
+		</dependency>
 	</dependencies>
 	<properties>
 		<maven.compiler.source>25</maven.compiler.source>

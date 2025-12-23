@@ -86,7 +86,7 @@ public class MidiController {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Set the given note to play next on the given MIDI channel
 	 * 
@@ -113,7 +113,8 @@ public class MidiController {
 			if (notesToPlayNext.containsKey(i)) {
 				var noteInfo = notesToPlayNext.get(i);
 				// stop note at 95% length
-				var noteLengthInMillis = (int) ((double) Length.getMillisForTempo(noteInfo.length(), tempo) * 0.95);
+				var noteLengthInMillis = (int) (Length.getMillisForTempo(noteInfo.length(), tempo).getValue()
+						.doubleValue() * 0.95);
 				executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON), 0L, TimeUnit.MILLISECONDS);
 				executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis, TimeUnit.MILLISECONDS);
 			}

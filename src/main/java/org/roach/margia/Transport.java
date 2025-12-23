@@ -47,7 +47,7 @@ public class Transport {
 	 */
 	public Transport(final List<Musician> musicians, int tempo, final MidiController controller) {
 		this.musicians = musicians;
-		this.tickLength = Length.getMillisForTempo(1, tempo);
+		this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
 		this.controller = controller;
 		this.propertyChangeSupport = new PropertyChangeSupport(this);
 	}
