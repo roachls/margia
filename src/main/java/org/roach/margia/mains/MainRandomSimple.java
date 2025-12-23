@@ -28,7 +28,7 @@ public class MainRandomSimple {
 //		var controller = new MidiController(DEFAULT_SYNTH, tempo);
 		var musicians = new ArrayList<Musician>();
 		for (int i = 0; i < numMusicians; i++) {
-			musicians.add(new Musician(i, controller, tempo, i % numExternalInstruments, new RandomRule()));
+			musicians.add(new Musician(i, controller, i % numExternalInstruments, new RandomRule()));
 		}
 
 		/*

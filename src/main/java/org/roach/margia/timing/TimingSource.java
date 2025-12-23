@@ -1,11 +1,18 @@
 package org.roach.margia.timing;
 
-import org.roach.margia.ui.PropertyChangeEmitter;
-
 /**
  * A source of timing clock pulses, 24 pulses per beat
  */
-public interface TimingSource extends PropertyChangeEmitter {
+public interface TimingSource {
+	/**
+	 * Default tempo
+	 */
+	static final int DEFAULT_TEMPO = 60;
+	/**
+	 * the property fired when the tempo changes
+	 */
+	String TEMPO_PROPERTY = "tempo";
+	
 	/**
 	 * Start the clock
 	 */

@@ -2,7 +2,6 @@ package org.roach.margia.mains;
 
 import java.util.ArrayList;
 
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import org.roach.margia.*;
@@ -42,13 +41,13 @@ public class MainStateBasedCircle {
 		}
 		var musicians = new ArrayList<Musician>();
 		MusicianRule rule = new RandomRule();
-		var musician = new Musician(0, controller, params.tempo, 0, rule);
+		var musician = new Musician(0, controller, 0, rule);
 		musicians.add(musician);
 
 		var numMusicians = params.numCols * params.numCols;
 		for (int i = 1; i < numMusicians; i++) {
 			rule = new StateBasedRule(8, 0);
-			musician = new Musician(i, controller, params.tempo, i % params.numChannels, rule);
+			musician = new Musician(i, controller, i % params.numChannels, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}

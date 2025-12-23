@@ -72,11 +72,10 @@ public class Musician implements PropertyChangeEmitter {
 	/**
 	 * @param id         unique id of this {@link Musician}
 	 * @param controller MIDI controller that will actually play the notes
-	 * @param tempo      tempo to play at
 	 * @param channel    MIDI channel
 	 * @param rule       The rule that governs a musician's behavior
 	 */
-	public Musician(final int id, final MidiController controller, int tempo, int channel, final MusicianRule rule) {
+	public Musician(final int id, final MidiController controller, int channel, final MusicianRule rule) {
 		this.id = id;
 		this.logger = LogManager.getLogger("Musician_" + id);
 		this.controller = controller;
@@ -322,4 +321,5 @@ public class Musician implements PropertyChangeEmitter {
 	public List<Integer> peerIds() {
 		return peers.stream().map(Musician::getId).toList();
 	}
+
 }

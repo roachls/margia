@@ -44,7 +44,7 @@ public class MainStateBased {
 		for (int i = 0; i < numMusicians; i++) {
 			var rule = new StateBasedRule(params.startingSequenceLength, 2);
 			rules.add(rule);
-			var musician = new Musician(i, controller, params.tempo, i % params.numChannels, rule);
+			var musician = new Musician(i, controller, i % params.numChannels, rule);
 			rule.setMusician(musician);
 			musicians.add(musician);
 		}
@@ -98,7 +98,7 @@ public class MainStateBased {
 
 		// add a single random musician that is heard only by #0 and can't hear anyone
 		// else
-		var rMusician = new Musician(16, controller, params.tempo, 0, new RandomRule());
+		var rMusician = new Musician(16, controller, 0, new RandomRule());
 		rMusician.addPeer(musicians.get(0));
 		musicians.get(numMusicians - 1).addPeer(rMusician);
 		musicians.add(rMusician);

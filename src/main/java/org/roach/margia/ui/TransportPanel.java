@@ -6,6 +6,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Transport;
 import org.roach.margia.timing.TimingSource;
@@ -45,6 +46,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 		add(new JLabel("Tempo: "));
 		var tempoModel = new SpinnerNumberModel(timing.getTempo(), 1, 400, 1);
 		tempo = new JSpinner(tempoModel);
+		tempo.setName("tempo");
 		tempo.addChangeListener(_ -> timing.setTempo((int) tempo.getValue()));
 		add(tempo);
 
@@ -106,4 +108,10 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
 		});
 	}
 
+	/**
+	 * @param listener a listener for tempo changes
+	 */
+	public void addTempoListener(ChangeListener listener) {
+		this.tempo.addChangeListener(listener);
+	}
 }

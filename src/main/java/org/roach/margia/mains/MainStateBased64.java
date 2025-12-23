@@ -50,7 +50,7 @@ public class MainStateBased64 {
 					rule = new StateBasedRule(16, params.numCols - y);
 				rules.add(rule);
 				var index = x * params.numRows + y;
-				var musician = new Musician(index, controller, params.tempo, y, rule);
+				var musician = new Musician(index, controller, y, rule);
 				if (x != 3 && x != 7)
 					musician.setMuted(true);
 				musician.setKey(Key.Chromatic.of(Octave.O0.getLow(), Octave.O4.getHigh()));

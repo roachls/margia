@@ -1,6 +1,7 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.List;
 
 import javax.swing.*;
@@ -22,6 +23,7 @@ public class MargiaWindow extends JFrame {
 			<h3>By Stevie Roach</h3>
 			<a href="mailto:roachls@yahoo.com">roachls@yahoo.com</a>
 			""";
+	private OptionPanel optionPanel;
 
 	/**
 	 * @param title     window title
@@ -37,19 +39,37 @@ public class MargiaWindow extends JFrame {
 		this.getContentPane().setLayout(new BorderLayout());
 		setupMenu();
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		getContentPane().add(new TransportPanel(timing, transport), BorderLayout.SOUTH);
-		getContentPane().add(new AgentPanel(musicians, transport.getTickLength()), BorderLayout.CENTER);
+		var transportPanel = new TransportPanel(timing, transport);
+		getContentPane().add(transportPanel, BorderLayout.SOUTH);
+		optionPanel = new OptionPanel();
+		var agentPanel = new AgentPanel(musicians, optionPanel);
+		transportPanel.addTempoListener(agentPanel);
+		getContentPane().add(agentPanel, BorderLayout.CENTER);
+		getContentPane().add(optionPanel, BorderLayout.EAST);
 		pack();
+		optionPanel.setVisible(false);
+		agentPanel.initMusicians();
 	}
 
 	private void setupMenu() {
 		var menubar = new JMenuBar();
+
+		var editMenu = new JMenu("Edit");
+		editMenu.setMnemonic('E');
+		var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options");
+		showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
+		showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
+		editMenu.add(showOptionPaneMenuItem);
+		menubar.add(editMenu);
+
 		var helpMenu = new JMenu("Help");
 		helpMenu.setMnemonic('H');
 		var aboutMenuItem = new JMenuItem("About");
+		aboutMenuItem.setMnemonic(KeyEvent.VK_A);
 		aboutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, ABOUT_MESSAGE));
 		helpMenu.add(aboutMenuItem);
 
+		menubar.add(Box.createHorizontalGlue());
 		menubar.add(helpMenu);
 		this.setJMenuBar(menubar);
 	}
