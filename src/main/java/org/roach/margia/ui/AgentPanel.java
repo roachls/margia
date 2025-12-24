@@ -105,8 +105,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 				new Point2D.Float(getWidth() / 2, getHeight()), Color.black);
 		g2d.setPaint(gradient);
 		g2d.fillRect(0, 0, getWidth(), getHeight());
-		g2d.setColor(Color.BLACK);
 		for (Edge edge : edges) {
+			g2d.setColor(edge.source.getColor());
 			g2d.drawLine((int) edge.source.px + edge.source.getWidth() / 2,
 					(int) edge.source.py + edge.source.getHeight() / 2,
 					(int) edge.target.px + edge.target.getWidth() / 2,

@@ -29,26 +29,26 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	 * size of circle to draw
 	 */
 	private int radius = MusicianComponent.DEFAULT_RADIUS;
-	final double mass;
+	double mass;
 	double px, py;
 	double vx, vy; // velocity
 	double fx, fy; // total force
 	/**
 	 * default radius of musician components
 	 */
-	public static final int DEFAULT_RADIUS = 20;
+	static final int DEFAULT_RADIUS = 20;
 	/**
 	 * property name of radius spinner
 	 */
-	public static final String RADIUS_PROPERTY = "Radius";
+	static final String RADIUS_PROPERTY = "Radius";
 	/**
 	 * property name of whether to show numbers
 	 */
-	public static final String SHOW_NUMBERS_PROPERTY = "Show numbers";
+	static final String SHOW_NUMBERS_PROPERTY = "Show numbers";
 	/**
 	 * listener for the show numbers property
 	 */
-	public static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = ((JCheckBox) e.getSource())
+	static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = ((JCheckBox) e.getSource())
 			.isSelected();
 
 	/**
@@ -56,7 +56,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	 * @param tickLengthMillis length of a tick in milliseconds
 	 * @param mass             mass to use in position calculations
 	 */
-	public MusicianComponent(Musician musician, int tickLengthMillis, double mass) {
+	MusicianComponent(Musician musician, int tickLengthMillis, double mass) {
 		this.agent = musician;
 		this.tickLengthMillis = tickLengthMillis;
 		this.mass = mass;
@@ -124,15 +124,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 			var transform = AffineTransform.getTranslateInstance(radius - 6, radius + 3);
 			Shape shape = tl.getOutline(transform);
 
-			// 1. Draw the outline (stroke)
+			// draw an oval around the text
 			g2d.setColor(Color.BLACK); // Outline color
-			// Set the stroke thickness (e.g., 3 pixels)
-			g2d.setStroke(new BasicStroke(2.0f));
-			g2d.draw(shape);
+			g2d.fillOval(shape.getBounds().x-1, shape.getBounds().y-1, shape.getBounds().width+2, shape.getBounds().height+2);
 			g2d.setColor(Color.white); // Fill color
+			// draw the text
 			g2d.fill(shape);
 		}
 		if (agent.isMuted()) {
+			// draw a semi-transparent gray oval over the whole thing
 			g2d.setColor(new Color(0.5f, 0.5f, 0.5f, 0.8f));
 			g2d.fillOval(0, 0, getWidth(), getHeight());
 		}
@@ -145,21 +145,21 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	/**
 	 * @return radius of displayed circle
 	 */
-	public int getRadius() {
+	int getRadius() {
 		return radius;
 	}
 
 	/**
 	 * @return diameter of displayed circle
 	 */
-	public int getDiameter() {
+	int getDiameter() {
 		return radius * 2;
 	}
 
 	/**
 	 * @param circleRadius radius of displayed circle
 	 */
-	public void setCircleRadius(int circleRadius) {
+	void setCircleRadius(int circleRadius) {
 		this.radius = Math.max(0, circleRadius);
 		var dim = new Dimension(circleRadius * 2, circleRadius * 2);
 		setPreferredSize(dim);
@@ -180,5 +180,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	 */
 	public void setTickLengthMillis(int tickLengthMillis) {
 		this.tickLengthMillis = tickLengthMillis;
+	}
+
+	Color getColor() {
+		return this.color;
 	}
 }
