@@ -41,11 +41,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 	/**
 	 * property name of edge length spinner
 	 */
-	public static final String EDGE_LENGTH_PROPERTY = "Edge length";
+	public static final String EDGE_LENGTH_PROPERTY = "Edge_length";
 	/**
 	 * property name of gravity spinner
 	 */
-	public static final String GRAVITY_PROPERTY = "Gravitational Constant";
+	public static final String GRAVITY_PROPERTY = "Gravitational_Constant";
 
 	/**
 	 * @param musicians   {@link Musician musicians} to display

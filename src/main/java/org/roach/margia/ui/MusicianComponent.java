@@ -44,7 +44,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	/**
 	 * property name of whether to show numbers
 	 */
-	static final String SHOW_NUMBERS_PROPERTY = "Show numbers";
+	static final String SHOW_NUMBERS_PROPERTY = "Show_numbers";
 	/**
 	 * listener for the show numbers property
 	 */
