@@ -8,15 +8,15 @@ To run on Windows 10+, follow these steps:
 
 1. Download and install [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html)
 1. Run loopMIDI
-<ol type="a">
-	<li>Click the + to add the default loopMIDI Port 1</li>
-	<li>Close loopMIDI (if desired)</li>
-</ol>
+	<ol type="a">
+		<li>Click the + to add the default loopMIDI Port 1</li>
+		<li>Close loopMIDI (if desired)</li>
+	</ol>
 1. Download and install [MIDIMapper Configurator](https://coolsoft.altervista.org/en/midimapper)
-<ol type="a">
-	<li>Set the default port to 'loopMIDI Port'</li>
-	<li>Apply and close</li>
-</ol>
+	<ol type="a">
+		<li>Set the default port to 'loopMIDI Port'</li>
+		<li>Apply and close</li>
+	</ol>
 
 If using Windows internal MIDI, stop. To use with the Reason DAW, continue:
 
