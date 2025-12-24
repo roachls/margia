@@ -81,7 +81,7 @@ public class MainStateBased64 {
 		musicians.get(13).addPeer(musicians.get(22));
 		musicians.get(14).addPeer(musicians.get(21));
 		musicians.get(14).addPeer(musicians.get(23));
-		musicians.get(15).addPeer(musicians.get(24));
+		musicians.get(15).addPeer(musicians.get(22));
 
 		musicians.get(16).addPeer(musicians.get(23));
 		musicians.get(17).addPeer(musicians.get(24));

@@ -1,6 +1,8 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
+import java.awt.font.TextLayout;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -22,6 +24,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	private int tickLengthMillis;
 	private Timer timer;
 	private volatile float brightness = 1f;
+	private static boolean showNumbers = true;
 	/**
 	 * size of circle to draw
 	 */
@@ -38,6 +41,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 	 * property name of radius spinner
 	 */
 	public static final String RADIUS_PROPERTY = "Radius";
+	/**
+	 * property name of whether to show numbers
+	 */
+	public static final String SHOW_NUMBERS_PROPERTY = "Show numbers";
+	/**
+	 * listener for the show numbers property
+	 */
+	public static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = ((JCheckBox) e.getSource())
+			.isSelected();
 
 	/**
 	 * @param musician         the {@link Musician} being displayed
@@ -100,8 +112,26 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 				new Color[] { Color.white, color });
 		g2d.setPaint(paint);
 		g2d.fillOval(0, 0, getWidth(), getHeight());
-		g2d.setColor(Color.LIGHT_GRAY);
-		g2d.drawString(Integer.toString(agent.getId()), (int) radius - 6, (int) radius - 3);
+
+		if (showNumbers) {
+			// Create a TextLayout to get the text's shape
+			var font = new Font("Serif", Font.BOLD, 12 * radius / 20);
+			var frc = g2d.getFontRenderContext();
+			var tl = new TextLayout(Integer.toString(agent.getId()), font, frc);
+
+			// Get the outline shape
+			// AffineTransform is used to position the text at (x, y)
+			var transform = AffineTransform.getTranslateInstance(radius - 6, radius + 3);
+			Shape shape = tl.getOutline(transform);
+
+			// 1. Draw the outline (stroke)
+			g2d.setColor(Color.BLACK); // Outline color
+			// Set the stroke thickness (e.g., 3 pixels)
+			g2d.setStroke(new BasicStroke(2.0f));
+			g2d.draw(shape);
+			g2d.setColor(Color.white); // Fill color
+			g2d.fill(shape);
+		}
 		if (agent.isMuted()) {
 			g2d.setColor(new Color(0.5f, 0.5f, 0.5f, 0.8f));
 			g2d.fillOval(0, 0, getWidth(), getHeight());

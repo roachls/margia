@@ -24,6 +24,7 @@ public class MargiaWindow extends JFrame {
 			<a href="mailto:roachls@yahoo.com">roachls@yahoo.com</a>
 			""";
 	private OptionPanel optionPanel;
+	private AgentPanel agentPanel;
 
 	/**
 	 * @param title     window title
@@ -42,13 +43,14 @@ public class MargiaWindow extends JFrame {
 		var transportPanel = new TransportPanel(timing, transport);
 		getContentPane().add(transportPanel, BorderLayout.SOUTH);
 		optionPanel = new OptionPanel();
-		var agentPanel = new AgentPanel(musicians, optionPanel);
+		optionPanel.addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY, MusicianComponent.SHOW_NUMBERS_LISTENER);
+		agentPanel = new AgentPanel(musicians, optionPanel);
 		transportPanel.addTempoListener(agentPanel);
 		getContentPane().add(agentPanel, BorderLayout.CENTER);
 		getContentPane().add(optionPanel, BorderLayout.EAST);
 		pack();
 		optionPanel.setVisible(false);
-		agentPanel.initMusicians();
+		SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
 	}
 
 	private void setupMenu() {

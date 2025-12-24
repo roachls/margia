@@ -3,16 +3,11 @@ package org.roach.margia.ui;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
-import javax.swing.JPanel;
-import javax.swing.JSpinner;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -24,7 +19,6 @@ import org.roach.margia.timing.TimingSource;
  * {@link JPanel}
  */
 public class AgentPanel extends JPanel implements ActionListener, ChangeListener {
-	private final Random rand = new SecureRandom();
 	int numMusicians;
 	private List<MusicianComponent> musicianComponents;
 	private List<Edge> edges = new ArrayList<>();
@@ -64,21 +58,28 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 		setLayout(null);
 		this.numMusicians = musicians.size();
 		this.musicianComponents = new ArrayList<>();
-		optionPanel.addGravityListener(this);
-		optionPanel.addEdgeLengthListener(this);
+		optionPanel.addChangeListener(GRAVITY_PROPERTY, this);
+		optionPanel.addChangeListener(EDGE_LENGTH_PROPERTY, this);
 		setDoubleBuffered(true);
 		setBackground(Color.LIGHT_GRAY);
 	}
 
 	void initMusicians() {
-		for (var musician : musicians) {
-			var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
-			optionPanel.addRadiusListener(n);
-			n.px = rand.nextInt(getWidth() - n.getDiameter());
-			n.py = rand.nextInt(getHeight() - n.getDiameter());
-			n.updateLocation();
-			musicianComponents.add(n);
-			add(n);
+		var gridSize = Math.ceil(Math.sqrt(musicians.size()));
+		var cellSizeX = getWidth() / gridSize;
+		var cellSizeY = getHeight() / gridSize;
+		var musicianIter = musicians.iterator();
+		for (int x = 1; x <= gridSize; x++) {
+			for (int y = 1; y <= gridSize && musicianIter.hasNext(); y++) {
+				var musician = musicianIter.next();
+				var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
+				optionPanel.addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
+				n.px = x * cellSizeX - cellSizeX / 2;
+				n.py = y * cellSizeY - cellSizeY / 2;
+				n.updateLocation();
+				musicianComponents.add(n);
+				add(n);
+			}
 		}
 
 		calcEdges();
@@ -110,10 +111,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 					(int) edge.source.py + edge.source.getHeight() / 2,
 					(int) edge.target.px + edge.target.getWidth() / 2,
 					(int) edge.target.py + edge.target.getHeight() / 2);
-//			drawArrow(g, (int) edge.source.px + edge.source.getWidth() / 2,
-//					(int) edge.source.py + edge.source.getHeight() / 2,
-//					(int) edge.target.px + edge.target.getWidth() / 2,
-//					(int) edge.target.py + edge.target.getHeight() / 2);
 		}
 	}
 
@@ -201,24 +198,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
 			node.updateLocation();
 		}
-	}
-
-	private static final int ARR_SIZE = 4;
-
-	void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
-		Graphics2D g = (Graphics2D) g1.create();
-
-		double dx = x2 - x1, dy = y2 - y1;
-		double angle = Math.atan2(dy, dx);
-		int len = (int) Math.sqrt(dx * dx + dy * dy);
-		AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
-		at.concatenate(AffineTransform.getRotateInstance(angle));
-		g.transform(at);
-
-		// Draw horizontal arrow starting in (0, 0)
-		g.drawLine(0, 0, len, 0);
-		g.fillPolygon(new int[] { len, len - ARR_SIZE, len - ARR_SIZE, len }, new int[] { 0, -ARR_SIZE, ARR_SIZE, 0 },
-				4);
 	}
 
 	static class Edge {

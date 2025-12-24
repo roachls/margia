@@ -13,20 +13,29 @@ public class OptionPanel extends JPanel {
 	private JSpinner radius;
 	private JSpinner gravity;
 	private JSpinner edgeLength;
+	private JCheckBox showNumbers;
 
 	/**
 	 * constructor
 	 */
 	public OptionPanel() {
 		this.setLayout(new BorderLayout());
-		this.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+		this.setBorder(
+				BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Graphics options"));
 		var innerPanel = new JPanel();
 		innerPanel.setLayout(new GridLayout(0, 2, 3, 5));
-		radius = addSpinner(innerPanel, MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS, 1d, 50d, 1d, Integer.class);
-		gravity = addSpinner(innerPanel, AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT, 0.0, 20.0, 0.1,
-				Double.class);
-		edgeLength = addSpinner(innerPanel, AgentPanel.EDGE_LENGTH_PROPERTY, (double) AgentPanel.DEFAULT_EDGE_LENGTH, 20d, 150d, 1d,
-				Integer.class);
+		radius = addSpinner(innerPanel, MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS,
+				1d, 50d, 1d, Integer.class);
+		gravity = addSpinner(innerPanel, AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT, 0.0,
+				20.0, 0.1, Double.class);
+		edgeLength = addSpinner(innerPanel, AgentPanel.EDGE_LENGTH_PROPERTY, (double) AgentPanel.DEFAULT_EDGE_LENGTH,
+				20d, 150d, 1d, Integer.class);
+		showNumbers = new JCheckBox();
+		showNumbers.setSelected(true);
+		var showNumbersLabel = new JLabel(MusicianComponent.SHOW_NUMBERS_PROPERTY);
+		showNumbersLabel.setLabelFor(showNumbers);
+		innerPanel.add(showNumbersLabel);
+		innerPanel.add(showNumbers);
 
 		this.add(innerPanel, BorderLayout.NORTH);
 	}
@@ -50,23 +59,26 @@ public class OptionPanel extends JPanel {
 	}
 
 	/**
-	 * @param listener listener for radius changes
+	 * @param property property to listen for
+	 * @param listener listener for property changes
 	 */
-	public void addRadiusListener(ChangeListener listener) {
-		this.radius.addChangeListener(listener);
+	public void addChangeListener(String property, ChangeListener listener) {
+		switch (property) {
+		case MusicianComponent.RADIUS_PROPERTY:
+			this.radius.addChangeListener(listener);
+			break;
+		case AgentPanel.GRAVITY_PROPERTY:
+			this.gravity.addChangeListener(listener);
+			break;
+		case AgentPanel.EDGE_LENGTH_PROPERTY:
+			this.edgeLength.addChangeListener(listener);
+			break;
+		case MusicianComponent.SHOW_NUMBERS_PROPERTY:
+			this.showNumbers.addChangeListener(listener);
+			break;
+		default:
+			break;
+		}
 	}
 
-	/**
-	 * @param listener listener for gravity changes
-	 */
-	public void addGravityListener(ChangeListener listener) {
-		this.gravity.addChangeListener(listener);
-	}
-	
-	/**
-	 * @param listener listener for edge length changes
-	 */
-	public void addEdgeLengthListener(ChangeListener listener) {
-		this.edgeLength.addChangeListener(listener);
-	}
 }
