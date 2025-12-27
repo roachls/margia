@@ -77,21 +77,23 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             NoteInfo noteInfo = (NoteInfo) evt.getNewValue();
             if (timer != null)
                 timer.stop();
-            if (noteInfo.noteNum() == -1) {
+            if (noteInfo.noteNum() == Musician.REST) {
                 this.color = Color.black;
                 repaint();
             } else {
                 // Hue depends on MIDI note played, relative to the full range of the musician
-                var normalizedHue = agent.noteToRange(noteInfo.noteNum());
+                float normalizedHue = agent.noteToRange(noteInfo.noteNum());
                 // Saturation depends on velocity of MIDI note
-                var normalizedSaturation = noteInfo.velocity() / 127f;
+                float normalizedSaturation = noteInfo.velocity() / 127f;
                 // Start the brightness at full (1.0) and decrease it to 0 over the life of the
                 // note
-                var delay = 1000 / (tickLengthMillis * noteInfo.length());
+                var noteInfoMillis = tickLengthMillis * noteInfo.length();
+                var delayMillis = 1000 / noteInfoMillis;
+                var brightnessOffset = 1.0f / noteInfoMillis;
                 brightness.set(1.0f);
-                timer = new Timer(delay, _ -> {
+                timer = new Timer(delayMillis, _ -> {
                     color = Color.getHSBColor(normalizedHue, normalizedSaturation, brightness.get());
-                    brightness.getAndAccumulate(0.004f, (b, f) -> Math.max(0f, b - f));
+                    brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0f, b - f));
                     repaint();
                 });
                 timer.start();

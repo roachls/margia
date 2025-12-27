@@ -37,6 +37,10 @@ public class Musician implements PropertyChangeEmitter {
      * maximum size the queue is allowed to reach before new notes are ignored
      */
     public static final int MAX_QUEUE_SIZE = 12;
+    /**
+     * A note number of -1 indicates a rest
+     */
+    public static final int REST = -1;
     private final int id;
     private final MidiController controller;
     private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
