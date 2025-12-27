@@ -3,7 +3,6 @@ package org.roach.margia.ui;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,7 +37,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private AgentPanel agentPanel;
     private Path saveDir;
     private Path filename;
-    private String title;
+    private String algorithmTitle;
     private Preferences preferences;
 
     /**
@@ -52,12 +51,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     public MargiaWindow(String title, TimingSource timing, Transport transport, List<Musician> musicians)
             throws HeadlessException {
         super();
-        this.title = title;
+        this.algorithmTitle = title;
         preferences = Preferences.userNodeForPackage(getClass());
         this.saveDir = Path.of(preferences.get("saveDir", System.getProperty("user.home")));
         this.getContentPane().setLayout(new BorderLayout());
         setupMenu();
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionPanel = new OptionPanel();
@@ -101,7 +100,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         // setup global actions
         JComponent component = getRootPane();
 
-        KeyStroke ctrlSKeyStroke = KeyStroke.getKeyStroke("control s");
+        var ctrlSKeyStroke = KeyStroke.getKeyStroke("control s");
         component.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlSKeyStroke, "save");
         component.getActionMap().put("save", new AbstractAction() {
 
@@ -112,7 +111,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         });
 
-        KeyStroke ctrlOKeyStroke = KeyStroke.getKeyStroke("control o");
+        var ctrlOKeyStroke = KeyStroke.getKeyStroke("control o");
         component.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlOKeyStroke, "open");
         component.getActionMap().put("open", new AbstractAction() {
 
@@ -149,8 +148,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             return;
         this.filename = newSaveLocation;
         var opts = new Properties();
-        try {
-            opts.load(Files.newInputStream(filename));
+        try (var is = Files.newInputStream(filename)) {
+            opts.load(is);
             optionPanel.setOptions(opts);
             optionPanel.setDirty(false);
             updateTitle();
@@ -161,7 +160,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     private void saveSettingsToFile(ActionEvent e) {
         var options = optionPanel.getOptions();
-        System.out.println("saving options:" + options);
         if (this.filename == null) {
             this.filename = getFilePathFromUser(this, "Select Save location", FileAction.SAVE);
         }
@@ -171,7 +169,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             var filenameStr = filename.toString();
             if (filenameStr.lastIndexOf('.') == -1)
                 filename = filename.resolveSibling(filenameStr + ".margia");
-            options.store(Files.newOutputStream(this.filename), "MARGIA");
+            try (var os = Files.newOutputStream(this.filename)) {
+                options.store(os, "MARGIA");
+            }
             optionPanel.setDirty(false);
             updateTitle();
         } catch (IOException e1) {
@@ -194,7 +194,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      *         cancelled
      */
     public Path getFilePathFromUser(JFrame parent, String dialogTitle, FileAction action) {
-        JFileChooser fileChooser = new JFileChooser();
+        var fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dialogTitle);
         fileChooser.setCurrentDirectory(saveDir.toFile());
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -209,7 +209,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         }
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
+            var selectedFile = fileChooser.getSelectedFile();
             saveDir = selectedFile.getParentFile().toPath();
             preferences.put("saveDir", saveDir.toString());
             try {
@@ -232,8 +232,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private void updateTitle() {
-        var pathStr = filename == null ? "" : "- " + filename.toString();
-        var windowTitle = String.format("MARGIA %s%s%s", title, pathStr, optionPanel.isDirty() ? " *" : "");
+        var pathStr = filename == null ? "" : ("- " + filename.toString());
+        var windowTitle = String.format("MARGIA %s%s%s", algorithmTitle, pathStr, optionPanel.isDirty() ? " *" : "");
         setTitle(windowTitle);
     }
 

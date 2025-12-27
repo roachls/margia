@@ -32,7 +32,7 @@ public class OptionPanel extends JPanel {
         innerPanel.setLayout(new GridLayout(0, 2, 3, 5));
         radius = addSpinner(innerPanel, MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS,
                 1d, 50d, 1d, Integer.class);
-        gravity = addSpinner(innerPanel, AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT, 0.0,
+        gravity = addSpinner(innerPanel, AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT, -20.0,
                 20.0, 0.1, Double.class);
         edgeLength = addSpinner(innerPanel, AgentPanel.EDGE_LENGTH_PROPERTY, (double) AgentPanel.DEFAULT_EDGE_LENGTH,
                 20d, 150d, 1d, Integer.class);
