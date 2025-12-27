@@ -216,7 +216,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        System.out.println("AgentPanel received change event " + e);
         if (e.getSource() instanceof JSpinner spinner) {
             if (spinner.getName().equals(AgentPanel.GRAVITY_PROPERTY)) {
                 this.gravity = (double) spinner.getValue();

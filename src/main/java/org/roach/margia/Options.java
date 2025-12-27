@@ -19,6 +19,9 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 @SuppressWarnings({ "java:S3008", "java:S6548" })
 public class Options {
     private Properties opts;
+    /**
+     * Property fired when any option has changed
+     */
     public static final String DIRTY_PROPERTY = "dirty";
     private final ChangeEmitter emitter;
     private boolean dirty;
@@ -57,7 +60,7 @@ public class Options {
      */
     public void put(String propertyName, String value) {
         var oldValue = opts.put(propertyName, value);
-        if (!oldValue.equals(value)) {
+        if (!value.equals(oldValue)) {
             this.dirty = true;
             emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, true));
             emitter.fireChangeEvent(propertyName, new ChangeSource(this, propertyName, value));
@@ -100,43 +103,84 @@ public class Options {
         return opts.entrySet();
     }
 
+    /**
+     * @param propertyName name of property
+     * @param defValue     default value
+     * @return the named property or the default value if not found
+     */
     public String getOrDefault(String propertyName, String defValue) {
         return opts.getOrDefault(propertyName, defValue).toString();
     }
 
+    /**
+     * @param propertyName name of property
+     * @param defValue     default value
+     * @return the named property or the default value if not found, as a double
+     */
     public double getOrDefaultAsDouble(String propertyName, double defValue) {
         if (opts.containsKey(propertyName))
             return Double.parseDouble(opts.getProperty(propertyName));
         return defValue;
     }
 
+    /**
+     * @param propertyName name of property
+     * @param defValue     default value
+     * @return the named property or the default value if not found, as an int
+     */
     public int getOrDefaultAsInt(String propertyName, int defValue) {
         if (opts.containsKey(propertyName))
             return Integer.parseInt(opts.getProperty(propertyName));
         return defValue;
     }
 
+    /**
+     * @param propertyName name of property
+     * @param defValue     default value
+     * @return the named property or the default value if not found, as a boolean
+     */
     public boolean getOrDefaultAsBoolean(String propertyName, boolean defValue) {
         if (opts.containsKey(propertyName))
             return Boolean.parseBoolean(opts.getProperty(propertyName));
         return defValue;
     }
 
+    /**
+     * @return true if any property has changed since the last save/load
+     */
     public boolean isDirty() { return dirty; }
 
+    /**
+     * @param property the property being listened to
+     * @param listener the listener
+     */
     public void addChangeListener(String property, ChangeListener listener) {
         emitter.addChangeListener(property, listener);
     }
 
+    /**
+     * @return the current save directory
+     */
     public Path getSaveDir() { return saveDir; }
 
+    /**
+     * @param saveDir save directory
+     * @throws BackingStoreException if there is an error saving the directory to
+     *                               preferences
+     */
     public void setSaveDir(Path saveDir) throws BackingStoreException {
         this.saveDir = saveDir;
         preferences.put("saveDir", Options.getInstance().getSaveDir().toString());
         preferences.flush();
     }
 
+    /**
+     * @return the current filename
+     */
     public Path getFilename() { return filename; }
 
+    /**
+     * @param filename the current filename
+     */
     public void setFilename(Path filename) { this.filename = filename; }
 }
