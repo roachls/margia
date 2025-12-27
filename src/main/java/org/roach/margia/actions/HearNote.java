@@ -12,9 +12,9 @@ import org.roach.margia.NoteInfo;
  */
 public record HearNote(Musician musician, NoteInfo note) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.receiveMessage(note);
-	}
+    @Override
+    public void perform() {
+        musician.receiveMessage(note);
+    }
 
 }

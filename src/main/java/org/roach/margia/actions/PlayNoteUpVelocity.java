@@ -14,9 +14,9 @@ import org.roach.margia.NoteInfo;
  */
 public record PlayNoteUpVelocity(Musician musician, NoteInfo note, int diff) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.playNote(note.withVelocity(note.velocity() + diff));
-	}
+    @Override
+    public void perform() {
+        musician.playNote(note.withVelocity(note.velocity() + diff));
+    }
 
 }

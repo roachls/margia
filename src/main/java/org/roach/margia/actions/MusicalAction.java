@@ -7,8 +7,8 @@ import org.roach.margia.MusicianRule;
  */
 @FunctionalInterface
 public interface MusicalAction {
-	/**
-	 * Perform the action
-	 */
-	void perform();
+    /**
+     * Perform the action
+     */
+    void perform();
 }

@@ -13,9 +13,9 @@ import org.roach.margia.NoteInfo;
  */
 public record SetLastNote(Musician musician, NoteInfo note) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.setMyLastNote(note);
-	}
+    @Override
+    public void perform() {
+        musician.setMyLastNote(note);
+    }
 
 }

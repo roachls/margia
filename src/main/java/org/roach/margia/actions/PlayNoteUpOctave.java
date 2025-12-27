@@ -17,10 +17,10 @@ import org.roach.margia.NoteInfo;
  */
 public record PlayNoteUpOctave(Musician musician, NoteInfo note) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		var newNoteNum = musician.getKey().adjustToKeyByOctaves(note.noteNum() + 12);
-		musician.playNote(note.withNote(newNoteNum));
-	}
+    @Override
+    public void perform() {
+        var newNoteNum = musician.getKey().adjustToKeyByOctaves(note.noteNum() + 12);
+        musician.playNote(note.withNote(newNoteNum));
+    }
 
 }

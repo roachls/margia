@@ -12,10 +12,10 @@ import org.roach.margia.NoteInfo;
  */
 public record PlayNoteTwiceLength(Musician musician, NoteInfo note) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		var newLength = Math.max(note.length() * 2, 16);
-		musician.playNote(note.withLength(newLength));
-	}
+    @Override
+    public void perform() {
+        var newLength = Math.max(note.length() * 2, 16);
+        musician.playNote(note.withLength(newLength));
+    }
 
 }

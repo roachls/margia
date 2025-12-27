@@ -11,9 +11,9 @@ import org.roach.margia.NoteInfo;
  */
 public record PlayNote(Musician musician, NoteInfo note) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.playNote(note);
-	}
+    @Override
+    public void perform() {
+        musician.playNote(note);
+    }
 
 }

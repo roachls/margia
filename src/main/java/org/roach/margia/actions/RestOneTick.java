@@ -9,9 +9,9 @@ import org.roach.margia.Musician;
  */
 public record RestOneTick(Musician musician) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.rest();
-	}
+    @Override
+    public void perform() {
+        musician.rest();
+    }
 
 }

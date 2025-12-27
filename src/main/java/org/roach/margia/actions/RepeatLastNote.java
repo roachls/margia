@@ -9,9 +9,9 @@ import org.roach.margia.Musician;
  */
 public record RepeatLastNote(Musician musician) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.playNote(musician.getMyLastNote());
-	}
+    @Override
+    public void perform() {
+        musician.playNote(musician.getMyLastNote());
+    }
 
 }

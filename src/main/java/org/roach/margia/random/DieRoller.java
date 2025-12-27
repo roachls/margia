@@ -8,63 +8,63 @@ import java.util.regex.Pattern;
  * Rolls dice to get a random number
  */
 public class DieRoller {
-	private static final Pattern REGEX = Pattern.compile("\\d+d\\d+");
-	private static final Random RANDOM = new SecureRandom();
+    private static final Pattern REGEX = Pattern.compile("\\d+d\\d+");
+    private static final Random RANDOM = new SecureRandom();
 
-	private static record DiceNums(int numDice, int numSides) {
-	}
+    private static record DiceNums(int numDice, int numSides) {
+    }
 
-	private DieRoller() {
-		// no instantiation
-	}
-	
-	/**
-	 * @param seed the seed for the random generator
-	 */
-	public static void setSeed(long seed) {
-		RANDOM.setSeed(seed);
-	}
+    private DieRoller() {
+        // no instantiation
+    }
 
-	/**
-	 * @param diceDescription description of dice in the form xny, where x is number
-	 *                        of dice, and y is number of sides per die
-	 * @return results of throwing the dice
-	 */
-	public static int rollDice(final String diceDescription) {
-		var nums = parseString(diceDescription);
-		int num = 0;
-		for (var i = 0; i < nums.numDice; i++) {
-			num += RANDOM.nextInt(nums.numSides) + 1;
-		}
-		return num;
-	}
+    /**
+     * @param seed the seed for the random generator
+     */
+    public static void setSeed(long seed) {
+        RANDOM.setSeed(seed);
+    }
 
-	private static DiceNums parseString(String diceDescription) {
-		var matcher = REGEX.matcher(diceDescription);
-		if (!matcher.matches())
-			throw new IllegalArgumentException("Illegal dice: " + diceDescription
-					+ "; must match pattern xdy, where x is the number of dice thrown and y is the number of sides on one die");
-		var split = diceDescription.split("d");
-		var numDice = Integer.parseInt(split[0]);
-		var numSides = Integer.parseInt(split[1]);
-		return new DiceNums(numDice, numSides);
-	}
+    /**
+     * @param diceDescription description of dice in the form xny, where x is number
+     *                        of dice, and y is number of sides per die
+     * @return results of throwing the dice
+     */
+    public static int rollDice(final String diceDescription) {
+        var nums = parseString(diceDescription);
+        int num = 0;
+        for (var i = 0; i < nums.numDice; i++) {
+            num += RANDOM.nextInt(nums.numSides) + 1;
+        }
+        return num;
+    }
 
-	/**
-	 * @param diceDescription description of dice to roll
-	 * @return the minimum value possible for these dice
-	 */
-	public static int getMin(final String diceDescription) {
-		var nums = parseString(diceDescription);
-		return nums.numDice;
-	}
+    private static DiceNums parseString(String diceDescription) {
+        var matcher = REGEX.matcher(diceDescription);
+        if (!matcher.matches())
+            throw new IllegalArgumentException("Illegal dice: " + diceDescription
+                    + "; must match pattern xdy, where x is the number of dice thrown and y is the number of sides on one die");
+        var split = diceDescription.split("d");
+        var numDice = Integer.parseInt(split[0]);
+        var numSides = Integer.parseInt(split[1]);
+        return new DiceNums(numDice, numSides);
+    }
 
-	/**
-	 * @param diceDescription description of dice to roll
-	 * @return the maximum value possible for these dice
-	 */
-	public static int getMax(final String diceDescription) {
-		var nums = parseString(diceDescription);
-		return nums.numDice * nums.numSides;
-	}
+    /**
+     * @param diceDescription description of dice to roll
+     * @return the minimum value possible for these dice
+     */
+    public static int getMin(final String diceDescription) {
+        var nums = parseString(diceDescription);
+        return nums.numDice;
+    }
+
+    /**
+     * @param diceDescription description of dice to roll
+     * @return the maximum value possible for these dice
+     */
+    public static int getMax(final String diceDescription) {
+        var nums = parseString(diceDescription);
+        return nums.numDice * nums.numSides;
+    }
 }

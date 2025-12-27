@@ -9,9 +9,9 @@ import org.roach.margia.Musician;
  */
 public record ResetPlayedNotes(Musician musician) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		musician.resetNotesIvePlayed();
-	}
+    @Override
+    public void perform() {
+        musician.resetNotesIvePlayed();
+    }
 
 }

@@ -7,9 +7,9 @@ import java.beans.PropertyChangeListener;
  */
 public interface PropertyChangeEmitter {
 
-	/**
-	 * @param listener a listener for property changes
-	 */
-	void addPropertyChangeListener(PropertyChangeListener listener);
+    /**
+     * @param listener a listener for property changes
+     */
+    void addPropertyChangeListener(PropertyChangeListener listener);
 
 }

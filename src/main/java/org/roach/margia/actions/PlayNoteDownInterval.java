@@ -14,10 +14,10 @@ import org.roach.margia.NoteInfo;
  */
 public record PlayNoteDownInterval(Musician musician, NoteInfo note, int interval) implements MusicalAction {
 
-	@Override
-	public void perform() {
-		var newNoteNum = musician.getKey().down(note.noteNum(), interval);
-		musician.playNote(note.withNote(newNoteNum));
-	}
+    @Override
+    public void perform() {
+        var newNoteNum = musician.getKey().down(note.noteNum(), interval);
+        musician.playNote(note.withNote(newNoteNum));
+    }
 
 }
