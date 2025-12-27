@@ -12,7 +12,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Musician;
+import org.roach.margia.Options;
 import org.roach.margia.timing.TimingSource;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * GUI element that displays multiple {@link Musician Musicians} in a
@@ -27,10 +29,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private static final double K_SPRING = 0.13; // Spring constant
     private static final double DAMPING = 0.6; // Damping factor
     private static final double TIMESTEP = 0.8; // Simulation speed/stability
-    private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
+    private double gravity;
     private final List<Musician> musicians;
     private int tickLengthMillis;
-    private final OptionPanel optionPanel;
     /**
      * default edge length
      */
@@ -50,17 +51,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     /**
      * @param musicians   {@link Musician musicians} to display
-     * @param optionPanel the option panel
      */
-    public AgentPanel(List<Musician> musicians, OptionPanel optionPanel) {
+    public AgentPanel(List<Musician> musicians) {
         this.musicians = musicians;
-        this.tickLengthMillis = 60000 / (TimingSource.DEFAULT_TEMPO * 24);
-        this.optionPanel = optionPanel;
+        var defTempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, TimingSource.DEFAULT_TEMPO);
+        this.tickLengthMillis = 60000 / (defTempo * 24);
+        this.gravity = Options.getInstance().getOrDefaultAsDouble(GRAVITY_PROPERTY, DEFAULT_GRAVITATIONAL_CONSTANT);
         setLayout(null);
         this.numMusicians = musicians.size();
         this.musicianComponents = new ArrayList<>();
-        optionPanel.addChangeListener(GRAVITY_PROPERTY, this);
-        optionPanel.addChangeListener(EDGE_LENGTH_PROPERTY, this);
+        Options.getInstance().addChangeListener(GRAVITY_PROPERTY, this);
+        Options.getInstance().addChangeListener(EDGE_LENGTH_PROPERTY, this);
         setDoubleBuffered(true);
         setBackground(Color.LIGHT_GRAY);
     }
@@ -74,7 +75,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             for (int y = 1; y <= gridSize && musicianIter.hasNext(); y++) {
                 var musician = musicianIter.next();
                 var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
-                optionPanel.addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
+                Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
                 n.px = x * cellSizeX - cellSizeX / 2;
                 n.py = y * cellSizeY - cellSizeY / 2;
                 n.updateLocation();
@@ -215,6 +216,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     @Override
     public void stateChanged(ChangeEvent e) {
+        System.out.println("AgentPanel received change event " + e);
         if (e.getSource() instanceof JSpinner spinner) {
             if (spinner.getName().equals(AgentPanel.GRAVITY_PROPERTY)) {
                 this.gravity = (double) spinner.getValue();
@@ -224,6 +226,19 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 }
             } else if (spinner.getName().equals("tempo")) {
                 this.tickLengthMillis = 60000 / ((int) spinner.getValue() * 24);
+                for (var musician : musicianComponents) {
+                    musician.setTickLengthMillis(tickLengthMillis);
+                }
+            }
+        } else if (e.getSource() instanceof ChangeSource cs) {
+            if (cs.key().equals(AgentPanel.GRAVITY_PROPERTY)) {
+                this.gravity = Double.parseDouble(cs.newValue().toString());
+            } else if (cs.key().equals(AgentPanel.EDGE_LENGTH_PROPERTY)) {
+                for (var edge : edges) {
+                    edge.idealLength = Integer.parseInt(cs.newValue().toString());
+                }
+            } else if (cs.key().equals("tempo")) {
+                this.tickLengthMillis = 60000 / (Integer.parseInt(cs.newValue().toString()) * 24);
                 for (var musician : musicianComponents) {
                     musician.setTickLengthMillis(tickLengthMillis);
                 }

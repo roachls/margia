@@ -1,14 +1,17 @@
 package org.roach.margia.mains;
 
 import java.awt.Frame;
-import java.util.HashMap;
-import java.util.ServiceLoader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.*;
 
 import javax.swing.SwingUtilities;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.MainParams.UiType;
 import org.roach.margia.random.DieRoller;
 import org.roach.margia.timing.InternalTimingSource;
+import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.MargiaWindow;
 
 import com.beust.jcommander.JCommander;
@@ -51,11 +54,21 @@ public class Main {
             return;
         }
 
+        if (params.file != null) {
+            try (var is = Files.newInputStream(params.file)) {
+                Options.getInstance().load(is);
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        var tempo = Integer.parseInt(
+                Options.getInstance().getOrDefault(TimingSource.TEMPO_PROPERTY, Integer.toString(params.tempo)));
+
         MidiController controller;
         if (params.sendExternalMidi) {
-            controller = new MidiController("loopMIDI Port", params.tempo);
+            controller = new MidiController("loopMIDI Port", tempo);
         } else {
-            controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
+            controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
         }
 
         var command = jCommander.getParsedCommand();
@@ -73,7 +86,7 @@ public class Main {
         var transport = new Transport(musicians, params.tempo, controller);
         transport.setControlDawTiming(params.sendExternalMidi);
 
-        var timing = new InternalTimingSource(transport, params.tempo);
+        var timing = new InternalTimingSource(transport, tempo);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();
@@ -81,11 +94,19 @@ public class Main {
             controller.close();
         }));
 
-        SwingUtilities.invokeLater(() -> {
-            var ui = new MargiaWindow(algorithm.displayName(), timing, transport, musicians);
-            ui.setExtendedState(Frame.MAXIMIZED_BOTH);
-            ui.setVisible(true);
-        });
+        if (params.ui == UiType.SWING) {
+            SwingUtilities.invokeLater(() -> {
+                var ui = new MargiaWindow(algorithm.displayName(), timing, transport, musicians);
+                ui.setExtendedState(Frame.MAXIMIZED_BOTH);
+                ui.setVisible(true);
+            });
+        } else {
+            timing.start();
+            try (var scanner = new Scanner(System.in)) {
+                scanner.nextLine();
+                System.exit(0);
+            }
+        }
 
     }
 

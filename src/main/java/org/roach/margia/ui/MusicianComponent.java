@@ -12,8 +12,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
+import org.roach.margia.*;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * GUI element that displays an agent as a colored circle
@@ -25,8 +25,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private Color color;
     private int tickLengthMillis;
     private Timer timer;
-    
-    private static boolean showNumbers = true;
+
     /**
      * size of circle to draw
      */
@@ -50,10 +49,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * property name of whether to show numbers
      */
     static final String SHOW_NUMBERS_PROPERTY = "Show_numbers";
+    private static boolean showNumbers = Options.getInstance().getOrDefaultAsBoolean(SHOW_NUMBERS_PROPERTY, true);
+    
     /**
      * listener for the show numbers property
      */
-    static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = ((JCheckBox) e.getSource()).isSelected();
+    static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = Boolean
+            .parseBoolean(((ChangeSource) e.getSource()).newValue().toString());
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -66,7 +68,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.mass = mass;
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
-        setCircleRadius(20);
+        setCircleRadius(Options.getInstance().getOrDefaultAsInt(RADIUS_PROPERTY, DEFAULT_RADIUS));
     }
 
     @Override

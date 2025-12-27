@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Properties;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -15,8 +14,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Musician;
-import org.roach.margia.Transport;
+import org.roach.margia.*;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
@@ -62,9 +60,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionPanel = new OptionPanel();
         updateTitle();
-        optionPanel.addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY, MusicianComponent.SHOW_NUMBERS_LISTENER);
-        optionPanel.addChangeListener(OptionPanel.DIRTY_PROPERTY, this);
-        agentPanel = new AgentPanel(musicians, optionPanel);
+        Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
+                MusicianComponent.SHOW_NUMBERS_LISTENER);
+        Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
+        agentPanel = new AgentPanel(musicians);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
         getContentPane().add(optionPanel, BorderLayout.EAST);
@@ -148,11 +147,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         if (newSaveLocation == null)
             return;
         this.filename = newSaveLocation;
-        var opts = new Properties();
         try (var is = Files.newInputStream(filename)) {
-            opts.load(is);
-            optionPanel.setOptions(opts);
-            optionPanel.setDirty(false);
+            Options.getInstance().load(is);
+            optionPanel.updateOptions();
             updateTitle();
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
@@ -160,7 +157,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private void saveSettingsToFile(ActionEvent e) {
-        var options = optionPanel.getOptions();
+        var options = Options.getInstance();
         if (this.filename == null) {
             this.filename = getFilePathFromUser(this, "Select Save location", FileAction.SAVE);
         }
@@ -173,7 +170,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             try (var os = Files.newOutputStream(this.filename)) {
                 options.store(os, "MARGIA");
             }
-            optionPanel.setDirty(false);
             updateTitle();
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error saving file", JOptionPane.ERROR_MESSAGE);
@@ -227,14 +223,15 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs && cs.key().equals(OptionPanel.DIRTY_PROPERTY)) {
+        if (e.getSource() instanceof ChangeSource cs && cs.key().equals(Options.DIRTY_PROPERTY)) {
             updateTitle();
         }
     }
 
     private void updateTitle() {
         var pathStr = filename == null ? "" : ("- " + filename.toString());
-        var windowTitle = String.format("MARGIA %s%s%s", algorithmTitle, pathStr, optionPanel.isDirty() ? " *" : "");
+        var windowTitle = String.format("MARGIA %s%s%s", algorithmTitle, pathStr,
+                Options.getInstance().isDirty() ? " *" : "");
         setTitle(windowTitle);
     }
 

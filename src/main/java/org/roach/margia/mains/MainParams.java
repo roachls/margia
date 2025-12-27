@@ -1,5 +1,7 @@
 package org.roach.margia.mains;
 
+import java.nio.file.Path;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
@@ -17,4 +19,12 @@ public class MainParams {
     @Parameter(names = { "--sendExternalMidi",
             "-ext" }, description = "Set to true to send over external MIDI to a DAW")
     boolean sendExternalMidi;
+    @Parameter(names = { "-f", "--file" }, description = "Initial file to load")
+    Path file;
+    @Parameter(names = { "-ui" }, description = "type of UI to use")
+    UiType ui = UiType.SWING;
+
+    enum UiType {
+        SWING, NONE;
+    }
 }

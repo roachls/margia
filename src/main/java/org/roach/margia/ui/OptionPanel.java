@@ -2,12 +2,11 @@ package org.roach.margia.ui;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.util.Properties;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.ui.ChangeEmitter.ChangeSource;
+import org.roach.margia.Options;
 
 /**
  * GUI and musical options
@@ -18,10 +17,6 @@ public class OptionPanel extends JPanel {
     private JSpinner gravity;
     private JSpinner edgeLength;
     private JCheckBox showNumbers;
-    private final Properties options = new Properties();
-    private boolean dirty;
-    static final String DIRTY_PROPERTY = "dirty";
-    private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
      * constructor
@@ -31,24 +26,27 @@ public class OptionPanel extends JPanel {
         this.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Graphics options"));
         var innerPanel = new JPanel();
         innerPanel.setLayout(new GridLayout(0, 2, 3, 5));
-        radius = addSpinner(innerPanel, MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS,
+        radius = addSpinner(
+                innerPanel, MusicianComponent.RADIUS_PROPERTY, Options.getInstance()
+                        .getOrDefaultAsDouble(MusicianComponent.RADIUS_PROPERTY, MusicianComponent.DEFAULT_RADIUS),
                 1d, 50d, 1d, Integer.class);
-        gravity = addSpinner(innerPanel, AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT, -20.0,
-                20.0, 0.1, Double.class);
-        edgeLength = addSpinner(innerPanel, AgentPanel.EDGE_LENGTH_PROPERTY, (double) AgentPanel.DEFAULT_EDGE_LENGTH,
-                20d, 150d, 1d, Integer.class);
+        gravity = addSpinner(
+                innerPanel, AgentPanel.GRAVITY_PROPERTY, Options.getInstance()
+                        .getOrDefaultAsDouble(AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT),
+                -20.0, 20.0, 0.1, Double.class);
+        edgeLength = addSpinner(innerPanel, AgentPanel.EDGE_LENGTH_PROPERTY, Options.getInstance().getOrDefaultAsDouble(
+                AgentPanel.EDGE_LENGTH_PROPERTY, AgentPanel.DEFAULT_EDGE_LENGTH), 20d, 150d, 1d, Integer.class);
         showNumbers = new JCheckBox();
-        showNumbers.setSelected(true);
+        showNumbers.setSelected(
+                Options.getInstance().getOrDefaultAsBoolean(MusicianComponent.SHOW_NUMBERS_PROPERTY, true));
         showNumbers.addActionListener(
-                _ -> updateOption(MusicianComponent.SHOW_NUMBERS_PROPERTY.replace('_', ' '), showNumbers.isSelected()));
-        updateOption(MusicianComponent.SHOW_NUMBERS_PROPERTY, true);
+                _ -> updateOption(MusicianComponent.SHOW_NUMBERS_PROPERTY, showNumbers.isSelected()));
         var showNumbersLabel = new JLabel(MusicianComponent.SHOW_NUMBERS_PROPERTY);
         showNumbersLabel.setLabelFor(showNumbers);
         innerPanel.add(showNumbersLabel);
         innerPanel.add(showNumbers);
 
         this.add(innerPanel, BorderLayout.NORTH);
-        setDirty(false);
     }
 
     private JSpinner addSpinner(JPanel innerPanel, String propertyName, Double defValue, Double min, Double max,
@@ -92,19 +90,13 @@ public class OptionPanel extends JPanel {
         case MusicianComponent.SHOW_NUMBERS_PROPERTY:
             this.showNumbers.addChangeListener(listener);
             break;
-        case DIRTY_PROPERTY:
-            emitter.addChangeListener(DIRTY_PROPERTY, listener);
-            break;
         default:
             break;
         }
     }
 
-    Properties getOptions() { return options; }
-
-    void setOptions(Properties options) {
-        this.options.clear();
-        this.options.putAll(options);
+    void updateOptions() {
+        var options = Options.getInstance();
         for (var option : options.entrySet()) {
             var value = option.getValue().toString();
             switch (option.getKey().toString()) {
@@ -127,17 +119,6 @@ public class OptionPanel extends JPanel {
     }
 
     void updateOption(String propertyName, Object property) {
-        this.options.put(propertyName, property.toString());
-        setDirty(true);
-    }
-
-    /**
-     * @return whether the properties have changed since last saved
-     */
-    boolean isDirty() { return dirty; }
-
-    void setDirty(boolean dirty) {
-        this.dirty = dirty;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, this.dirty));
+        Options.getInstance().put(propertyName, property.toString());
     }
 }

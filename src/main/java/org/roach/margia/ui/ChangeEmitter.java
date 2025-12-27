@@ -29,6 +29,7 @@ public class ChangeEmitter {
             var listenerList = listeners.get(key);
             var event = new ChangeEvent(source);
             for (var listener : listenerList) {
+                System.out.println("emitter firing " + key + " to " + listener);
                 listener.stateChanged(event);
             }
         }
