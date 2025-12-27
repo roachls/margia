@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -34,10 +33,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             """;
     private OptionPanel optionPanel;
     private AgentPanel agentPanel;
-    private Path saveDir;
-    private Path filename;
     private String algorithmTitle;
-    private Preferences preferences;
 
     /**
      * @param title     window title
@@ -51,8 +47,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             throws HeadlessException {
         super();
         this.algorithmTitle = title;
-        preferences = Preferences.userNodeForPackage(getClass());
-        this.saveDir = Path.of(preferences.get("saveDir", System.getProperty("user.home")));
         this.getContentPane().setLayout(new BorderLayout());
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -88,7 +82,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var saveAsMenuItem = new JMenuItem("Save As...");
         saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
         saveAsMenuItem.addActionListener(e -> {
-            this.filename = null;
+            Options.getInstance().setFilename(null);
             saveSettingsToFile(e);
         });
 
@@ -146,8 +140,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var newSaveLocation = getFilePathFromUser(this, "Select file", FileAction.LOAD);
         if (newSaveLocation == null)
             return;
-        this.filename = newSaveLocation;
-        try (var is = Files.newInputStream(filename)) {
+        Options.getInstance().setFilename(newSaveLocation);
+        try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
             optionPanel.updateOptions();
             updateTitle();
@@ -158,16 +152,17 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     private void saveSettingsToFile(ActionEvent e) {
         var options = Options.getInstance();
-        if (this.filename == null) {
-            this.filename = getFilePathFromUser(this, "Select Save location", FileAction.SAVE);
+        if (Options.getInstance().getFilename() == null) {
+            Options.getInstance().setFilename(getFilePathFromUser(this, "Select Save location", FileAction.SAVE));
         }
-        if (this.filename == null)
+        if (Options.getInstance().getFilename() == null)
             return;
         try {
-            var filenameStr = filename.toString();
+            var filenameStr = Options.getInstance().getFilename().toString();
             if (filenameStr.lastIndexOf('.') == -1)
-                filename = filename.resolveSibling(filenameStr + ".margia");
-            try (var os = Files.newOutputStream(this.filename)) {
+                Options.getInstance()
+                        .setFilename(Options.getInstance().getFilename().resolveSibling(filenameStr + ".margia"));
+            try (var os = Files.newOutputStream(Options.getInstance().getFilename())) {
                 options.store(os, "MARGIA");
             }
             updateTitle();
@@ -193,7 +188,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     public Path getFilePathFromUser(JFrame parent, String dialogTitle, FileAction action) {
         var fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dialogTitle);
-        fileChooser.setCurrentDirectory(saveDir.toFile());
+        fileChooser.setCurrentDirectory(Options.getInstance().getSaveDir().toFile());
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         if (action == FileAction.LOAD)
             fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MARGIA files", "margia"));
@@ -207,10 +202,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             var selectedFile = fileChooser.getSelectedFile();
-            saveDir = selectedFile.getParentFile().toPath();
-            preferences.put("saveDir", saveDir.toString());
             try {
-                preferences.flush();
+                Options.getInstance().setSaveDir(selectedFile.getParentFile().toPath());
             } catch (BackingStoreException e) {
                 JOptionPane.showMessageDialog(this, e.getMessage(), "Error saving preferences",
                         JOptionPane.WARNING_MESSAGE);
@@ -229,7 +222,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private void updateTitle() {
-        var pathStr = filename == null ? "" : ("- " + filename.toString());
+        var pathStr = Options.getInstance().getFilename() == null ? ""
+                : ("- " + Options.getInstance().getFilename().toString());
         var windowTitle = String.format("MARGIA %s%s%s", algorithmTitle, pathStr,
                 Options.getInstance().isDirty() ? " *" : "");
         setTitle(windowTitle);

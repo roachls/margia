@@ -1,7 +1,10 @@
 package org.roach.margia;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.Map.Entry;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 import java.util.Properties;
 import java.util.Set;
 
@@ -19,10 +22,15 @@ public class Options {
     public static final String DIRTY_PROPERTY = "dirty";
     private final ChangeEmitter emitter;
     private boolean dirty;
+    private Path saveDir;
+    private Path filename;
+    private Preferences preferences;
 
     private Options() {
         this.opts = new Properties();
         this.emitter = new ChangeEmitter();
+        preferences = Preferences.userNodeForPackage(getClass());
+        this.saveDir = Path.of(preferences.get("saveDir", System.getProperty("user.home")));
     }
 
     private static Options INSTANCE;
@@ -65,6 +73,8 @@ public class Options {
      */
     public void store(OutputStream os, String comments) throws IOException {
         opts.store(os, comments);
+        this.dirty = false;
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, false));
     }
 
     /**
@@ -75,14 +85,12 @@ public class Options {
      */
     public void load(InputStream is) throws IOException {
         opts.load(is);
-        System.out.println("loaded options: " + opts);
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, true));
         for (var propEntry : opts.entrySet()) {
-            System.out.println("options firing " + propEntry.getKey() + "/" + propEntry.getValue());
             emitter.fireChangeEvent(propEntry.getKey().toString(),
                     new ChangeSource(this, propEntry.getKey().toString(), propEntry.getValue()));
         }
         this.dirty = false;
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, false));
     }
 
     /**
@@ -119,4 +127,16 @@ public class Options {
     public void addChangeListener(String property, ChangeListener listener) {
         emitter.addChangeListener(property, listener);
     }
+
+    public Path getSaveDir() { return saveDir; }
+
+    public void setSaveDir(Path saveDir) throws BackingStoreException {
+        this.saveDir = saveDir;
+        preferences.put("saveDir", Options.getInstance().getSaveDir().toString());
+        preferences.flush();
+    }
+
+    public Path getFilename() { return filename; }
+
+    public void setFilename(Path filename) { this.filename = filename; }
 }

@@ -4,6 +4,7 @@ import java.awt.Frame;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.prefs.BackingStoreException;
 
 import javax.swing.SwingUtilities;
 
@@ -20,6 +21,7 @@ import com.beust.jcommander.ParameterException;
 /**
  * Main entry point for Margia
  */
+@SuppressWarnings("java:S106")
 public class Main {
 
     /**
@@ -57,8 +59,12 @@ public class Main {
         if (params.file != null) {
             try (var is = Files.newInputStream(params.file)) {
                 Options.getInstance().load(is);
+                Options.getInstance().setFilename(params.file);
+                Options.getInstance().setSaveDir(params.file.getParent());
             } catch (IOException e) {
                 System.err.println(e.getMessage());
+            } catch (BackingStoreException e) {
+                System.err.println("Error writing save directory to preferences: " + e.getMessage());
             }
         }
         var tempo = Integer.parseInt(
