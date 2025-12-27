@@ -1,54 +1,29 @@
 package org.roach.margia.mains;
 
-import java.awt.Frame;
 import java.util.ArrayList;
-
-import javax.swing.SwingUtilities;
+import java.util.List;
 
 import org.roach.margia.*;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
-import org.roach.margia.timing.InternalTimingSource;
-import org.roach.margia.ui.MargiaWindow;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
 
 /**
  * A state-based ruleset
  */
-public class MainStateBased64 {
-    /**
-     * Main entry point
-     * 
-     * @param args args[0] = number of musicians
-     */
-    @SuppressWarnings("java:S106")
-    public static void main(String[] args) {
-        var params = new StateBasedParams();
-        var jCommander = new JCommander(params);
-        try {
-            jCommander.parse(args);
-        } catch (ParameterException e) {
-            System.err.println(e.getMessage());
-            jCommander.usage();
-            return;
-        }
-        MidiController controller;
-        if (params.sendExternalMidi) {
-            controller = new MidiController("loopMIDI Port", params.tempo);
-        } else {
-            controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
-        }
+public class MainStateBased64 implements Algorithm<StateBasedParams> {
+
+    @Override
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+        var sbParams = (StateBasedParams) margiaParams;
         var musicians = new ArrayList<Musician>();
-        for (var x = 0; x < params.numCols; x++) {
-            for (var y = 0; y < params.numRows; y++) {
+        for (var x = 0; x < sbParams.numCols; x++) {
+            for (var y = 0; y < sbParams.numRows; y++) {
                 MusicianRule rule;
                 if (x == 0)
                     rule = new RandomRule();
                 else
-                    rule = new StateBasedRule(16, params.numCols - y);
-                var index = x * params.numRows + y;
+                    rule = new StateBasedRule(16, sbParams.numCols - y);
+                var index = x * sbParams.numRows + y;
                 var musician = new Musician(index, controller, y, rule);
                 if (x != 3 && x != 7)
                     musician.setMuted(true);
@@ -165,26 +140,21 @@ public class MainStateBased64 {
         musicians.get(61).addPeer(musicians.get(5));
         musicians.get(62).addPeer(musicians.get(6));
         musicians.get(63).addPeer(musicians.get(7));
-
-        Key.setRandomSeed(params.randomSeed);
-
-        var transport = new Transport(musicians, params.tempo, controller);
-        transport.setControlDawTiming(params.sendExternalMidi);
-
-        var timing = new InternalTimingSource(transport, params.tempo);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            timing.stop();
-            transport.stop();
-            controller.close();
-        }));
-
-        SwingUtilities.invokeLater(() -> {
-            var ui = new MargiaWindow("State Based 64", timing, transport, musicians);
-            ui.setExtendedState(Frame.MAXIMIZED_BOTH);
-            ui.setVisible(true);
-        });
-
+        return musicians;
     }
 
+    @Override
+    public String command() {
+        return "statebased64";
+    }
+
+    @Override
+    public StateBasedParams createParams() {
+        return new StateBasedParams();
+    }
+
+    @Override
+    public String displayName() {
+        return "State-based 64";
+    }
 }

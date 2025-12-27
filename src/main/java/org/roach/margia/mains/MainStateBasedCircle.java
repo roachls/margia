@@ -1,55 +1,29 @@
 package org.roach.margia.mains;
 
-import java.awt.Frame;
 import java.util.ArrayList;
-
-import javax.swing.SwingUtilities;
+import java.util.List;
 
 import org.roach.margia.*;
-import org.roach.margia.random.DieRoller;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
-import org.roach.margia.timing.InternalTimingSource;
-import org.roach.margia.ui.MargiaWindow;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
 
 /**
  * State-based agents in a circle
  */
-public class MainStateBasedCircle {
-    /**
-     * Main entry point
-     * 
-     * @param args args[0] = number of musicians
-     */
+public class MainStateBasedCircle implements Algorithm<StateBasedParams> {
     @SuppressWarnings("java:S106")
-    public static void main(String[] args) {
-        var params = new StateBasedParams();
-        var jCommander = new JCommander(params);
-        try {
-            jCommander.parse(args);
-        } catch (ParameterException e) {
-            System.err.println(e.getMessage());
-            jCommander.usage();
-            return;
-        }
-        MidiController controller;
-        if (params.sendExternalMidi) {
-            controller = new MidiController(MidiController.LOOP_MIDI, params.tempo);
-        } else {
-            controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
-        }
+    @Override
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+        var sbParams = (StateBasedParams) margiaParams;
         var musicians = new ArrayList<Musician>();
         MusicianRule rule = new RandomRule();
         var musician = new Musician(0, controller, 0, rule);
         musicians.add(musician);
 
-        var numMusicians = params.numCols * params.numCols;
+        var numMusicians = sbParams.numCols * sbParams.numCols;
         for (int i = 1; i < numMusicians; i++) {
             rule = new StateBasedRule(8, 0);
-            musician = new Musician(i, controller, i % params.numChannels, rule);
+            musician = new Musician(i, controller, i % mainParams.numChannels, rule);
             rule.setMusician(musician);
             musicians.add(musician);
         }
@@ -74,24 +48,20 @@ public class MainStateBasedCircle {
         }
         musicians.get(numMusicians - 1).addPeer(musicians.get(0));
 
-        var transport = new Transport(musicians, params.tempo, controller);
-        transport.setControlDawTiming(params.sendExternalMidi);
-        DieRoller.setSeed(params.randomSeed);
+        return musicians;
+    }
 
-        var timing = new InternalTimingSource(transport, params.tempo);
+    @Override
+    public String command() { return "circle"; }
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            timing.stop();
-            transport.stop();
-            controller.close();
-        }));
+    @Override
+    public StateBasedParams createParams() {
+        return new StateBasedParams();
+    }
 
-        SwingUtilities.invokeLater(() -> {
-            var ui = new MargiaWindow("State Based Circle", timing, transport, musicians);
-			ui.setExtendedState(Frame.MAXIMIZED_BOTH);
-            ui.setVisible(true);
-        });
-
+    @Override
+    public String displayName() {
+        return "State-based circle";
     }
 
 }
