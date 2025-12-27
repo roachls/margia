@@ -2,7 +2,7 @@ package org.roach.margia;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,7 +19,7 @@ public abstract class MusicianRule {
     /**
      * Generates a rest of the given length in ticks
      */
-    public static final Function<Integer, NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
+    public static final IntFunction<NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
 
     /**
      * @param musician the {@link Musician} that this rule applies to
@@ -35,9 +35,9 @@ public abstract class MusicianRule {
     public abstract void calculateAction(long tick);
 
     /**
-     * @param tick
+     * Do the actions previously calculated for a tick
      */
-    public void doAction(long tick) {
+    public void doAction() {
         if (actionsToTake.isEmpty()) {
             logger.atDebug().log("{}: no actions to take", musician.getId());
             return;

@@ -1,8 +1,8 @@
 package org.roach.margia.mains;
 
+import java.awt.Frame;
 import java.util.ArrayList;
 
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import org.roach.margia.*;
@@ -23,6 +23,7 @@ public class MainStateBased64 {
      * 
      * @param args args[0] = number of musicians
      */
+    @SuppressWarnings("java:S106")
     public static void main(String[] args) {
         var params = new StateBasedParams();
         var jCommander = new JCommander(params);
@@ -40,7 +41,6 @@ public class MainStateBased64 {
             controller = new MidiController(MidiController.DEFAULT_SYNTH, params.tempo);
         }
         var musicians = new ArrayList<Musician>();
-        var rules = new ArrayList<MusicianRule>();
         for (var x = 0; x < params.numCols; x++) {
             for (var y = 0; y < params.numRows; y++) {
                 MusicianRule rule;
@@ -48,7 +48,6 @@ public class MainStateBased64 {
                     rule = new RandomRule();
                 else
                     rule = new StateBasedRule(16, params.numCols - y);
-                rules.add(rule);
                 var index = x * params.numRows + y;
                 var musician = new Musician(index, controller, y, rule);
                 if (x != 3 && x != 7)
@@ -182,7 +181,7 @@ public class MainStateBased64 {
 
         SwingUtilities.invokeLater(() -> {
             var ui = new MargiaWindow("State Based 64", timing, transport, musicians);
-            ui.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            ui.setExtendedState(Frame.MAXIMIZED_BOTH);
             ui.setVisible(true);
         });
 

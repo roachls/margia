@@ -83,7 +83,6 @@ public class MidiController {
 
             LOGGER.atInfo().log("Using MIDI output device: {}", outputDevice.getDeviceInfo().getName());
         } catch (MidiUnavailableException e) {
-            e.printStackTrace();
             LOGGER.atError().log("MIDI device {} unavailable", outputDevice.getDeviceInfo().getName(), e);
         }
     }
@@ -98,7 +97,7 @@ public class MidiController {
         if (note.noteNum() == -1)
             return;
         if (receiver == null) {
-            System.err.println("MIDI receiver not available.");
+            LOGGER.atError().log("MIDI receiver not available");
             return;
         }
 

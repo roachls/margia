@@ -21,7 +21,7 @@ public class Length {
      */
     public static Quantity<Time> getMillisForTempo(final int ticks, final double bpm) {
         var qpb = 60000 / bpm;
-        var partOfBeat = (double) ticks / 4.0;
+        var partOfBeat = ticks / 4.0;
         return Quantities.getQuantity((int) (partOfBeat * qpb), TimeQuantities.MILLISECOND);
     }
 

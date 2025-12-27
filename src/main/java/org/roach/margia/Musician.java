@@ -131,11 +131,9 @@ public class Musician implements PropertyChangeEmitter {
 
     /**
      * Actually perform the actions calculaated in {@link #calculateAction(long)}
-     * 
-     * @param tick tick number
      */
-    public void doAction(long tick) {
-        rule.doAction(tick);
+    public void doAction() {
+        rule.doAction();
     }
 
     /**
@@ -143,11 +141,15 @@ public class Musician implements PropertyChangeEmitter {
      */
     public void receiveMessage(MusicianMessage message) {
         if (message instanceof NoteInfo heardNote) {
-            this.messageQueue.offer(heardNote);
-            logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
-            if (messageQueue.size() > MAX_QUEUE_SIZE) {
-                logger.atDebug().log("{}: pulling old message to make room for new", id);
-                messageQueue.poll();
+            var offerSuccess = this.messageQueue.offer(heardNote);
+            if (offerSuccess) {
+                logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
+                if (messageQueue.size() > MAX_QUEUE_SIZE) {
+                    logger.atDebug().log("{}: pulling old message to make room for new", id);
+                    messageQueue.poll();
+                }
+            } else {
+                logger.atWarn().log("{}: Unable to add note to queue (out of memory?)", id);
             }
         }
     }
@@ -176,28 +178,6 @@ public class Musician implements PropertyChangeEmitter {
      * @return the number of notes I've played since the last reset
      */
     public int getNotesIvePlayed() { return notesIvePlayed; }
-
-    /**
-     * @param rangeLow the lowest note that this musician can (default is 0)
-     * @return the musician
-     */
-//	public Musician setRangeLow(int rangeLow) {
-//		if (rangeLow < 0 || rangeLow > 127)
-//			throw new IllegalArgumentException("range low must be between 0 and 127");
-//		this.rangeLow = rangeLow;
-//		return this;
-//	}
-
-    /**
-     * @param rangeHi the highest note that this musician can play (default is 127)
-     * @return the musician
-     */
-//	public Musician setRangeHi(int rangeHi) {
-//		if (rangeHi < 0 || rangeHi > 127)
-//			throw new IllegalArgumentException("range high must be between 0 and 127");
-//		this.rangeHi = rangeHi;
-//		return this;
-//	}
 
     /**
      * @return the lowest note that this musician can play

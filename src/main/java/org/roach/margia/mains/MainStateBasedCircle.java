@@ -1,5 +1,6 @@
 package org.roach.margia.mains;
 
+import java.awt.Frame;
 import java.util.ArrayList;
 
 import javax.swing.SwingUtilities;
@@ -23,6 +24,7 @@ public class MainStateBasedCircle {
      * 
      * @param args args[0] = number of musicians
      */
+    @SuppressWarnings("java:S106")
     public static void main(String[] args) {
         var params = new StateBasedParams();
         var jCommander = new JCommander(params);
@@ -86,7 +88,7 @@ public class MainStateBasedCircle {
 
         SwingUtilities.invokeLater(() -> {
             var ui = new MargiaWindow("State Based Circle", timing, transport, musicians);
-//			ui.setExtendedState(JFrame.MAXIMIZED_BOTH);
+			ui.setExtendedState(Frame.MAXIMIZED_BOTH);
             ui.setVisible(true);
         });
 

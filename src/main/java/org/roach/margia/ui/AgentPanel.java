@@ -18,14 +18,15 @@ import org.roach.margia.timing.TimingSource;
  * GUI element that displays multiple {@link Musician Musicians} in a
  * {@link JPanel}
  */
+@SuppressWarnings({ "java:S1948" })
 public class AgentPanel extends JPanel implements ActionListener, ChangeListener {
     int numMusicians;
     private List<MusicianComponent> musicianComponents;
     private List<Edge> edges = new ArrayList<>();
-    private final double K_REPULSION = 10000; // Repulsion constant
-    private final double K_SPRING = 0.13; // Spring constant
-    private final double DAMPING = 0.6; // Damping factor
-    private final double TIMESTEP = 0.8; // Simulation speed/stability
+    private static final double K_REPULSION = 10000; // Repulsion constant
+    private static final double K_SPRING = 0.13; // Spring constant
+    private static final double DAMPING = 0.6; // Damping factor
+    private static final double TIMESTEP = 0.8; // Simulation speed/stability
     private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
     private final List<Musician> musicians;
     private int tickLengthMillis;
@@ -101,8 +102,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // Enable anti-aliasing for shapes/lines
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        var gradient = new GradientPaint(new Point2D.Float(getWidth() / 2, 0), getBackground(),
-                new Point2D.Float(getWidth() / 2, getHeight()), Color.black);
+        var gradient = new GradientPaint(new Point2D.Float(getWidth() / 2f, 0), getBackground(),
+                new Point2D.Float(getWidth() / 2f, getHeight()), Color.black);
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         for (Edge edge : edges) {
@@ -193,15 +194,16 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             node.py += node.vy * TIMESTEP;
 
             // Simple boundary constraints (optional)
-            node.px = Math.max(node.getDiameter(), Math.min(getWidth() - node.getDiameter(), node.px));
-            node.py = Math.max(node.getDiameter(), Math.min(getHeight() - node.getDiameter(), node.py));
+            node.px = Math.clamp(node.px, node.getDiameter(), (double) getWidth() - node.getDiameter());
+            node.py = Math.clamp(node.py, node.getDiameter(), (double) getHeight() - node.getDiameter());
 
             node.updateLocation();
         }
     }
 
     static class Edge {
-        MusicianComponent source, target;
+        private final MusicianComponent source;
+        private MusicianComponent target;
         double idealLength; // the desired distance between nodes
 
         Edge(MusicianComponent source, MusicianComponent target, double idealLength) {

@@ -12,6 +12,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 /**
  * GUI and musical options
  */
+@SuppressWarnings({ "java:S1948" })
 public class OptionPanel extends JPanel {
     private JSpinner radius;
     private JSpinner gravity;
@@ -69,7 +70,7 @@ public class OptionPanel extends JPanel {
         if (type.equals(Integer.class))
             updateOption(propertyName, defValue.intValue());
         else
-            updateOption(propertyName, defValue.doubleValue());
+            updateOption(propertyName, defValue);
         return spinner;
     }
 

@@ -23,6 +23,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 /**
  * The main program window
  */
+@SuppressWarnings({ "java:S1948" })
 public class MargiaWindow extends JFrame implements ChangeListener {
     private static final String ABOUT_MESSAGE = """
             <html>

@@ -6,6 +6,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -17,22 +18,26 @@ import org.roach.margia.NoteInfo;
 /**
  * GUI element that displays an agent as a colored circle
  */
+@SuppressWarnings({ "java:S1948" })
 public class MusicianComponent extends JComponent implements PropertyChangeListener, ChangeListener {
     private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
     private final Musician agent;
     private Color color;
     private int tickLengthMillis;
     private Timer timer;
-    private volatile float brightness = 1f;
+    
     private static boolean showNumbers = true;
     /**
      * size of circle to draw
      */
     private int radius = MusicianComponent.DEFAULT_RADIUS;
     double mass;
-    double px, py;
-    double vx, vy; // velocity
-    double fx, fy; // total force
+    double px;
+    double py; // screen position
+    double vx;
+    double vy; // velocity
+    double fx;
+    double fy; // total force
     /**
      * default radius of musician components
      */
@@ -66,6 +71,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
+        var brightness = new AtomicReference<Float>(1.0f);
         switch (evt.getPropertyName()) {
         case Musician.LAST_NOTE_PROPERTY:
             NoteInfo noteInfo = (NoteInfo) evt.getNewValue();
@@ -78,14 +84,14 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 // Hue depends on MIDI note played, relative to the full range of the musician
                 var normalizedHue = agent.noteToRange(noteInfo.noteNum());
                 // Saturation depends on velocity of MIDI note
-                var normalizedSaturation = (float) noteInfo.velocity() / 127f;
+                var normalizedSaturation = noteInfo.velocity() / 127f;
                 // Start the brightness at full (1.0) and decrease it to 0 over the life of the
                 // note
                 var delay = 1000 / (tickLengthMillis * noteInfo.length());
-                brightness = 1f;
+                brightness.set(1.0f);
                 timer = new Timer(delay, _ -> {
-                    color = Color.getHSBColor(normalizedHue, normalizedSaturation, brightness);
-                    brightness = Math.max(0f, brightness - 0.004f);
+                    color = Color.getHSBColor(normalizedHue, normalizedSaturation, brightness.get());
+                    brightness.getAndAccumulate(0.004f, (b, f) -> Math.max(0f, b - f));
                     repaint();
                 });
                 timer.start();
@@ -107,7 +113,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
 
         g2d.setColor(color);
-        var paint = new RadialGradientPaint(new Point2D.Float(radius + 3, radius + 3), radius, FRACTIONS,
+        var paint = new RadialGradientPaint(new Point2D.Float(radius + 3f, radius + 3f), radius, FRACTIONS,
                 new Color[] { Color.white, color });
         g2d.setPaint(paint);
         g2d.fillOval(0, 0, getWidth(), getHeight());
@@ -120,7 +126,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
             // Get the outline shape
             // AffineTransform is used to position the text at (x, y)
-            var transform = AffineTransform.getTranslateInstance(radius - 6, radius + 3);
+            var transform = AffineTransform.getTranslateInstance(radius - 6d, radius + 3d);
             Shape shape = tl.getOutline(transform);
 
             // draw an oval around the text

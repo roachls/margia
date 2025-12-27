@@ -96,7 +96,7 @@ public class Transport {
             // each musician calculate their next action
             musicians.forEach(m -> m.calculateAction(tick));
             // each musician perform the action they just calculated
-            musicians.forEach(m -> m.doAction(tick));
+            musicians.forEach(m -> m.doAction());
             // controller actually play notes from each musician
             controller.playNotesThisTick();
         }
