@@ -50,12 +50,12 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     static final String SHOW_NUMBERS_PROPERTY = "Show_numbers";
     private static boolean showNumbers = Options.getInstance().getOrDefaultAsBoolean(SHOW_NUMBERS_PROPERTY, true);
-    
+
     /**
      * listener for the show numbers property
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = Boolean
-            .parseBoolean(((ChangeSource) e.getSource()).newValue().toString());
+            .parseBoolean(((ChangeSource) e.getSource()).newValue());
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -72,6 +72,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     }
 
     @Override
+    @SuppressWarnings("java:S1301")
     public void propertyChange(PropertyChangeEvent evt) {
         var brightness = new AtomicReference<Float>(1.0f);
         switch (evt.getPropertyName()) {
@@ -176,8 +177,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof JSpinner spinner && spinner.getName().equals(MusicianComponent.RADIUS_PROPERTY)) {
-            this.setCircleRadius((int) spinner.getValue());
+        if (e.getSource() instanceof ChangeSource cs && MusicianComponent.RADIUS_PROPERTY.equals(cs.key())) {
+            this.setCircleRadius(Integer.parseInt(cs.newValue()));
         }
     }
 

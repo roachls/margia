@@ -3,11 +3,12 @@ package org.roach.margia.ui;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Point2D;
+import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -50,7 +51,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     public static final String GRAVITY_PROPERTY = "Gravitational_Constant";
 
     /**
-     * @param musicians   {@link Musician musicians} to display
+     * @param musicians {@link Musician musicians} to display
      */
     public AgentPanel(List<Musician> musicians) {
         this.musicians = musicians;
@@ -107,12 +108,35 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 new Point2D.Float(getWidth() / 2f, getHeight()), Color.black);
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
+        var transform = new AffineTransform();
         for (Edge edge : edges) {
+            transform.setToIdentity();
+            var g2d2 = (Graphics2D) g2d.create();
             g2d.setColor(edge.source.getColor());
-            g2d.drawLine((int) edge.source.px + edge.source.getWidth() / 2,
-                    (int) edge.source.py + edge.source.getHeight() / 2,
-                    (int) edge.target.px + edge.target.getWidth() / 2,
-                    (int) edge.target.py + edge.target.getHeight() / 2);
+            // center of source component
+            var scx = edge.source.px + edge.source.getWidth() / 2d;
+            var scy = edge.source.py + edge.source.getHeight() / 2d;
+            // center of target component
+            var tcx = edge.target.px + edge.target.getWidth() / 2d;
+            var tcy = edge.target.py + edge.target.getHeight() / 2d;
+            // calculate distance from source to target
+            var dx = tcx - scx;
+            var dy = tcy - scy;
+            var angle = Math.atan2(dy, dx);
+            var dist = Math.hypot(dx, dy) - edge.target.getRadius();
+            var line = new Line2D.Double(0, 0, 0, dist);
+            var path = new Path2D.Double();
+            path.moveTo(0, dist - 5);
+            path.lineTo(3, dist - 5);
+            path.lineTo(0, dist);
+            path.lineTo(-3, dist - 5);
+            path.closePath();
+            transform.translate(scx, scy);
+            transform.rotate(angle - Math.PI / 2d);
+            g2d2.transform(transform);
+            g2d2.setColor(edge.source.getColor());
+            g2d2.draw(line);
+            g2d2.fill(path);
         }
     }
 
@@ -216,31 +240,21 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof JSpinner spinner) {
-            if (spinner.getName().equals(AgentPanel.GRAVITY_PROPERTY)) {
-                this.gravity = (double) spinner.getValue();
-            } else if (spinner.getName().equals(AgentPanel.EDGE_LENGTH_PROPERTY)) {
-                for (var edge : edges) {
-                    edge.idealLength = (int) spinner.getValue();
-                }
-            } else if (spinner.getName().equals("tempo")) {
-                this.tickLengthMillis = 60000 / ((int) spinner.getValue() * 24);
-                for (var musician : musicianComponents) {
-                    musician.setTickLengthMillis(tickLengthMillis);
-                }
-            }
-        } else if (e.getSource() instanceof ChangeSource cs) {
-            if (cs.key().equals(AgentPanel.GRAVITY_PROPERTY)) {
-                this.gravity = Double.parseDouble(cs.newValue().toString());
-            } else if (cs.key().equals(AgentPanel.EDGE_LENGTH_PROPERTY)) {
-                for (var edge : edges) {
-                    edge.idealLength = Integer.parseInt(cs.newValue().toString());
-                }
-            } else if (cs.key().equals("tempo")) {
-                this.tickLengthMillis = 60000 / (Integer.parseInt(cs.newValue().toString()) * 24);
-                for (var musician : musicianComponents) {
-                    musician.setTickLengthMillis(tickLengthMillis);
-                }
+        if (e.getSource() instanceof ChangeSource cs) {
+            switch (cs.key()) {
+            case AgentPanel.GRAVITY_PROPERTY:
+                this.gravity = Double.parseDouble(cs.newValue());
+                break;
+            case AgentPanel.EDGE_LENGTH_PROPERTY:
+                var len = Integer.parseInt(cs.newValue());
+                edges.forEach(edge -> edge.idealLength = len);
+                break;
+            case TimingSource.TEMPO_PROPERTY:
+                this.tickLengthMillis = 60000 / (Integer.parseInt(cs.newValue()) * 24);
+                musicianComponents.forEach(m -> m.setTickLengthMillis(tickLengthMillis));
+                break;
+            default:
+                break;
             }
         }
     }

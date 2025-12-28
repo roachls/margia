@@ -1,20 +1,23 @@
-package org.roach.margia.mains;
+package org.roach.margia.mains.params;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
+@SuppressWarnings("javadoc")
 @Parameters(commandDescription = "Parameters for state-based algorithm")
-class StateBasedParams implements MargiaParams {
+public class StateBasedParams extends AbstractAlgParams {
     @Parameter(names = { "-seq", "--sequenceLength" }, description = "Starting sequence length")
-    int startingSequenceLength = 20;
+    public int startingSequenceLength = 20;
     @Parameter(names = { "-r", "--rows" }, description = "Number of rows in grid")
-    int numRows = 4;
+    public int numRows = 4;
     @Parameter(names = { "-c", "--cols" }, description = "Number of columns in grid")
-    int numCols = 4;
+    public int numCols = 4;
     @Parameter(names = {
             "--decrementSequenceLength" }, description = "Whether to decrement the sequence length over time")
-    boolean decrementSequenceLength = true;
+    public boolean decrementSequenceLength = true;
     @Parameter(names = {
             "--tickDecrementLength" }, description = "How often to decrement the sequence length (in ticks)")
-    int tickDecrementCount = 100;
+    public int tickDecrementCount = 100;
+    @Parameter(names = "--tickDelay", description = "number of ticks to delay before starting to repeat sequence")
+    public int tickDelay = 0;
 }

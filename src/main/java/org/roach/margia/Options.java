@@ -62,7 +62,7 @@ public class Options {
         var oldValue = opts.put(propertyName, value);
         if (!value.equals(oldValue)) {
             this.dirty = true;
-            emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, true));
+            emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "true"));
             emitter.fireChangeEvent(propertyName, new ChangeSource(this, propertyName, value));
         }
     }
@@ -77,7 +77,7 @@ public class Options {
     public void store(OutputStream os, String comments) throws IOException {
         opts.store(os, comments);
         this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, false));
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
     }
 
     /**
@@ -90,10 +90,10 @@ public class Options {
         opts.load(is);
         for (var propEntry : opts.entrySet()) {
             emitter.fireChangeEvent(propEntry.getKey().toString(),
-                    new ChangeSource(this, propEntry.getKey().toString(), propEntry.getValue()));
+                    new ChangeSource(this, propEntry.getKey().toString(), propEntry.getValue().toString()));
         }
         this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, false));
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
     }
 
     /**

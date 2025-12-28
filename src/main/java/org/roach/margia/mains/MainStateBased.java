@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.params.StateBasedParams;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
 
@@ -24,7 +25,7 @@ public class MainStateBased implements Algorithm<StateBasedParams> {
             musicians.add(musician);
         }
 
-        var baseKey = Key.CMajor;
+        var baseKey = sbParams.key;
         musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
         musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
         musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));

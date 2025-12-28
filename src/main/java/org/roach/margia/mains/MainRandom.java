@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.params.RandomParams;
 import org.roach.margia.rules.RandomRule;
 
 /**
@@ -22,7 +23,7 @@ public class MainRandom implements Algorithm<RandomParams> {
         for (int i = 0; i < numMusicians; i++) {
             var m = new Musician(i, controller, i % mainParams.numChannels, new RandomRule());
             m.setMuted(rand.nextBoolean());
-            m.setKey(Key.CPentatonic);
+            m.setKey(rParams.key);
             musicians.add(m);
         }
 

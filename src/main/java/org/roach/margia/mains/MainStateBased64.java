@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.params.StateBasedParams;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
 
@@ -22,12 +23,13 @@ public class MainStateBased64 implements Algorithm<StateBasedParams> {
                 if (x == 0)
                     rule = new RandomRule();
                 else
-                    rule = new StateBasedRule(16, sbParams.numCols - y);
+                    rule = new StateBasedRule(sbParams.startingSequenceLength,
+                            sbParams.numCols - y + sbParams.tickDelay);
                 var index = x * sbParams.numRows + y;
                 var musician = new Musician(index, controller, y, rule);
                 if (x != 3 && x != 7)
                     musician.setMuted(true);
-                musician.setKey(Key.Chromatic.of(Octave.O0.getLow(), Octave.O4.getHigh()));
+                musician.setKey(sbParams.key.of(Octave.O0.getLow(), Octave.O4.getHigh()));
                 rule.setMusician(musician);
                 musicians.add(musician);
             }

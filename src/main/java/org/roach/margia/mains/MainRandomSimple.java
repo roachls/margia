@@ -3,6 +3,7 @@ package org.roach.margia.mains;
 import java.util.*;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.params.RandomParams;
 import org.roach.margia.rules.RandomRule;
 
 /**
@@ -15,7 +16,9 @@ public class MainRandomSimple implements Algorithm<RandomParams> {
         var rParams = (RandomParams) algParams;
         var musicians = new ArrayList<Musician>();
         for (int i = 0; i < rParams.numMusicians; i++) {
-            musicians.add(new Musician(i, controller, i % mainParams.numChannels, new RandomRule()));
+            var m = new Musician(i, controller, i % mainParams.numChannels, new RandomRule());
+            m.setKey(rParams.key);
+            musicians.add(m);
         }
 
         /*

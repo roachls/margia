@@ -4,38 +4,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.roach.margia.*;
+import org.roach.margia.mains.params.CircleParams;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
 
 /**
  * State-based agents in a circle
  */
-public class MainStateBasedCircle implements Algorithm<StateBasedParams> {
+public class MainStateBasedCircle implements Algorithm<CircleParams> {
     @SuppressWarnings("java:S106")
     @Override
     public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
-        var sbParams = (StateBasedParams) margiaParams;
+        var algParams = (CircleParams) margiaParams;
         var musicians = new ArrayList<Musician>();
         MusicianRule rule = new RandomRule();
         var musician = new Musician(0, controller, 0, rule);
         musicians.add(musician);
 
-        var numMusicians = sbParams.numCols * sbParams.numCols;
-        for (int i = 1; i < numMusicians; i++) {
-            rule = new StateBasedRule(8, 0);
+        for (int i = 1; i < algParams.numMusicians; i++) {
+            rule = new StateBasedRule(algParams.startingSequenceLength, algParams.tickDelay);
             musician = new Musician(i, controller, i % mainParams.numChannels, rule);
+            musician.setKey(algParams.key);
             rule.setMusician(musician);
             musicians.add(musician);
         }
-        var baseKey = Key.CMajor;
-        musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
-        musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
-        musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
-        musicians.get(3).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
-        musicians.get(4).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
-        musicians.get(5).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
-        musicians.get(6).setKey(baseKey);
-        musicians.get(7).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
 
         /*
 		 * @formatter:off
@@ -43,10 +35,10 @@ public class MainStateBasedCircle implements Algorithm<StateBasedParams> {
 		 *  8 -> 0
 		 * @formatter:on
 		 */
-        for (var i = 0; i < numMusicians - 1; i++) {
+        for (var i = 0; i < algParams.numMusicians - 1; i++) {
             musicians.get(i).addPeer(musicians.get(i + 1));
         }
-        musicians.get(numMusicians - 1).addPeer(musicians.get(0));
+        musicians.get(algParams.numMusicians - 1).addPeer(musicians.get(0));
 
         return musicians;
     }
@@ -55,8 +47,8 @@ public class MainStateBasedCircle implements Algorithm<StateBasedParams> {
     public String command() { return "circle"; }
 
     @Override
-    public StateBasedParams createParams() {
-        return new StateBasedParams();
+    public CircleParams createParams() {
+        return new CircleParams();
     }
 
     @Override

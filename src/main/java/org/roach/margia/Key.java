@@ -62,6 +62,17 @@ public interface Key {
     }
 
     Key CMajor = generateKey(MAJOR_INTERVALS, 0, 127);
+    Key DbMajor = CMajor.transposeUp(1);
+    Key DMajor = CMajor.transposeUp(2);
+    Key EbMajor = CMajor.transposeUp(3);
+    Key EMajor = CMajor.transposeUp(4);
+    Key FMajor = CMajor.transposeUp(5);
+    Key GbMajor = CMajor.transposeUp(6);
+    Key GMajor = CMajor.transposeUp(7);
+    Key AbMajor = CMajor.transposeUp(8);
+    Key AMajor = CMajor.transposeUp(9);
+    Key BbMajor = CMajor.transposeUp(10);
+    Key BMajor = CMajor.transposeUp(11);
 
     Key CPentatonic = generateKey(PENTATONIC_INTERVALS, 0, 127);
 
@@ -170,5 +181,10 @@ public interface Key {
         if (note >= highestNote())
             return 1f;
         return (float) (note - lowestNote()) / range();
+    }
+
+    default Key transposeUp(int interval) {
+        var newNotes = this.notes().stream().map(n -> n + interval).filter(n -> n <= 127).toList();
+        return generateKey(newNotes);
     }
 }
