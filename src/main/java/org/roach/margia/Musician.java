@@ -43,7 +43,7 @@ public class Musician implements PropertyChangeEmitter {
     public static final int REST = -1;
     private final int id;
     private final MidiController controller;
-    private final BlockingQueue<NoteInfo> messageQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
     private final int channel;
     private final List<Musician> peers = new ArrayList<>();
     private final MusicianRule rule;
@@ -56,6 +56,7 @@ public class Musician implements PropertyChangeEmitter {
     private Key key = Key.CPentatonic;
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
+    private boolean listening = true;
 
     /**
      * @return true if this musician is muted
@@ -97,7 +98,7 @@ public class Musician implements PropertyChangeEmitter {
      * @param note the note to play
      */
     public void playNote(NoteInfo note) {
-        if (note == null)
+        if (note == null || note.noteNum() == REST)
             return;
         if (muted) {
             logger.atDebug().log("{} is muted", id);
@@ -112,7 +113,7 @@ public class Musician implements PropertyChangeEmitter {
         // pass on actual note received, not note played
         sendMessageToPeers(note);
     }
-
+    
     /**
      * @param peer another {@link Musician} with which this one may communicate
      */
@@ -144,17 +145,20 @@ public class Musician implements PropertyChangeEmitter {
      * @param message receive a note and place it on the message queue
      */
     public void receiveMessage(MusicianMessage message) {
-        if (message instanceof NoteInfo heardNote) {
-            var offerSuccess = this.messageQueue.offer(heardNote);
-            if (offerSuccess) {
+        if (!listening && message instanceof NoteInfo)
+            return;
+        var offerSuccess = this.messageQueue.offer(message);
+        if (offerSuccess) {
+            if (message instanceof NoteInfo heardNote)
                 logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
-                if (messageQueue.size() > MAX_QUEUE_SIZE) {
-                    logger.atDebug().log("{}: pulling old message to make room for new", id);
-                    messageQueue.poll();
-                }
-            } else {
-                logger.atWarn().log("{}: Unable to add note to queue (out of memory?)", id);
+            else
+                logger.atDebug().log("{}: received message: {}", id, message);
+            if (messageQueue.size() > MAX_QUEUE_SIZE) {
+                logger.atDebug().log("{}: pulling old message to make room for new", id);
+                messageQueue.poll();
             }
+        } else {
+            logger.atWarn().log("{}: Unable to add note to queue (out of memory?)", id);
         }
     }
 
@@ -176,7 +180,7 @@ public class Musician implements PropertyChangeEmitter {
     /**
      * @return the next note in this musician's queue of heard notes
      */
-    public NoteInfo getNextNoteHeard() { return messageQueue.poll(); }
+    public MusicianMessage getNextNoteHeard() { return messageQueue.poll(); }
 
     /**
      * @return the number of notes I've played since the last reset
@@ -253,7 +257,11 @@ public class Musician implements PropertyChangeEmitter {
      */
     public long getCurrentTick() { return currentTick; }
 
-    private void sendMessageToPeers(MusicianMessage message) {
+    /**
+     * Pass the given message along to all peers
+     * @param message the message to send
+     */
+    public void sendMessageToPeers(MusicianMessage message) {
         for (var peer : peers) {
             peer.receiveMessage(message);
         }
@@ -279,5 +287,17 @@ public class Musician implements PropertyChangeEmitter {
     public List<Integer> peerIds() {
         return peers.stream().map(Musician::getId).toList();
     }
+
+    /**
+     * @return true if the musician is listening to notes (may still receive other
+     *         types of messages)
+     */
+    public boolean isListening() { return listening; }
+
+    /**
+     * @param listening set to false to have musician ignore incoming notes (may
+     *                  still receive other types of messages
+     */
+    public void setListening(boolean listening) { this.listening = listening; }
 
 }

@@ -53,11 +53,12 @@ public class StateBasedRule extends MusicianRule {
             logger.atDebug().log("{}: tickCountdown={}, returning", musician.getId(), tickCountdown);
             return;
         }
-        var heardNote = musician.getNextNoteHeard();
-        if (heardNote != null)
+        var message = musician.getNextNoteHeard();
+        if (message != null && message instanceof NoteInfo heardNote) {
             delayQueue.offer(heardNote);
-        else
+        } else {
             delayQueue.offer(REST.apply(1));
+        }
 
         var note = delayQueue.poll();
         // never play the same note twice
