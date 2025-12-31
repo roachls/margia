@@ -1,0 +1,195 @@
+package org.roach.margia;
+
+@SuppressWarnings("javadoc")
+public class Note {
+    private Note() {
+        // no instantiation
+    }
+
+    public static final int C_N2 = 0;
+    public static final int CS_N2 = 1;
+    public static final int DF_N2 = 1;
+    public static final int D_N2 = 2;
+    public static final int DS_N2 = 3;
+    public static final int EF_N2 = 3;
+    public static final int E_N2 = 4;
+    public static final int F_N2 = 5;
+    public static final int FS_N2 = 6;
+    public static final int GF_N2 = 6;
+    public static final int G_N2 = 7;
+    public static final int GS_N2 = 8;
+    public static final int AF_N2 = 8;
+    public static final int A_N2 = 9;
+    public static final int AS_N2 = 10;
+    public static final int B_N2 = 11;
+    
+    public static final int C_N1 = 12;
+    public static final int CS_N1 = 13;
+    public static final int DF_N1 = 13;
+    public static final int D_N1 = 14;
+    public static final int DS_N1 = 15;
+    public static final int EF_N1 = 15;
+    public static final int E_N1 = 16;
+    public static final int F_N1 = 17;
+    public static final int FS_N1 = 18;
+    public static final int GF_N1 = 18;
+    public static final int G_N1 = 19;
+    public static final int GS_N1 = 20;
+    public static final int AF_N1 = 20;
+    public static final int A_N1 = 21;
+    public static final int AS_N1 = 22;
+    public static final int B_N1 = 23;
+
+    public static final int C0 = 24;
+    public static final int CS0 = 25;
+    public static final int DF0 = 25;
+    public static final int D0 = 26;
+    public static final int DS0 = 27;
+    public static final int EF0 = 27;
+    public static final int E0 = 28;
+    public static final int F0 = 29;
+    public static final int FS0 = 30;
+    public static final int GF0 = 30;
+    public static final int G0 = 31;
+    public static final int GS0 = 32;
+    public static final int AF0 = 32;
+    public static final int A0 = 33;
+    public static final int AS0 = 34;
+    public static final int BF0 = 34;
+    public static final int B0 = 35;
+    
+    public static final int C1 = 36;
+    public static final int CS1 = 37;
+    public static final int DF1 = 37;
+    public static final int D1 = 38;
+    public static final int DS1 = 39;
+    public static final int EF1 = 39;
+    public static final int E1 = 40;
+    public static final int F1 = 41;
+    public static final int FS1 = 42;
+    public static final int GF1 = 42;
+    public static final int G1 = 43;
+    public static final int GS1 = 44;
+    public static final int AF1 = 44;
+    public static final int A1 = 45;
+    public static final int AS1 = 46;
+    public static final int BF1 = 46;
+    public static final int B1 = 47;
+    
+    public static final int C2 = 48;
+    public static final int CS2 = 49;
+    public static final int DF2 = 49;
+    public static final int D2 = 50;
+    public static final int DS2 = 51;
+    public static final int EF2 = 51;
+    public static final int E2 = 52;
+    public static final int F2 = 53;
+    public static final int FS2 = 54;
+    public static final int GF2 = 54;
+    public static final int G2 = 55;
+    public static final int GS2 = 56;
+    public static final int AF2 = 56;
+    public static final int A2 = 57;
+    public static final int AS2 = 58;
+    public static final int BF2 = 58;
+    public static final int B2 = 59;
+    
+    public static final int C3 = 60;
+    public static final int CS3 = 61;
+    public static final int DF3 = 61;
+    public static final int D3 = 62;
+    public static final int DS3 = 63;
+    public static final int EF3 = 63;
+    public static final int E3 = 64;
+    public static final int F3 = 65;
+    public static final int GF3 = 66;
+    public static final int FS3 = 66;
+    public static final int G3 = 67;
+    public static final int GS3 = 68;
+    public static final int AF3 = 68;
+    public static final int A3 = 69;
+    public static final int AS3 = 70;
+    public static final int BF3 = 70;
+    public static final int B3 = 71;
+    
+    public static final int C4 = 72;
+    public static final int CS4 = 73;
+    public static final int DF4 = 73;
+    public static final int D4 = 74;
+    public static final int DS4 = 75;
+    public static final int EF4 = 75;
+    public static final int E4 = 76;
+    public static final int F4 = 77;
+    public static final int FS4 = 78;
+    public static final int GF4 = 78;
+    public static final int G4 = 79;
+    public static final int GS4 = 80;
+    public static final int AF4 = 80;
+    public static final int A4 = 81;
+    public static final int AS4 = 82;
+    public static final int BF4 = 82;
+    public static final int B4 = 83;
+    
+    public static final int C5 = 84;
+    public static final int CS5 = 85;
+    public static final int DF5 = 85;
+    public static final int D5 = 86;
+    public static final int DS5 = 87;
+    public static final int EF5 = 87;
+    public static final int E5 = 88;
+    public static final int F5 = 89;
+    public static final int FS5 = 90;
+    public static final int GF5 = 90;
+    public static final int G5 = 91;
+    public static final int GS5 = 92;
+    public static final int AF5 = 92;
+    public static final int A5 = 93;
+    public static final int AS5 = 94;
+    public static final int BF5 = 94;
+    public static final int B5 = 95;
+    
+    public static final int C6 = 96;
+    public static final int CS6 = 97;
+    public static final int DF6 = 97;
+    public static final int D6 = 98;
+    public static final int DS6 = 99;
+    public static final int EF6 = 99;
+    public static final int E6 = 100;
+    public static final int F6 = 101;
+    public static final int FS6 = 102;
+    public static final int GF6 = 102;
+    public static final int G6 = 103;
+    public static final int GS6 = 104;
+    public static final int AF6 = 104;
+    public static final int A6 = 105;
+    public static final int AS6 = 106;
+    public static final int BF6 = 106;
+    public static final int B6 = 107;
+    
+    public static final int C7 = 108;
+    public static final int CS7 = 109;
+    public static final int DF7 = 109;
+    public static final int D7 = 110;
+    public static final int DS7 = 111;
+    public static final int EF7 = 111;
+    public static final int E7 = 112;
+    public static final int F7 = 113;
+    public static final int FS7 = 114;
+    public static final int GF7 = 114;
+    public static final int G7 = 115;
+    public static final int GS7 = 116;
+    public static final int AF7 = 116;
+    public static final int A7 = 117;
+    public static final int AS7 = 118;
+    public static final int BF7 = 118;
+    public static final int B7 = 119;
+    
+    public static final int C8 = 120;
+    public static final int CS8 = 121;
+    public static final int D8 = 122;
+    public static final int DS8 = 123;
+    public static final int E8 = 124;
+    public static final int F8 = 125;
+    public static final int FS8 = 126;
+    public static final int G8 = 127;
+}
