@@ -37,10 +37,6 @@ public class Musician implements PropertyChangeEmitter {
      * maximum size the queue is allowed to reach before new notes are ignored
      */
     public static final int MAX_QUEUE_SIZE = 12;
-    /**
-     * A note number of -1 indicates a rest
-     */
-    public static final int REST = -1;
     private final int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
@@ -98,7 +94,7 @@ public class Musician implements PropertyChangeEmitter {
      * @param note the note to play
      */
     public void playNote(NoteInfo note) {
-        if (note == null || note.noteNum() == REST)
+        if (note == null || note.noteNum() == Note.REST)
             return;
         if (muted) {
             logger.atDebug().log("{} is muted", id);

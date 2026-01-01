@@ -19,25 +19,25 @@ public class SequenceRule extends MusicianRule {
                        new StartSequenceMessage(), new NoteInfo(D2, 64, 2), new NoteInfo(C2, 64, 2),
                        new NoteInfo(DS2, 64, 2), new NoteInfo(D2, 120, 2), new NoteInfo(C2, 64, 2), 
                        new NoteInfo(B1, 48, 2), new NoteInfo(D2, 52, 2), new NoteInfo(G1, 56, 2),
-                       new NoteInfo(Musician.REST, 60, 2)),
+                       new NoteInfo(Note.REST, 60, 2)),
             1, List.of(new NoteInfo(G1, 64, 4), new NoteInfo(D2, 100, 4), new NoteInfo(AS1, 64, 6),
                     new StartSequenceMessage(),
                     new NoteInfo(A1, 64, 2), new NoteInfo(G1, 64, 2), new NoteInfo(AS1, 64, 2),
                     new NoteInfo(A1, 64, 2), new NoteInfo(G1, 64, 2), new NoteInfo(FS1, 48, 2), 
                     new NoteInfo(A1, 64, 2), new NoteInfo(D1, 64, 2), 
-                    new NoteInfo(Musician.REST, 0, 2)),
+                    new NoteInfo(Note.REST, 0, 2)),
             2, List.of(new NoteInfo(D2, 64, 4), new NoteInfo(A2, 100, 4), new NoteInfo(F2, 64, 6),
                     new StartSequenceMessage(),
                     new NoteInfo(E2, 64, 2), new NoteInfo(D2, 64, 2), new NoteInfo(F2, 64, 2),
                     new NoteInfo(E2, 64, 2), new NoteInfo(D2, 64, 2), new NoteInfo(CS2, 48, 2), 
                     new NoteInfo(E2, 64, 2), new NoteInfo(A1, 64, 2),
-                    new NoteInfo(Musician.REST, 0, 2)),
+                    new NoteInfo(Note.REST, 0, 2)),
             3, List.of(new NoteInfo(A1, 64, 4), new NoteInfo(D2, 100, 4), new NoteInfo(C2, 64, 6),
                     new StartSequenceMessage(),
                     new NoteInfo(B1, 64, 2), new NoteInfo(A1, 64, 2), new NoteInfo(C2, 64, 2),
                     new NoteInfo(B1, 64, 2), new NoteInfo(A1, 64, 2), new NoteInfo(GS1, 48, 2), 
                     new NoteInfo(B1, 64, 2), new NoteInfo(E1, 64, 2),
-                    new NoteInfo(Musician.REST, 0, 2))
+                    new NoteInfo(Note.REST, 0, 2))
     );
     // @formatter:on
 

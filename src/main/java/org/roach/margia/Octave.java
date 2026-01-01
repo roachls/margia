@@ -1,5 +1,7 @@
 package org.roach.margia;
 
+import static org.roach.margia.Note.*;
+
 /**
  * Convenience enumeration of MIDI notes as octaves. Because O8 is incomplete
  * (only 7 notes), it is not included. All octaves are from C to B
@@ -8,43 +10,43 @@ public enum Octave {
     /**
      * -2 octave
      */
-    O_NEG2(0, 11),
+    O_NEG2(C_N2, B_N2),
     /**
      * -1 octave
      */
-    O_NEG1(12, 23),
+    O_NEG1(C_N1, B_N1),
     /**
     * 
     */
-    O0(24, 35),
+    O0(C0, B0),
     /**
     * 
     */
-    O1(36, 47),
+    O1(C1, B1),
     /**
     * 
     */
-    O2(48, 59),
+    O2(C2, B2),
     /**
     * 
     */
-    O3(60, 71),
+    O3(C3, B3),
     /**
     * 
     */
-    O4(72, 83),
+    O4(C4, B4),
     /**
     * 
     */
-    O5(84, 95),
+    O5(C5, B5),
     /**
     * 
     */
-    O6(96, 107),
+    O6(C6, B6),
     /**
      * 
      */
-    O7(108, 119);
+    O7(C7, B7);
 
     final int low;
     final int high;

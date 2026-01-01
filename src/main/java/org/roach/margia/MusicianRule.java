@@ -19,7 +19,7 @@ public abstract class MusicianRule {
     /**
      * Generates a rest of the given length in ticks
      */
-    public static final IntFunction<NoteInfo> REST = l -> new NoteInfo(-1, 0, l);
+    public static final IntFunction<NoteInfo> REST = l -> new NoteInfo(Note.REST, 0, l);
 
     /**
      * @param musician the {@link Musician} that this rule applies to

@@ -2,6 +2,10 @@ package org.roach.margia;
 
 @SuppressWarnings("javadoc")
 public class Note {
+    /**
+     * A note number of -1 indicates a rest
+     */
+    public static final int REST = -1;
     private Note() {
         // no instantiation
     }

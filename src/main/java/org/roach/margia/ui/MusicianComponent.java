@@ -80,7 +80,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             NoteInfo noteInfo = (NoteInfo) evt.getNewValue();
             if (timer != null)
                 timer.stop();
-            if (noteInfo.noteNum() == Musician.REST) {
+            if (noteInfo.noteNum() == Note.REST) {
                 this.color = Color.black;
                 repaint();
             } else {
