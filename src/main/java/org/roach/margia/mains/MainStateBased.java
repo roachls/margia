@@ -14,13 +14,13 @@ import org.roach.margia.rules.StateBasedRule;
 public class MainStateBased implements Algorithm<StateBasedParams> {
 
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var sbParams = (StateBasedParams) margiaParams;
         var numMusicians = sbParams.numRows * sbParams.numCols;
         var musicians = new ArrayList<Musician>();
         for (int i = 0; i < numMusicians; i++) {
             var rule = new StateBasedRule(sbParams.startingSequenceLength, 2);
-            var musician = new Musician(i, controller, i % mainParams.numChannels, rule);
+            var musician = new Musician(i, i % mainParams.numChannels, rule);
             rule.setMusician(musician);
             musicians.add(musician);
         }
@@ -73,7 +73,7 @@ public class MainStateBased implements Algorithm<StateBasedParams> {
 
         // add a single random musician that is heard only by #0 and can't hear anyone
         // else
-        var rMusician = new Musician(16, controller, 0, new RandomRule());
+        var rMusician = new Musician(16, 0, new RandomRule());
         rMusician.addPeer(musicians.get(0));
         musicians.get(numMusicians - 1).addPeer(rMusician);
         musicians.add(rMusician);
@@ -82,7 +82,9 @@ public class MainStateBased implements Algorithm<StateBasedParams> {
     }
 
     @Override
-    public String command() { return "statebased"; }
+    public String command() {
+        return "statebased";
+    }
 
     @Override
     public StateBasedParams createParams() {

@@ -14,14 +14,14 @@ import org.roach.margia.rules.RandomRule;
 public class MainRandom implements Algorithm<RandomParams> {
 
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var rParams = (RandomParams) margiaParams;
         var numMusicians = rParams.numMusicians;
         var musicians = new ArrayList<Musician>();
         var rand = new SecureRandom();
         rand.setSeed(mainParams.randomSeed);
         for (int i = 0; i < numMusicians; i++) {
-            var m = new Musician(i, controller, i % mainParams.numChannels, new RandomRule());
+            var m = new Musician(i, i % mainParams.numChannels, new RandomRule());
             m.setMuted(rand.nextBoolean());
             m.setKey(rParams.key);
             musicians.add(m);

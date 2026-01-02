@@ -6,6 +6,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
@@ -21,10 +22,11 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 @SuppressWarnings({ "java:S1948" })
 public class MusicianComponent extends JComponent implements PropertyChangeListener, ChangeListener {
     private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
-    private final Musician agent;
+    private final Musician musician;
     private Color color;
     private int tickLengthMillis;
     private Timer timer;
+    private boolean selected;
 
     /**
      * size of circle to draw
@@ -56,6 +58,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = Boolean
             .parseBoolean(((ChangeSource) e.getSource()).newValue());
+    
+    static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -63,7 +67,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * @param mass             mass to use in position calculations
      */
     MusicianComponent(Musician musician, int tickLengthMillis, double mass) {
-        this.agent = musician;
+        this.musician = musician;
+        this.setName("Musician_" + musician.getId());
         this.tickLengthMillis = tickLengthMillis;
         this.mass = mass;
         musician.addPropertyChangeListener(this);
@@ -85,7 +90,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 repaint();
             } else {
                 // Hue depends on MIDI note played, relative to the full range of the musician
-                float normalizedHue = agent.noteToRange(noteInfo.noteNum());
+                float normalizedHue = musician.noteToRange(noteInfo.noteNum());
                 // Saturation depends on velocity of MIDI note
                 float normalizedSaturation = noteInfo.velocity() / 127f;
                 // Start the brightness at full (1.0) and decrease it to 0 over the life of the
@@ -109,7 +114,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        var g2d = (Graphics2D) g;
+        var g2d = (Graphics2D) g.create();
         // Enable anti-aliasing for shapes/lines
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -127,7 +132,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             // Create a TextLayout to get the text's shape
             var font = new Font("Serif", Font.BOLD, 12 * radius / 20);
             var frc = g2d.getFontRenderContext();
-            var tl = new TextLayout(Integer.toString(agent.getId()), font, frc);
+            var tl = new TextLayout(Integer.toString(musician.getId()), font, frc);
 
             // Get the outline shape
             // AffineTransform is used to position the text at (x, y)
@@ -142,10 +147,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             // draw the text
             g2d.fill(shape);
         }
-        if (agent.isMuted()) {
+        if (musician.isMuted()) {
             // draw a semi-transparent gray oval over the whole thing
             g2d.setColor(new Color(0.5f, 0.5f, 0.5f, 0.8f));
             g2d.fillOval(0, 0, getWidth(), getHeight());
+        }
+        if (selected) {
+            g2d.setColor(Color.red);
+            g2d.setStroke(SELECTED_STROKE);
+            g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
         }
     }
 
@@ -188,4 +198,37 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     public void setTickLengthMillis(int tickLengthMillis) { this.tickLengthMillis = tickLengthMillis; }
 
     Color getColor() { return this.color; }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(musician.getId());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MusicianComponent other = (MusicianComponent) obj;
+        return Objects.equals(musician.getId(), other.musician.getId());
+    }
+
+    @Override
+    public String toString() {
+        return "MusicianComponent [musician=" + musician + ", color=" + color + ", tickLengthMillis=" + tickLengthMillis
+                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", px=" + px + ", py=" + py + ", vx="
+                + vx + ", vy=" + vy + ", fx=" + fx + ", fy=" + fy + "]";
+    }
+
+    /**
+     * @return the wrapped Musician
+     */
+    public Musician getMusician() { return this.musician; }
+
+    boolean isSelected() { return selected; }
+
+    void setSelected(boolean selected) { this.selected = selected; }
 }

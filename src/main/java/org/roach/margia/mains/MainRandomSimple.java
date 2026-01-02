@@ -12,11 +12,11 @@ import org.roach.margia.rules.RandomRule;
 public class MainRandomSimple implements Algorithm<RandomParams> {
 
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams algParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams algParams) {
         var rParams = (RandomParams) algParams;
         var musicians = new ArrayList<Musician>();
         for (int i = 0; i < rParams.numMusicians; i++) {
-            var m = new Musician(i, controller, i % mainParams.numChannels, new RandomRule());
+            var m = new Musician(i, i % mainParams.numChannels, new RandomRule());
             m.setKey(rParams.key);
             musicians.add(m);
         }

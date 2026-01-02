@@ -4,7 +4,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.roach.margia.MidiController;
 import org.roach.margia.Musician;
 import org.roach.margia.mains.params.RandomParams;
 import org.roach.margia.rules.SequenceRule;
@@ -16,14 +15,14 @@ import org.roach.margia.rules.SequenceRule.StartSequenceMessage;
 public class MainSequence implements Algorithm<RandomParams> {
 
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var rParams = (RandomParams) margiaParams;
         var numMusicians = rParams.numMusicians;
         var musicians = new ArrayList<Musician>();
         var rand = new SecureRandom();
         rand.setSeed(mainParams.randomSeed);
         for (int i = 0; i < numMusicians; i++) {
-            var m = new Musician(i, controller, i % mainParams.numChannels, new SequenceRule());
+            var m = new Musician(i, i % mainParams.numChannels, new SequenceRule());
             m.setListening(false);
             m.setKey(rParams.key);
             musicians.add(m);

@@ -34,12 +34,32 @@ public class MidiController {
     private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
     private final int tempo;
     private final ShortMessage timingPulse;
+    private static MidiController INSTANCE;
+    
+    /**
+     * @return the singleton MIDI controller
+     */
+    public static MidiController getInstance() {
+        if (INSTANCE == null)
+            throw new NullPointerException("MidiController INSTANCE is null, please call init first");
+        return INSTANCE;
+    }
+    
+    /**
+     * @param busName name of MIDI bus
+     * @param tempo tempo
+     */
+    public static void init(final String busName, final int tempo) {
+        if (INSTANCE != null)
+            throw new IllegalStateException("MidiController may only be initialized once");
+        INSTANCE = new MidiController(busName, tempo);
+    }
 
     /**
      * @param busName name of MIDI bus to send notes on
      * @param tempo   tempo at which the song will be played
      */
-    public MidiController(final String busName, final int tempo) {
+    private MidiController(final String busName, final int tempo) {
         Objects.requireNonNull(busName, "bus name cannot be null");
         this.tempo = tempo;
         this.timingPulse = new ShortMessage();

@@ -14,7 +14,7 @@ import org.roach.margia.rules.StateBasedRule;
 public class MainStateBased64 implements Algorithm<StateBasedParams> {
 
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var sbParams = (StateBasedParams) margiaParams;
         var musicians = new ArrayList<Musician>();
         for (var x = 0; x < sbParams.numCols; x++) {
@@ -26,7 +26,7 @@ public class MainStateBased64 implements Algorithm<StateBasedParams> {
                     rule = new StateBasedRule(sbParams.startingSequenceLength,
                             sbParams.numCols - y + sbParams.tickDelay);
                 var index = x * sbParams.numRows + y;
-                var musician = new Musician(index, controller, y, rule);
+                var musician = new Musician(index, y, rule);
                 if (x != 3 && x != 7)
                     musician.setMuted(true);
                 musician.setKey(sbParams.key.of(Octave.O0.getLow(), Octave.O4.getHigh()));

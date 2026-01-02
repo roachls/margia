@@ -67,15 +67,14 @@ public class Musician implements PropertyChangeEmitter {
     public void setMuted(boolean muted) { this.muted = muted; }
 
     /**
-     * @param id         unique id of this {@link Musician}
-     * @param controller MIDI controller that will actually play the notes
-     * @param channel    MIDI channel
-     * @param rule       The rule that governs a musician's behavior
+     * @param id      unique id of this {@link Musician}
+     * @param channel MIDI channel
+     * @param rule    The rule that governs a musician's behavior
      */
-    public Musician(final int id, final MidiController controller, int channel, final MusicianRule rule) {
+    public Musician(final int id, int channel, final MusicianRule rule) {
         this.id = id;
         this.logger = LogManager.getLogger("Musician_" + id);
-        this.controller = controller;
+        this.controller = MidiController.getInstance();
         this.channel = channel;
         this.rule = rule;
         this.rule.setMusician(this);
@@ -109,13 +108,21 @@ public class Musician implements PropertyChangeEmitter {
         // pass on actual note received, not note played
         sendMessageToPeers(note);
     }
-    
+
     /**
      * @param peer another {@link Musician} with which this one may communicate
      */
     public void addPeer(Musician peer) {
         if (!peers.contains(peer))
             peers.add(peer);
+    }
+
+    /**
+     * @param musician peer to remove
+     * @return true if peer was removed
+     */
+    public boolean removePeer(Musician musician) {
+        return peers.remove(musician);
     }
 
     /**
@@ -255,6 +262,7 @@ public class Musician implements PropertyChangeEmitter {
 
     /**
      * Pass the given message along to all peers
+     * 
      * @param message the message to send
      */
     public void sendMessageToPeers(MusicianMessage message) {
@@ -296,4 +304,9 @@ public class Musician implements PropertyChangeEmitter {
      */
     public void setListening(boolean listening) { this.listening = listening; }
 
+    @Override
+    public String toString() {
+        return "Musician [id=" + id + ", channel=" + channel + ", rule=" + rule + ", muted=" + muted + ", listening="
+                + listening + "]";
+    }
 }

@@ -14,16 +14,16 @@ import org.roach.margia.rules.StateBasedRule;
 public class MainStateBasedCircle implements Algorithm<CircleParams> {
     @SuppressWarnings("java:S106")
     @Override
-    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams, MidiController controller) {
+    public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var algParams = (CircleParams) margiaParams;
         var musicians = new ArrayList<Musician>();
         MusicianRule rule = new RandomRule();
-        var musician = new Musician(0, controller, 0, rule);
+        var musician = new Musician(0, 0, rule);
         musicians.add(musician);
 
         for (int i = 1; i < algParams.numMusicians; i++) {
             rule = new StateBasedRule(algParams.startingSequenceLength, algParams.tickDelay);
-            musician = new Musician(i, controller, i % mainParams.numChannels, rule);
+            musician = new Musician(i, i % mainParams.numChannels, rule);
             musician.setKey(algParams.key);
             rule.setMusician(musician);
             musicians.add(musician);

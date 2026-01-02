@@ -32,7 +32,6 @@ public class Transport {
     private long tick = 1;
     private final Logger logger = LogManager.getLogger(getClass());
     private final Map<Long, Runnable> tickActions = new HashMap<>();
-    private final MidiController controller;
     private final int tickLength;
     private boolean controlDawTiming;
     private int currentClockPulse = 1;
@@ -41,14 +40,12 @@ public class Transport {
     private final PropertyChangeSupport propertyChangeSupport;
 
     /**
-     * @param musicians  the musicians
-     * @param tempo      the tempo
-     * @param controller the MIDI controller
+     * @param musicians the musicians
+     * @param tempo     the tempo
      */
-    public Transport(final List<Musician> musicians, int tempo, final MidiController controller) {
+    public Transport(final List<Musician> musicians, int tempo) {
         this.musicians = musicians;
         this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
-        this.controller = controller;
         this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
 
@@ -74,7 +71,7 @@ public class Transport {
      */
     public void start() {
         if (controlDawTiming) {
-            controller.sendStart();
+            MidiController.getInstance().sendStart();
         }
     }
 
@@ -84,7 +81,7 @@ public class Transport {
     public void receiveClockPulse() {
         logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
         if (controlDawTiming) {
-            controller.sendClockPulse();
+            MidiController.getInstance().sendClockPulse();
         }
         // Once each 16th note (every 6 clock pulses) we kick off musician actions
         // TODO should we do more than just 4/4?
@@ -98,7 +95,7 @@ public class Transport {
             // each musician perform the action they just calculated
             musicians.forEach(m -> m.doAction());
             // controller actually play notes from each musician
-            controller.playNotesThisTick();
+            MidiController.getInstance().playNotesThisTick();
         }
         if (currentClockPulse % 6 == 0) {
             var oldValue = tick++;
@@ -123,7 +120,7 @@ public class Transport {
      */
     public void stop() {
         if (controlDawTiming)
-            controller.sendStop();
+            MidiController.getInstance().sendStop();
     }
 
     /**

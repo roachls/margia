@@ -70,11 +70,10 @@ public class Main {
         var tempo = Integer.parseInt(
                 Options.getInstance().getOrDefault(TimingSource.TEMPO_PROPERTY, Integer.toString(params.tempo)));
 
-        MidiController controller;
         if (params.sendExternalMidi) {
-            controller = new MidiController("loopMIDI Port", tempo);
+            MidiController.init(MidiController.LOOP_MIDI, tempo);
         } else {
-            controller = new MidiController(MidiController.DEFAULT_SYNTH, tempo);
+            MidiController.init(MidiController.DEFAULT_SYNTH, tempo);
         }
 
         var command = jCommander.getParsedCommand();
@@ -84,12 +83,12 @@ public class Main {
             return;
         }
         var algParamGeneric = paramMap.get(command);
-        var musicians = algorithm.initMusicians(params, algParamGeneric, controller);
+        var musicians = algorithm.initMusicians(params, algParamGeneric);
 
         Key.setRandomSeed(params.randomSeed);
         DieRoller.setSeed(params.randomSeed);
 
-        var transport = new Transport(musicians, params.tempo, controller);
+        var transport = new Transport(musicians, params.tempo);
         transport.setControlDawTiming(params.sendExternalMidi);
 
         var timing = new InternalTimingSource(transport, tempo);
@@ -97,7 +96,7 @@ public class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();
             transport.stop();
-            controller.close();
+            MidiController.getInstance().close();
         }));
 
         if (params.ui == UiType.SWING) {
