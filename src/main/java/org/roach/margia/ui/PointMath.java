@@ -51,7 +51,4 @@ public class PointMath {
         return new Point2D.Double(point.getX() * scalar, point.getY() * scalar);
     }
     
-    public static double distance(Point2D.Double p1, Point2D.Double p2) {
-        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    }
 }
