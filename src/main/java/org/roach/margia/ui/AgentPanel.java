@@ -57,6 +57,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
 
+    private static final float[] GRAD_FRACTIONS = new float[] { 0f, 0.75f, 1f };
+    private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.black, Color.white };
+
     /**
      * @param musicians {@link Musician musicians} to display
      */
@@ -113,8 +116,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // Enable anti-aliasing for shapes/lines
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        var gradient = new GradientPaint(new Point2D.Float(getWidth() / 2f, 0), getBackground(),
-                new Point2D.Float(getWidth() / 2f, getHeight()), Color.black);
+        var gradient = new RadialGradientPaint(getWidth() / 2f, getHeight() / 2f, getWidth(), GRAD_FRACTIONS,
+                GRAD_COLORS);
         g2d.setPaint(gradient);
         g2d.fillRect(0, 0, getWidth(), getHeight());
         var transform = new AffineTransform();
