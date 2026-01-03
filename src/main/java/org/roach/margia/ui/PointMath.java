@@ -15,11 +15,11 @@ public class PointMath {
      * @param target target point
      * @return the unit vector from the origin pointing towards the target
      */
-    public static Point2D.Double unitVector(Point2D origin, Point2D target) {
+    public static Vector2D unitVector(Point2D origin, Point2D target) {
         var dx = target.getX() - origin.getX();
         var dy = target.getY() - origin.getY();
         var dist = origin.distance(target);
-        return new Point2D.Double(dx / dist, dy / dist);
+        return new Vector2D(dx / dist, dy / dist);
     }
 
     /**
@@ -29,8 +29,19 @@ public class PointMath {
      * @param p2 second point
      * @return sum of two points
      */
-    public static Point2D.Double add(Point2D p1, Point2D p2) {
-        return new Point2D.Double(p1.getX() + p2.getX(), p1.getY() + p2.getY());
+    public static Vector2D add(Point2D p1, Point2D p2) {
+        return new Vector2D(p1.getX() + p2.getX(), p1.getY() + p2.getY());
+    }
+
+    /**
+     * Move the point in the direction of the given vector
+     * 
+     * @param point original point
+     * @param vec   vector
+     * @return a new {@link Point2D} moved by the given vector
+     */
+    public static Point2D movePoint(Point2D point, Vector2D vec) {
+        return new Point2D.Double(point.getX() + vec.x(), point.getY() + vec.y());
     }
 
     /**
@@ -38,17 +49,8 @@ public class PointMath {
      * @param p2 second point
      * @return difference of p1 - p2
      */
-    public static Point2D subtract(Point2D p1, Point2D p2) {
-        return new Point2D.Double(p1.getX() - p2.getX(), p1.getY() - p2.getY());
+    public static Vector2D subtract(Point2D p1, Point2D p2) {
+        return new Vector2D(p1.getX() - p2.getX(), p1.getY() - p2.getY());
     }
 
-    /**
-     * @param point  a point
-     * @param scalar a scalar value
-     * @return the point multiplied by the scalar
-     */
-    public static Point2D.Double multiply(Point2D point, double scalar) {
-        return new Point2D.Double(point.getX() * scalar, point.getY() * scalar);
-    }
-    
 }

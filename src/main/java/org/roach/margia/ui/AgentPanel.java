@@ -129,7 +129,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var tCenter = edge.target.getCenter();
             // calculate distance from source to target
             var vector = PointMath.subtract(tCenter, sCenter);
-            var angle = Math.atan2(vector.getY(), vector.getX());
+            var angle = vector.angle();
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
             var line = new Line2D.Double(0, 0, 0, dist);
             var path = new Path2D.Double();
@@ -184,10 +184,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
                 // Repulsion force (inverse square law)
                 double force = K_REPULSION / (distance * distance);
-                n1.fx += unitVec.getX() * force;
-                n1.fy += unitVec.getY() * force;
-                n2.fx -= unitVec.getX() * force;
-                n2.fy -= unitVec.getY() * force;
+                n1.fx += unitVec.x() * force;
+                n1.fy += unitVec.y() * force;
+                n2.fx -= unitVec.x() * force;
+                n2.fy -= unitVec.y() * force;
             }
         }
 
@@ -202,10 +202,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             double displacement = distance - edge.idealLength;
             double force = K_SPRING * displacement;
 
-            n1.fx -= unitVec.getX() * force;
-            n1.fy -= unitVec.getY() * force;
-            n2.fx += unitVec.getX() * force;
-            n2.fy += unitVec.getY() * force;
+            n1.fx -= unitVec.x() * force;
+            n1.fy -= unitVec.y() * force;
+            n2.fx += unitVec.x() * force;
+            n2.fy += unitVec.y() * force;
         }
 
         // 4. pull all items towards center in inverse square relationship
@@ -218,15 +218,16 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 continue;
 
             var force = gravity / dist;
-            n1.fx -= vec.getX() * force;
-            n1.fy -= vec.getY() * force;
+            n1.fx -= vec.x() * force;
+            n1.fy -= vec.y() * force;
         }
         // 5. Update velocities and positions
         for (MusicianComponent node : musicianComponents) {
-            node.setVelocity((node.getVelocity().getX() + node.fx / node.getMass() * TIMESTEP) * DAMPING,
-                    (node.getVelocity().getY() + node.fy / node.getMass() * TIMESTEP) * DAMPING);
-            node.setPosition(node.getPosition().getX() + node.getVelocity().getX() * TIMESTEP,
-                    node.getPosition().getY() + node.getVelocity().getY() * TIMESTEP);
+            node.setVelocity((node.getVelocity().x() + node.fx / node.getMass() * TIMESTEP) * DAMPING,
+                    (node.getVelocity().y() + node.fy / node.getMass() * TIMESTEP) * DAMPING);
+            var scaledVelocity = node.getVelocity().multiply(TIMESTEP);
+            var pos = PointMath.movePoint(node.getPosition(), scaledVelocity);
+            node.setPosition(pos.getX(), pos.getY());
 
             // Simple boundary constraints (optional)
             node.setPosition(
