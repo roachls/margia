@@ -35,6 +35,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private Point startSelection;
     private Point endSelection;
     private boolean isConnecting;
+    private EditMode mode = EditMode.SELECT;
 
     /**
      * default edge length
@@ -219,6 +220,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     private final MouseAdapter mouseAdapter = new MouseAdapter() {
         private MusicianComponent source;
+        private MusicianComponent movingComponent;
 
         @Override
         @SuppressWarnings("java:S1301")
@@ -235,14 +237,25 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private void leftMouseButtonPressed(MouseEvent e) {
             var comp = getComponentAt(e.getPoint());
             if (comp instanceof MusicianComponent mc) {
-                if (source != null) {
-                    source.setSelected(false);
+                switch (mode) {
+                case CONNECT:
+                    if (source != null) {
+                        source.setSelected(false);
+                    }
+                    source = mc;
+                    mc.setSelected(true);
+                    isConnecting = true;
+                    startSelection = e.getPoint();
+                    setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+                    break;
+                case MOVE:
+                    mc.setSelected(true);
+                    movingComponent = mc;
+                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                    break;
+                default:
+                    break;
                 }
-                source = mc;
-                mc.setSelected(true);
-                isConnecting = true;
-                startSelection = e.getPoint();
-                setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
             }
         }
 
@@ -262,29 +275,66 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         private void leftMouseButtonReleased(MouseEvent e) {
             var comp = getComponentAt(e.getPoint());
-            if (isConnecting && comp instanceof MusicianComponent target && !target.equals(source)) {
-                isConnecting = false;
-                // check if already connected, and if so, disconnect; otherwise, connect
-                edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
-                        .findAny().ifPresentOrElse(connection -> {
-                            connection.source.getMusician().removePeer(connection.target.getMusician());
-                            edges.remove(connection);
-                        }, () -> {
-                            source.getMusician().addPeer(target.getMusician());
-                            edges.add(new Edge(source, target, DEFAULT_EDGE_LENGTH));
-                        });
-                source.setSelected(false);
-                this.source = null;
-                startSelection = null;
-                endSelection = null;
-                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
-            } else if (comp == AgentPanel.this) {
-                if (source != null)
+            switch (mode) {
+            case ADD:
+                if (comp instanceof AgentPanel)
+                    handleAdd(e);
+                break;
+            case DELETE:
+                if (comp instanceof MusicianComponent mc)
+                    handleRemove(mc);
+                break;
+            case LOCK:
+                if (comp instanceof MusicianComponent mc) {
+                    mc.toggleLocked();
+                }
+                break;
+            case MUTE:
+                if (comp instanceof MusicianComponent mc) {
+                    mc.toggleMuted();
+                }
+                break;
+            case SELECT:
+                break;
+            case CONNECT:
+                if (isConnecting && comp instanceof MusicianComponent target && !target.equals(source)) {
+                    isConnecting = false;
+                    // check if already connected, and if so, disconnect; otherwise, connect
+                    edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
+                            .findAny().ifPresentOrElse(connection -> {
+                                connection.source.getMusician().removePeer(connection.target.getMusician());
+                                edges.remove(connection);
+                            }, () -> {
+                                source.getMusician().addPeer(target.getMusician());
+                                edges.add(new Edge(source, target, DEFAULT_EDGE_LENGTH));
+                            });
                     source.setSelected(false);
-                this.source = null;
-                startSelection = null;
-                endSelection = null;
-                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+                    this.source = null;
+                    startSelection = null;
+                    endSelection = null;
+                    AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+                } else if (comp == AgentPanel.this) {
+                    if (source != null)
+                        source.setSelected(false);
+                    this.source = null;
+                    startSelection = null;
+                    endSelection = null;
+                    AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+                }
+                break;
+            case MOVE:
+                if (movingComponent != null) {
+                    movingComponent.setLocked(false);
+                    movingComponent.setPosition(e.getX(), e.getY());
+                    movingComponent.setLocked(true);
+                    movingComponent.setSelected(false);
+                    setCursor(Cursor.getDefaultCursor());
+                }
+                movingComponent = null;
+                break;
+            default:
+                break;
+
             }
         }
 
@@ -324,14 +374,18 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         @Override
         public void mouseDragged(MouseEvent e) {
-            if (isConnecting) {
+            if (mode == EditMode.CONNECT && isConnecting) {
                 endSelection = e.getPoint();
+            } else if (mode == EditMode.MOVE && movingComponent != null) {
+                movingComponent.setLocked(false);
+                movingComponent.setPosition(e.getX(), e.getY());
+                movingComponent.setLocked(true);
             }
         }
 
         @Override
         public void mouseMoved(MouseEvent e) {
-            if (isConnecting) {
+            if (mode == EditMode.CONNECT && isConnecting) {
                 endSelection = e.getPoint();
             }
         }
@@ -371,4 +425,25 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
     }
 
+    void setEditMode(EditMode mode) { this.mode = mode; }
+
+    enum EditMode {
+        ADD, DELETE, MUTE, SELECT, LOCK, CONNECT, MOVE;
+    }
+
+    void unlockAll() {
+        musicianComponents.forEach(mc -> mc.setLocked(false));
+    }
+
+    void lockAll() {
+        musicianComponents.forEach(mc -> mc.setLocked(true));
+    }
+
+    void muteAll() {
+        musicianComponents.forEach(mc -> mc.getMusician().setMuted(true));
+    }
+
+    void unmuteAll() {
+        musicianComponents.forEach(mc -> mc.getMusician().setMuted(false));
+    }
 }

@@ -309,4 +309,11 @@ public class Musician implements PropertyChangeEmitter {
         return "Musician [id=" + id + ", channel=" + channel + ", rule=" + rule + ", muted=" + muted + ", listening="
                 + listening + "]";
     }
+
+    /**
+     * Toggle the muted status of this musician
+     */
+    public void toggleMuted() {
+        muted = !muted;
+    }
 }

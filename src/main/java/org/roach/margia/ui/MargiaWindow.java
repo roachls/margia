@@ -30,10 +30,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
             <h3>By Stevie Roach</h3>
             <a href="mailto:roachls@yahoo.com">roachls@yahoo.com</a>
+            <br>
+            <a href="https://github.com/roachls/margia">https://github.com/roachls/margia</a>
+            </html>
             """;
     private OptionPanel optionPanel;
     private AgentPanel agentPanel;
     private String algorithmTitle;
+    private ToolPanel toolPanel;
 
     /**
      * @param title     window title
@@ -61,8 +65,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
         getContentPane().add(optionPanel, BorderLayout.EAST);
+        toolPanel = new ToolPanel(agentPanel);
+        getContentPane().add(toolPanel, BorderLayout.WEST);
         pack();
         optionPanel.setVisible(false);
+        toolPanel.setVisible(false);
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
     }
 
@@ -91,37 +98,17 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         fileMenu.add(saveAsMenuItem);
         menubar.add(fileMenu);
 
-        // setup global actions
-        JComponent component = getRootPane();
-
-        var ctrlSKeyStroke = KeyStroke.getKeyStroke("control s");
-        component.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlSKeyStroke, "save");
-        component.getActionMap().put("save", new AbstractAction() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveSettingsToFile(e);
-            }
-
-        });
-
-        var ctrlOKeyStroke = KeyStroke.getKeyStroke("control o");
-        component.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(ctrlOKeyStroke, "open");
-        component.getActionMap().put("open", new AbstractAction() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openSettingsFromFile(e);
-            }
-
-        });
-
         var editMenu = new JMenu("Edit");
-        editMenu.setMnemonic('E');
+        editMenu.setMnemonic(KeyEvent.VK_E);
         var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options");
         showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
         showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
+        var showToolPaneMenuItem = new JCheckBoxMenuItem("Show Tools");
+        showToolPaneMenuItem.setMnemonic(KeyEvent.VK_T);
+        showToolPaneMenuItem.addActionListener(_ -> toolPanel.setVisible(showToolPaneMenuItem.isSelected()));
+        editMenu.add(showOptionPaneMenuItem);
+        editMenu.add(showToolPaneMenuItem);
         menubar.add(editMenu);
 
         var helpMenu = new JMenu("Help");

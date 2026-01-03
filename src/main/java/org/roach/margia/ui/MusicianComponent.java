@@ -27,6 +27,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private int tickLengthMillis;
     private Timer timer;
     private boolean selected;
+    private boolean locked;
 
     /**
      * size of circle to draw
@@ -60,6 +61,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             .parseBoolean(((ChangeSource) e.getSource()).newValue());
 
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
+    
+    private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 12);
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -157,6 +160,14 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.setStroke(SELECTED_STROKE);
             g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
         }
+        if (locked) {
+            // draw yellow circle border
+            var font = g2d.getFont();
+            g2d.setFont(LOCK_FONT);
+            g2d.setColor(Color.yellow);
+            g2d.drawString("🔒", 0, getHeight());
+            g2d.setFont(font);
+        }
     }
 
     private void updateLocation() {
@@ -237,6 +248,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     Point2D.Double getPosition() { return position; }
 
     void setPosition(double x, double y) {
+        if (locked)
+            return;
         position.setLocation(x, y);
         updateLocation();
     }
@@ -244,16 +257,24 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     Vector2D getVelocity() { return velocity; }
 
     void setVelocity(double x, double y) {
+        if (locked)
+            return;
         velocity = new Vector2D(x, y);
     }
 
     Vector2D getForce() { return force; }
 
     void setForce(double x, double y) {
+        if (locked)
+            return;
         force = new Vector2D(x, y);
     }
 
-    void setForce(Vector2D force) { this.force = force; }
+    void setForce(Vector2D force) {
+        if (locked)
+            return;
+        this.force = force;
+    }
 
     void resetForce() {
         this.force = new Vector2D(0, 0);
@@ -284,5 +305,17 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         setPosition(Math.clamp(position.getX(), radius, width - radius * 3.0),
                 Math.clamp(position.getY(), radius, height - radius * 3.0));
 
+    }
+
+    void toggleLocked() {
+        locked = !locked;
+    }
+    
+    void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    void toggleMuted() {
+        musician.toggleMuted();
     }
 }
