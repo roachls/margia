@@ -73,7 +73,7 @@ public class MainStateBased implements Algorithm<StateBasedParams> {
 
         // add a single random musician that is heard only by #0 and can't hear anyone
         // else
-        var rMusician = new Musician(16, 0, new RandomRule());
+        var rMusician = new Musician(musicians.size(), 0, new RandomRule());
         rMusician.addPeer(musicians.get(0));
         musicians.get(numMusicians - 1).addPeer(rMusician);
         musicians.add(rMusician);
