@@ -128,7 +128,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             // center of target component
             var tCenter = edge.target.getCenter();
             // calculate distance from source to target
-            var vector = PointMath.subtract(tCenter, sCenter);
+            var vector = new Vector2D(sCenter, tCenter);
             var angle = vector.angle();
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
             var line = new Line2D.Double(0, 0, 0, dist);
@@ -167,10 +167,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     private void updatePhysics() {
         // 1. Reset forces
-        for (var node : musicianComponents) {
-            node.fx = 0;
-            node.fy = 0;
-        }
+        musicianComponents.forEach(MusicianComponent::resetForce);
 
         // 2. Calculate repulsive forces between ALL pairs of nodes (O(N^2))
         for (int i = 0; i < numMusicians; i++) {
@@ -184,10 +181,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
                 // Repulsion force (inverse square law)
                 double force = K_REPULSION / (distance * distance);
-                n1.fx += unitVec.x() * force;
-                n1.fy += unitVec.y() * force;
-                n2.fx -= unitVec.x() * force;
-                n2.fy -= unitVec.y() * force;
+                var forceVec = unitVec.multiply(force);
+                n1.setForce(n1.getForce().add(forceVec));
+                n2.setForce(n2.getForce().subtract(forceVec));
             }
         }
 
@@ -201,30 +197,30 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             // Spring force (Hooke's law analog)
             double displacement = distance - edge.idealLength;
             double force = K_SPRING * displacement;
+            var forceVec = unitVec.multiply(force);
 
-            n1.fx -= unitVec.x() * force;
-            n1.fy -= unitVec.y() * force;
-            n2.fx += unitVec.x() * force;
-            n2.fy += unitVec.y() * force;
+            n1.setForce(n1.getForce().subtract(forceVec));
+            n2.setForce(n2.getForce().add(forceVec));
         }
 
         // 4. pull all items towards center in inverse square relationship
         var center = new Point2D.Double(getWidth() / 2d, getHeight() / 2d);
         for (int i = 0; i < numMusicians; i++) {
             var n1 = musicianComponents.get(i);
-            var vec = PointMath.subtract(n1.getPosition(), center);
+            var vec = new Vector2D(center, n1.getPosition());
             var dist = n1.getPosition().distance(center);
             if (dist == 0.0) // prevent division by zero
                 continue;
 
             var force = gravity / dist;
-            n1.fx -= vec.x() * force;
-            n1.fy -= vec.y() * force;
+            var forceVec = vec.multiply(force);
+            n1.setForce(n1.getForce().subtract(forceVec));
         }
         // 5. Update velocities and positions
         for (MusicianComponent node : musicianComponents) {
-            node.setVelocity((node.getVelocity().x() + node.fx / node.getMass() * TIMESTEP) * DAMPING,
-                    (node.getVelocity().y() + node.fy / node.getMass() * TIMESTEP) * DAMPING);
+            var scaledForceVec = node.getForce().divide(node.getMass()).multiply(TIMESTEP);
+            var newVelocity = node.getVelocity().add(scaledForceVec).multiply(DAMPING);
+            node.setVelocity(newVelocity.x(), newVelocity.y());
             var scaledVelocity = node.getVelocity().multiply(TIMESTEP);
             var pos = PointMath.movePoint(node.getPosition(), scaledVelocity);
             node.setPosition(pos.getX(), pos.getY());

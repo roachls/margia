@@ -23,17 +23,6 @@ public class PointMath {
     }
 
     /**
-     * Add two points
-     * 
-     * @param p1 first point
-     * @param p2 second point
-     * @return sum of two points
-     */
-    public static Vector2D add(Point2D p1, Point2D p2) {
-        return new Vector2D(p1.getX() + p2.getX(), p1.getY() + p2.getY());
-    }
-
-    /**
      * Move the point in the direction of the given vector
      * 
      * @param point original point
@@ -42,15 +31,6 @@ public class PointMath {
      */
     public static Point2D movePoint(Point2D point, Vector2D vec) {
         return new Point2D.Double(point.getX() + vec.x(), point.getY() + vec.y());
-    }
-
-    /**
-     * @param p1 first point
-     * @param p2 second point
-     * @return difference of p1 - p2
-     */
-    public static Vector2D subtract(Point2D p1, Point2D p2) {
-        return new Vector2D(p1.getX() - p2.getX(), p1.getY() - p2.getY());
     }
 
 }

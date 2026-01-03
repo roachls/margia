@@ -39,16 +39,6 @@ class PointMathTest {
 
     @ParameterizedTest
     @CsvSource({ "0,0,0,0,0,0", "0,0,1,1,1,1", "4,5,6,7,10,12", "-1.2,4.6,10,3.2,8.8,7.8" })
-    void testAdd(double x1, double y1, double x2, double y2, double ex, double ey) {
-        var p1 = new Point2D.Double(x1, y1);
-        var p2 = new Point2D.Double(x2, y2);
-        var expected = new Vector2D(ex, ey);
-        var sum = PointMath.add(p1, p2);
-        assertEquals(expected, sum);
-    }
-
-    @ParameterizedTest
-    @CsvSource({ "0,0,0,0,0,0", "0,0,1,1,1,1", "4,5,6,7,10,12", "-1.2,4.6,10,3.2,8.8,7.8" })
     void testMovePoint(double x1, double y1, double x2, double y2, double ex, double ey) {
         var p1 = new Point2D.Double(x1, y1);
         var v = new Vector2D(x2, y2);
@@ -56,15 +46,4 @@ class PointMathTest {
         var newPos = PointMath.movePoint(p1, v);
         assertEquals(expected, newPos);
     }
-
-    @ParameterizedTest
-    @CsvSource({ "0,0,0,0,0,0", "0,0,1,1,-1,-1", "4,5,6,7,-2,-2", "-1.2,4.6,10,3.2,-11.2,1.4" })
-    void testSubtract(double x1, double y1, double x2, double y2, double ex, double ey) {
-        var p1 = new Point2D.Double(x1, y1);
-        var p2 = new Point2D.Double(x2, y2);
-        var diff = PointMath.subtract(p1, p2);
-        assertEquals(ex, diff.x(), 1e-6);
-        assertEquals(ey, diff.y(), 1e-6);
-    }
-
 }
