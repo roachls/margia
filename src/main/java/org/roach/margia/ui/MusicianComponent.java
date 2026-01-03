@@ -34,8 +34,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private int radius = MusicianComponent.DEFAULT_RADIUS;
     private final double mass;
     private final Point2D.Double position = new Point2D.Double();
-    double vx;
-    double vy; // velocity
+    private final Point2D.Double velocity = new Point2D.Double();
     double fx;
     double fy; // total force
     /**
@@ -218,8 +217,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public String toString() {
         return "MusicianComponent [musician=" + musician + ", color=" + color + ", tickLengthMillis=" + tickLengthMillis
-                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", position=" + position + ", vx=" + vx
-                + ", vy=" + vy + ", fx=" + fx + ", fy=" + fy + "]";
+                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", position=" + position
+                + ", velocity=" + velocity + ", fx=" + fx + ", fy=" + fy + "]";
     }
 
     /**
@@ -238,6 +237,12 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     void setPosition(double x, double y) {
         position.setLocation(x, y);
         updateLocation();
+    }
+    
+    Point2D.Double getVelocity() { return velocity; }
+    
+    void setVelocity(double x, double y) {
+        velocity.setLocation(x, y);
     }
 
     Point2D.Double getCenter() {

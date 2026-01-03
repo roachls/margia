@@ -177,17 +177,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             for (int j = i + 1; j < numMusicians; j++) {
                 var n1 = musicianComponents.get(i);
                 var n2 = musicianComponents.get(j);
-                var vec = PointMath.subtract(n1.getPosition(), n2.getPosition());
+                var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
                 double distance = n1.getPosition().distance(n2.getPosition());
-                if (distance == 0)
+                if (distance == 0) // prevent division by 0
                     continue;
 
                 // Repulsion force (inverse square law)
                 double force = K_REPULSION / (distance * distance);
-                n1.fx += (vec.getX() / distance) * force;
-                n1.fy += (vec.getY() / distance) * force;
-                n2.fx -= (vec.getX() / distance) * force;
-                n2.fy -= (vec.getY() / distance) * force;
+                n1.fx += unitVec.getX() * force;
+                n1.fy += unitVec.getY() * force;
+                n2.fx -= unitVec.getX() * force;
+                n2.fy -= unitVec.getY() * force;
             }
         }
 
@@ -195,19 +195,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         for (Edge edge : edges) {
             MusicianComponent n1 = edge.source;
             MusicianComponent n2 = edge.target;
-            var vec = PointMath.subtract(n1.getPosition(), n2.getPosition());
+            var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
             double distance = n1.getPosition().distance(n2.getPosition());
-            if (distance == 0)
-                continue;
 
             // Spring force (Hooke's law analog)
             double displacement = distance - edge.idealLength;
             double force = K_SPRING * displacement;
 
-            n1.fx -= (vec.getX() / distance) * force;
-            n1.fy -= (vec.getY() / distance) * force;
-            n2.fx += (vec.getX() / distance) * force;
-            n2.fy += (vec.getY() / distance) * force;
+            n1.fx -= unitVec.getX() * force;
+            n1.fy -= unitVec.getY() * force;
+            n2.fx += unitVec.getX() * force;
+            n2.fy += unitVec.getY() * force;
         }
 
         // 4. pull all items towards center in inverse square relationship
@@ -225,10 +223,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
         // 5. Update velocities and positions
         for (MusicianComponent node : musicianComponents) {
-            node.vx = (node.vx + node.fx / node.getMass() * TIMESTEP) * DAMPING;
-            node.vy = (node.vy + node.fy / node.getMass() * TIMESTEP) * DAMPING;
-            node.setPosition(node.getPosition().getX() + node.vx * TIMESTEP,
-                    node.getPosition().getY() + node.vy * TIMESTEP);
+            node.setVelocity((node.getVelocity().getX() + node.fx / node.getMass() * TIMESTEP) * DAMPING,
+                    (node.getVelocity().getY() + node.fy / node.getMass() * TIMESTEP) * DAMPING);
+            node.setPosition(node.getPosition().getX() + node.getVelocity().getX() * TIMESTEP,
+                    node.getPosition().getY() + node.getVelocity().getY() * TIMESTEP);
 
             // Simple boundary constraints (optional)
             node.setPosition(
