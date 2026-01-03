@@ -36,6 +36,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private final Point2D.Double position = new Point2D.Double();
     private Vector2D velocity = new Vector2D(0, 0);
     private Vector2D force = new Vector2D(0, 0);
+    private static final double DAMPING = 0.6; // Damping factor
+    private static final double TIMESTEP = 0.8; // Simulation speed/stability
 
     /**
      * default radius of musician components
@@ -244,22 +246,43 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     void setVelocity(double x, double y) {
         velocity = new Vector2D(x, y);
     }
-    
+
     Vector2D getForce() { return force; }
-    
+
     void setForce(double x, double y) {
         force = new Vector2D(x, y);
     }
-    
-    void setForce(Vector2D force) {
-        this.force = force;
-    }
-    
+
+    void setForce(Vector2D force) { this.force = force; }
+
     void resetForce() {
         this.force = new Vector2D(0, 0);
     }
 
     Point2D.Double getCenter() {
         return new Point2D.Double(position.x + getWidth() / 2.0, position.y + getHeight() / 2.0);
+    }
+
+    void applyForces() {
+        var scaledForceVec = force.divide(mass).multiply(TIMESTEP);
+        velocity = velocity.add(scaledForceVec).multiply(DAMPING);
+        var scaledVelocity = velocity.multiply(TIMESTEP);
+        position.setLocation(PointMath.movePoint(position, scaledVelocity));
+    }
+
+    /**
+     * Clamp this component's position to within 1 radius of the boundaries given.
+     * 
+     * @param width
+     * @param height
+     */
+    void clampPosition(int width, int height) {
+        /*
+         * Note that the position is the upper-left corner of the bounding rectangle,
+         * not the center, which is why we multiply radius by 3 for the bounds.
+         */
+        setPosition(Math.clamp(position.getX(), radius, width - radius * 3.0),
+                Math.clamp(position.getY(), radius, height - radius * 3.0));
+
     }
 }

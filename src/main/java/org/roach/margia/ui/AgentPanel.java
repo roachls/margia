@@ -3,6 +3,7 @@ package org.roach.margia.ui;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,8 +29,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
-    private static final double DAMPING = 0.6; // Damping factor
-    private static final double TIMESTEP = 0.8; // Simulation speed/stability
     private double gravity;
     private final List<Musician> musicians;
     private int tickLengthMillis;
@@ -80,19 +79,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     void initMusicians() {
-        var gridSize = Math.ceil(Math.sqrt(musicians.size()));
-        var cellSizeX = getWidth() / gridSize;
-        var cellSizeY = getHeight() / gridSize;
-        var musicianIter = musicians.iterator();
-        for (int x = 1; x <= gridSize; x++) {
-            for (int y = 1; y <= gridSize && musicianIter.hasNext(); y++) {
-                var musician = musicianIter.next();
-                var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
-                Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
-                n.setPosition(x * cellSizeX - cellSizeX / 2, y * cellSizeY - cellSizeY / 2);
-                musicianComponents.add(n);
-                add(n);
-            }
+        var rand = new SecureRandom();
+        for (var musician : musicians) {
+            var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
+            Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
+            n.setPosition(rand.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
+                    rand.nextInt(n.getDiameter(), getHeight() - n.getDiameter()));
+            musicianComponents.add(n);
+            add(n);
         }
 
         calcEdges();
@@ -218,18 +212,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
         // 5. Update velocities and positions
         for (MusicianComponent node : musicianComponents) {
-            var scaledForceVec = node.getForce().divide(node.getMass()).multiply(TIMESTEP);
-            var newVelocity = node.getVelocity().add(scaledForceVec).multiply(DAMPING);
-            node.setVelocity(newVelocity.x(), newVelocity.y());
-            var scaledVelocity = node.getVelocity().multiply(TIMESTEP);
-            var pos = PointMath.movePoint(node.getPosition(), scaledVelocity);
-            node.setPosition(pos.getX(), pos.getY());
-
-            // Simple boundary constraints (optional)
-            node.setPosition(
-                    Math.clamp(node.getPosition().getX(), node.getDiameter(), (double) getWidth() - node.getDiameter()),
-                    Math.clamp(node.getPosition().getY(), node.getDiameter(),
-                            (double) getHeight() - node.getDiameter()));
+            node.applyForces();
+            node.clampPosition(getWidth(), getHeight());
         }
     }
 
