@@ -89,9 +89,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 var musician = musicianIter.next();
                 var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
                 Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
-                n.px = x * cellSizeX - cellSizeX / 2;
-                n.py = y * cellSizeY - cellSizeY / 2;
-                n.updateLocation();
+                n.setPosition(x * cellSizeX - cellSizeX / 2, y * cellSizeY - cellSizeY / 2);
                 musicianComponents.add(n);
                 add(n);
             }
@@ -126,16 +124,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var g2d2 = (Graphics2D) g2d.create();
             g2d.setColor(edge.source.getColor());
             // center of source component
-            var scx = edge.source.px + edge.source.getWidth() / 2d;
-            var scy = edge.source.py + edge.source.getHeight() / 2d;
+            var sCenter = edge.source.getCenter();
             // center of target component
-            var tcx = edge.target.px + edge.target.getWidth() / 2d;
-            var tcy = edge.target.py + edge.target.getHeight() / 2d;
+            var tCenter = edge.target.getCenter();
             // calculate distance from source to target
-            var dx = tcx - scx;
-            var dy = tcy - scy;
-            var angle = Math.atan2(dy, dx);
-            var dist = Math.hypot(dx, dy) - edge.target.getRadius();
+            var vector = PointMath.subtract(tCenter, sCenter);
+            var angle = Math.atan2(vector.getY(), vector.getX());
+            var dist = sCenter.distance(tCenter) - edge.target.getRadius();
             var line = new Line2D.Double(0, 0, 0, dist);
             var path = new Path2D.Double();
             path.moveTo(0, dist - 5);
@@ -143,7 +138,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             path.lineTo(0, dist);
             path.lineTo(-3, dist - 5);
             path.closePath();
-            transform.translate(scx, scy);
+            transform.translate(sCenter.x, sCenter.y);
             transform.rotate(angle - Math.PI / 2d);
             g2d2.transform(transform);
             g2d2.setColor(edge.source.getColor());
@@ -182,18 +177,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             for (int j = i + 1; j < numMusicians; j++) {
                 var n1 = musicianComponents.get(i);
                 var n2 = musicianComponents.get(j);
-                double dx = n1.px - n2.px;
-                double dy = n1.py - n2.py;
-                double distance = Math.hypot(dx, dy);
+                var vec = PointMath.subtract(n1.getPosition(), n2.getPosition());
+                double distance = n1.getPosition().distance(n2.getPosition());
                 if (distance == 0)
                     continue;
 
                 // Repulsion force (inverse square law)
                 double force = K_REPULSION / (distance * distance);
-                n1.fx += (dx / distance) * force;
-                n1.fy += (dy / distance) * force;
-                n2.fx -= (dx / distance) * force;
-                n2.fy -= (dy / distance) * force;
+                n1.fx += (vec.getX() / distance) * force;
+                n1.fy += (vec.getY() / distance) * force;
+                n2.fx -= (vec.getX() / distance) * force;
+                n2.fy -= (vec.getY() / distance) * force;
             }
         }
 
@@ -201,9 +195,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         for (Edge edge : edges) {
             MusicianComponent n1 = edge.source;
             MusicianComponent n2 = edge.target;
-            double dx = n1.px - n2.px;
-            double dy = n1.py - n2.py;
-            double distance = Math.hypot(dx, dy);
+            var vec = PointMath.subtract(n1.getPosition(), n2.getPosition());
+            double distance = n1.getPosition().distance(n2.getPosition());
             if (distance == 0)
                 continue;
 
@@ -211,37 +204,37 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             double displacement = distance - edge.idealLength;
             double force = K_SPRING * displacement;
 
-            n1.fx -= (dx / distance) * force;
-            n1.fy -= (dy / distance) * force;
-            n2.fx += (dx / distance) * force;
-            n2.fy += (dy / distance) * force;
+            n1.fx -= (vec.getX() / distance) * force;
+            n1.fy -= (vec.getY() / distance) * force;
+            n2.fx += (vec.getX() / distance) * force;
+            n2.fy += (vec.getY() / distance) * force;
         }
 
         // 4. pull all items towards center in inverse square relationship
-        var centerX = getWidth() / 2;
-        var centerY = getHeight() / 2;
+        var center = new Point2D.Double(getWidth() / 2d, getHeight() / 2d);
         for (int i = 0; i < numMusicians; i++) {
             var n1 = musicianComponents.get(i);
-            var distX = n1.px - centerX;
-            var distY = n1.py - centerY;
-            var dist = Math.hypot(distX, distY) + 50;
+            var vec = PointMath.subtract(n1.getPosition(), center);
+            var dist = n1.getPosition().distance(center);
+            if (dist == 0.0) // prevent division by zero
+                continue;
 
             var force = gravity / dist;
-            n1.fx -= distX * force;
-            n1.fy -= distY * force;
+            n1.fx -= vec.getX() * force;
+            n1.fy -= vec.getY() * force;
         }
         // 5. Update velocities and positions
         for (MusicianComponent node : musicianComponents) {
-            node.vx = (node.vx + node.fx / node.mass * TIMESTEP) * DAMPING;
-            node.vy = (node.vy + node.fy / node.mass * TIMESTEP) * DAMPING;
-            node.px += node.vx * TIMESTEP;
-            node.py += node.vy * TIMESTEP;
+            node.vx = (node.vx + node.fx / node.getMass() * TIMESTEP) * DAMPING;
+            node.vy = (node.vy + node.fy / node.getMass() * TIMESTEP) * DAMPING;
+            node.setPosition(node.getPosition().getX() + node.vx * TIMESTEP,
+                    node.getPosition().getY() + node.vy * TIMESTEP);
 
             // Simple boundary constraints (optional)
-            node.px = Math.clamp(node.px, node.getDiameter(), (double) getWidth() - node.getDiameter());
-            node.py = Math.clamp(node.py, node.getDiameter(), (double) getHeight() - node.getDiameter());
-
-            node.updateLocation();
+            node.setPosition(
+                    Math.clamp(node.getPosition().getX(), node.getDiameter(), (double) getWidth() - node.getDiameter()),
+                    Math.clamp(node.getPosition().getY(), node.getDiameter(),
+                            (double) getHeight() - node.getDiameter()));
         }
     }
 
@@ -346,9 +339,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var musicianComponent = new MusicianComponent(musician, tickLengthMillis, 1.0);
             musicianComponents.add(musicianComponent);
             Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, musicianComponent);
-            musicianComponent.px = e.getX();
-            musicianComponent.py = e.getY();
-            musicianComponent.updateLocation();
+            musicianComponent.setPosition(e.getX(), e.getY());
             add(musicianComponent);
         }
 

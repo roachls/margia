@@ -32,9 +32,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * size of circle to draw
      */
     private int radius = MusicianComponent.DEFAULT_RADIUS;
-    double mass;
-    double px;
-    double py; // screen position
+    private final double mass;
+    private final Point2D.Double position = new Point2D.Double();
     double vx;
     double vy; // velocity
     double fx;
@@ -58,7 +57,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = Boolean
             .parseBoolean(((ChangeSource) e.getSource()).newValue());
-    
+
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
     /**
@@ -159,8 +158,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         }
     }
 
-    void updateLocation() {
-        setLocation((int) px, (int) py);
+    private void updateLocation() {
+        setLocation((int) position.getX(), (int) position.getY());
     }
 
     /**
@@ -219,8 +218,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public String toString() {
         return "MusicianComponent [musician=" + musician + ", color=" + color + ", tickLengthMillis=" + tickLengthMillis
-                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", px=" + px + ", py=" + py + ", vx="
-                + vx + ", vy=" + vy + ", fx=" + fx + ", fy=" + fy + "]";
+                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", position=" + position + ", vx=" + vx
+                + ", vy=" + vy + ", fx=" + fx + ", fy=" + fy + "]";
     }
 
     /**
@@ -231,4 +230,17 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     boolean isSelected() { return selected; }
 
     void setSelected(boolean selected) { this.selected = selected; }
+
+    double getMass() { return mass; }
+
+    Point2D.Double getPosition() { return position; }
+
+    void setPosition(double x, double y) {
+        position.setLocation(x, y);
+        updateLocation();
+    }
+
+    Point2D.Double getCenter() {
+        return new Point2D.Double(position.x + getWidth() / 2.0, position.y + getHeight() / 2.0);
+    }
 }
