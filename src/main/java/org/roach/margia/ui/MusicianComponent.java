@@ -47,21 +47,21 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     /**
      * property name of radius spinner
      */
-    static final String RADIUS_PROPERTY = "Radius";
+    static final String RADIUS_PROPERTY = "ui.radius";
     /**
      * property name of whether to show numbers
      */
-    static final String SHOW_NUMBERS_PROPERTY = "Show_numbers";
+    static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
     private static boolean showNumbers = Options.getInstance().getOrDefaultAsBoolean(SHOW_NUMBERS_PROPERTY, true);
 
     /**
      * listener for the show numbers property
      */
-    static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = Boolean
-            .parseBoolean(((ChangeSource) e.getSource()).newValue());
+    static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = (boolean) ((ChangeSource) e.getSource())
+            .newValue();
 
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
-    
+
     private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 12);
 
     /**
@@ -199,7 +199,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource cs && MusicianComponent.RADIUS_PROPERTY.equals(cs.key())) {
-            this.setCircleRadius(Integer.parseInt(cs.newValue()));
+            this.setCircleRadius((int) cs.newValue());
         }
     }
 
@@ -310,10 +310,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     void toggleLocked() {
         locked = !locked;
     }
-    
-    void setLocked(boolean locked) {
-        this.locked = locked;
-    }
+
+    void setLocked(boolean locked) { this.locked = locked; }
 
     void toggleMuted() {
         musician.toggleMuted();

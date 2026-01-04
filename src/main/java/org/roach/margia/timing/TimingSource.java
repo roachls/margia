@@ -11,7 +11,7 @@ public interface TimingSource {
     /**
      * the property fired when the tempo changes
      */
-    String TEMPO_PROPERTY = "tempo";
+    String TEMPO_PROPERTY = "music.tempo";
 
     /**
      * Start the clock

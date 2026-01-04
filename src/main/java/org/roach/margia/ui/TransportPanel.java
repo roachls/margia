@@ -59,9 +59,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         var rewindIconUrl = getClass().getResource("/icons/rewind.png");
 
         if (startIconUrl == null || stopIconUrl == null || rewindIconUrl == null) {
-            System.err.println(
-                    "Error: Icons not found. Ensure they are in the correct classpath location (e.g., src/main/resources/icons)");
-            return;
+            throw new IllegalStateException("Error: Icons not found.");
         }
 
         var startIconOrig = new ImageIcon(startIconUrl);

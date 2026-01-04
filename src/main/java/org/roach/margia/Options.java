@@ -2,23 +2,24 @@ package org.roach.margia;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
-import java.util.Properties;
-import java.util.Set;
 
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  * Singleton instance where all options are stored
  */
 @SuppressWarnings({ "java:S3008", "java:S6548" })
 public class Options {
-    private Properties opts;
+    private Map<String, Object> opts;
     /**
      * Property fired when any option has changed
      */
@@ -28,15 +29,21 @@ public class Options {
     private Path saveDir;
     private Path filename;
     private Preferences preferences;
+    private static Options INSTANCE;
+    private DumperOptions dumperOptions;
+    private Yaml yaml;
 
     private Options() {
-        this.opts = new Properties();
+        this.opts = new HashMap<>();
         this.emitter = new ChangeEmitter();
         preferences = Preferences.userNodeForPackage(getClass());
         this.saveDir = Path.of(preferences.get("saveDir", System.getProperty("user.home")));
-    }
+        dumperOptions = new DumperOptions();
+        dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK); // Use block style for readability
+        dumperOptions.setPrettyFlow(true);
 
-    private static Options INSTANCE;
+        yaml = new Yaml(dumperOptions);
+    }
 
     /**
      * @return the single instance of {@link Options}
@@ -58,13 +65,27 @@ public class Options {
      * @param propertyName name of property to set
      * @param value        value of property to set
      */
-    public void put(String propertyName, String value) {
-        var oldValue = opts.put(propertyName, value);
-        if (!value.equals(oldValue)) {
-            this.dirty = true;
-            emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "true"));
-            emitter.fireChangeEvent(propertyName, new ChangeSource(this, propertyName, value));
+    public void put(String propertyName, Object value) {
+        _put(propertyName, value, opts, propertyName);
+    }
+
+    @SuppressWarnings({ "unchecked", "java:S100" })
+    private void _put(String propertyName, Object value, Map<String, Object> map, String fullPropertyName) {
+        var indexOfPeriod = propertyName.indexOf('.');
+        if (indexOfPeriod == -1) {
+            var oldValue = map.put(propertyName, value);
+            if (!value.equals(oldValue)) {
+                this.dirty = true;
+                emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "true"));
+                emitter.fireChangeEvent(propertyName, new ChangeSource(this, fullPropertyName, value));
+            }
+        } else {
+            var mapKey = propertyName.substring(0, indexOfPeriod);
+            var cdrKey = propertyName.substring(indexOfPeriod + 1);
+            var obj = map.computeIfAbsent(mapKey, k -> new HashMap<String, Object>());
+            _put(cdrKey, value, (Map<String, Object>) obj, fullPropertyName);
         }
+
     }
 
     /**
@@ -75,7 +96,9 @@ public class Options {
      * @throws IOException if there is an error writing to a file
      */
     public void store(OutputStream os, String comments) throws IOException {
-        opts.store(os, comments);
+        try (Writer writer = new OutputStreamWriter(os)) {
+            yaml.dump(opts, writer);
+        }
         this.dirty = false;
         emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
     }
@@ -87,10 +110,10 @@ public class Options {
      * @throws IOException if there is an error reading from the stream
      */
     public void load(InputStream is) throws IOException {
-        opts.load(is);
+        opts = yaml.load(is);
         for (var propEntry : opts.entrySet()) {
-            emitter.fireChangeEvent(propEntry.getKey().toString(),
-                    new ChangeSource(this, propEntry.getKey().toString(), propEntry.getValue().toString()));
+            emitter.fireChangeEvent(propEntry.getKey(),
+                    new ChangeSource(this, propEntry.getKey(), propEntry.getValue().toString()));
         }
         this.dirty = false;
         emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
@@ -99,7 +122,7 @@ public class Options {
     /**
      * @return options
      */
-    public Set<Entry<Object, Object>> entrySet() {
+    public Set<Entry<String, Object>> entrySet() {
         return opts.entrySet();
     }
 
@@ -109,7 +132,22 @@ public class Options {
      * @return the named property or the default value if not found
      */
     public String getOrDefault(String propertyName, String defValue) {
-        return opts.getOrDefault(propertyName, defValue).toString();
+        return _getOrDefault(propertyName, defValue, opts);
+    }
+
+    @SuppressWarnings({ "unchecked", "java:S100" })
+    private String _getOrDefault(String propertyName, String defValue, Map<String, Object> map) {
+        var indexOfPeriod = propertyName.indexOf('.');
+        if (indexOfPeriod == -1)
+            return map.getOrDefault(propertyName, defValue).toString();
+        var mapKey = propertyName.substring(0, indexOfPeriod);
+        var cdrKey = propertyName.substring(indexOfPeriod + 1);
+        var obj = map.get(mapKey);
+        if (obj instanceof Map<?, ?> submap) {
+            return _getOrDefault(cdrKey, defValue, (Map<String, Object>) submap);
+        }
+        return defValue;
+
     }
 
     /**
@@ -118,9 +156,8 @@ public class Options {
      * @return the named property or the default value if not found, as a double
      */
     public double getOrDefaultAsDouble(String propertyName, double defValue) {
-        if (opts.containsKey(propertyName))
-            return Double.parseDouble(opts.getProperty(propertyName));
-        return defValue;
+        var str = _getOrDefault(propertyName, Double.toString(defValue), opts);
+        return Double.parseDouble(str);
     }
 
     /**
@@ -129,9 +166,8 @@ public class Options {
      * @return the named property or the default value if not found, as an int
      */
     public int getOrDefaultAsInt(String propertyName, int defValue) {
-        if (opts.containsKey(propertyName))
-            return Integer.parseInt(opts.getProperty(propertyName));
-        return defValue;
+        var str = _getOrDefault(propertyName, Integer.toString(defValue), opts);
+        return Integer.parseInt(str);
     }
 
     /**
@@ -140,9 +176,8 @@ public class Options {
      * @return the named property or the default value if not found, as a boolean
      */
     public boolean getOrDefaultAsBoolean(String propertyName, boolean defValue) {
-        if (opts.containsKey(propertyName))
-            return Boolean.parseBoolean(opts.getProperty(propertyName));
-        return defValue;
+        var str = _getOrDefault(propertyName, Boolean.toString(defValue), opts);
+        return Boolean.parseBoolean(str);
     }
 
     /**

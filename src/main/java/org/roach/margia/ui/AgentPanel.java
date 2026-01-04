@@ -48,11 +48,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     /**
      * property name of edge length spinner
      */
-    public static final String EDGE_LENGTH_PROPERTY = "Edge_length";
+    public static final String EDGE_LENGTH_PROPERTY = "ui.edge_length";
     /**
      * property name of gravity spinner
      */
-    public static final String GRAVITY_PROPERTY = "Gravitational_Constant";
+    public static final String GRAVITY_PROPERTY = "ui.gravitational_Constant";
 
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
@@ -409,14 +409,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         if (e.getSource() instanceof ChangeSource cs) {
             switch (cs.key()) {
             case AgentPanel.GRAVITY_PROPERTY:
-                this.gravity = Double.parseDouble(cs.newValue());
+                this.gravity = (double) cs.newValue();
                 break;
             case AgentPanel.EDGE_LENGTH_PROPERTY:
-                var len = Integer.parseInt(cs.newValue());
+                var len = (int) cs.newValue();
                 edges.forEach(edge -> edge.idealLength = len);
                 break;
             case TimingSource.TEMPO_PROPERTY:
-                this.tickLengthMillis = 60000 / (Integer.parseInt(cs.newValue()) * 24);
+                this.tickLengthMillis = 60000 / ((int) cs.newValue() * 24);
                 musicianComponents.forEach(m -> m.setTickLengthMillis(tickLengthMillis));
                 break;
             default:

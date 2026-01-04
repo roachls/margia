@@ -67,8 +67,7 @@ public class Main {
                 System.err.println("Error writing save directory to preferences: " + e.getMessage());
             }
         }
-        var tempo = Integer.parseInt(
-                Options.getInstance().getOrDefault(TimingSource.TEMPO_PROPERTY, Integer.toString(params.tempo)));
+        var tempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, params.tempo);
 
         if (params.sendExternalMidi) {
             MidiController.init(MidiController.LOOP_MIDI, tempo);

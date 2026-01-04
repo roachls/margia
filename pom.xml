@@ -35,6 +35,11 @@
 			<artifactId>indriya</artifactId>
 			<version>2.2.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>2.5</version>
+		</dependency>
 	</dependencies>
 	<properties>
 		<maven.compiler.source>25</maven.compiler.source>
