@@ -1,9 +1,9 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.MusicianRule;
+import org.roach.margia.rules.AbstractMusicianRule;
 
 /**
- * Represents an action that may be performed by a {@link MusicianRule}
+ * Represents an action that may be performed by a {@link AbstractMusicianRule}
  */
 @FunctionalInterface
 public interface MusicalAction {

@@ -9,6 +9,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
+import org.roach.margia.rules.AbstractMusicianRule;
+import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.ui.PropertyChangeEmitter;
 
 /**
@@ -42,7 +44,7 @@ public class Musician implements PropertyChangeEmitter {
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
     private final int channel;
     private final List<Musician> peers = new ArrayList<>();
-    private final MusicianRule rule;
+    private AbstractMusicianRule rule;
     private int notesIvePlayed;
     private NoteInfo myLastNote;
     private final Logger logger;
@@ -71,7 +73,7 @@ public class Musician implements PropertyChangeEmitter {
      * @param channel MIDI channel
      * @param rule    The rule that governs a musician's behavior
      */
-    public Musician(final int id, int channel, final MusicianRule rule) {
+    public Musician(final int id, int channel, final AbstractMusicianRule rule) {
         this.id = id;
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
@@ -247,7 +249,7 @@ public class Musician implements PropertyChangeEmitter {
      * Rest for one 16th
      */
     public void rest() {
-        controller.playNote(channel, MusicianRule.REST.apply(1));
+        controller.playNote(channel, AbstractMusicianRule.REST.apply(1));
     }
 
     /**
@@ -315,5 +317,18 @@ public class Musician implements PropertyChangeEmitter {
      */
     public void toggleMuted() {
         muted = !muted;
+    }
+
+    /**
+     * @return the rule used by this musician for generating notes
+     */
+    public MusicianRule getRule() { return rule; }
+
+    /**
+     * @param rule the rule this musician will use for generating notes
+     */
+    public void setRule(AbstractMusicianRule rule) {
+        this.rule = rule;
+        this.rule.setMusician(this);
     }
 }

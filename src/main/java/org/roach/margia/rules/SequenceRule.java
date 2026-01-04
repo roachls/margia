@@ -10,9 +10,10 @@ import org.roach.margia.messages.MusicianMessage;
 import static org.roach.margia.Note.*;
 
 /**
- * each musician has an assigned sequence that it plays and then passes along a message to start
+ * each musician has an assigned sequence that it plays and then passes along a
+ * message to start
  */
-public class SequenceRule extends MusicianRule {
+public class SequenceRule extends AbstractMusicianRule {
     // @formatter:off
     private final Map<Integer, List<MusicianMessage>> seqMap = Map.of(
             0, List.of(new NoteInfo(C2, 64, 4), new NoteInfo(G2, 100, 4), new NoteInfo(DS2, 64, 6),
@@ -88,5 +89,8 @@ public class SequenceRule extends MusicianRule {
     public static class StartSequenceMessage implements MusicianMessage {
         // nothing
     }
+
+    @Override
+    public String getName() { return "Sequence"; }
 
 }

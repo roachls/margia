@@ -1,12 +1,11 @@
 package org.roach.margia.rules;
 
-import org.roach.margia.MusicianRule;
 import org.roach.margia.actions.*;
 
 /**
  * Random-note generator
  */
-public class RandomRule extends MusicianRule {
+public class RandomRule extends AbstractMusicianRule {
 
     @Override
     public void calculateAction(long tick) {
@@ -34,9 +33,11 @@ public class RandomRule extends MusicianRule {
         logger.atDebug().log("{}: heard {}", musician.getId(), note);
         if (note == null || note.equals(REST.apply(1))) {
             logger.atDebug().log("{}: heard null or rest, returning");
-            return;
         }
 
     }
+
+    @Override
+    public String getName() { return "Random"; }
 
 }

@@ -36,6 +36,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private Point endSelection;
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
+    static final String SELECTED_AGENT_PROPERTY = "selected_agent";
+    private int selectedAgentId = -1;
 
     /**
      * default edge length
@@ -261,15 +263,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         @Override
         public void mouseReleased(MouseEvent e) {
-            switch (e.getButton()) {
-            case MouseEvent.BUTTON1:
+            if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonReleased(e);
-                break;
-            case MouseEvent.BUTTON3:
-                handleRightClick(e);
-                break;
-            default:
-                break;
             }
         }
 
@@ -295,42 +290,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 }
                 break;
             case SELECT:
+                handleMusicianSelection(comp);
                 break;
             case CONNECT:
-                if (isConnecting && comp instanceof MusicianComponent target && !target.equals(source)) {
-                    isConnecting = false;
-                    // check if already connected, and if so, disconnect; otherwise, connect
-                    edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
-                            .findAny().ifPresentOrElse(connection -> {
-                                connection.source.getMusician().removePeer(connection.target.getMusician());
-                                edges.remove(connection);
-                            }, () -> {
-                                source.getMusician().addPeer(target.getMusician());
-                                edges.add(new Edge(source, target, DEFAULT_EDGE_LENGTH));
-                            });
-                    source.setSelected(false);
-                    this.source = null;
-                    startSelection = null;
-                    endSelection = null;
-                    AgentPanel.this.setCursor(Cursor.getDefaultCursor());
-                } else if (comp == AgentPanel.this) {
-                    if (source != null)
-                        source.setSelected(false);
-                    this.source = null;
-                    startSelection = null;
-                    endSelection = null;
-                    AgentPanel.this.setCursor(Cursor.getDefaultCursor());
-                }
+                handleMusicianConnection(comp);
                 break;
             case MOVE:
-                if (movingComponent != null) {
-                    movingComponent.setLocked(false);
-                    movingComponent.setPosition(e.getX(), e.getY());
-                    movingComponent.setLocked(true);
-                    movingComponent.setSelected(false);
-                    setCursor(Cursor.getDefaultCursor());
-                }
-                movingComponent = null;
+                handleMusicianMove(e);
                 break;
             default:
                 break;
@@ -338,12 +304,51 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
-        private void handleRightClick(MouseEvent e) {
-            var comp = getComponentAt(e.getPoint());
-            if (comp == AgentPanel.this) {
-                handleAdd(e);
-            } else if (comp instanceof MusicianComponent mc) {
-                handleRemove(mc);
+        private void handleMusicianMove(MouseEvent e) {
+            if (movingComponent != null) {
+                movingComponent.setLocked(false);
+                movingComponent.setPosition(e.getX(), e.getY());
+                movingComponent.setLocked(true);
+                movingComponent.setSelected(false);
+                setCursor(Cursor.getDefaultCursor());
+            }
+            movingComponent = null;
+        }
+
+        private void handleMusicianConnection(Component comp) {
+            if (isConnecting && comp instanceof MusicianComponent target && !target.equals(source)) {
+                isConnecting = false;
+                // check if already connected, and if so, disconnect; otherwise, connect
+                edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
+                        .findAny().ifPresentOrElse(connection -> {
+                            connection.source.getMusician().removePeer(connection.target.getMusician());
+                            edges.remove(connection);
+                        }, () -> {
+                            source.getMusician().addPeer(target.getMusician());
+                            edges.add(new Edge(source, target, DEFAULT_EDGE_LENGTH));
+                        });
+                source.setSelected(false);
+                this.source = null;
+                startSelection = null;
+                endSelection = null;
+                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+            } else if (comp == AgentPanel.this) {
+                if (source != null)
+                    source.setSelected(false);
+                this.source = null;
+                startSelection = null;
+                endSelection = null;
+                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+            }
+        }
+
+        private void handleMusicianSelection(Component comp) {
+            if (comp instanceof MusicianComponent mc) {
+                firePropertyChange(SELECTED_AGENT_PROPERTY, selectedAgentId, mc.getMusician().getId());
+                selectedAgentId = mc.getMusician().getId();
+            } else {
+                firePropertyChange(SELECTED_AGENT_PROPERTY, selectedAgentId, -1);
+                selectedAgentId = -1;
             }
         }
 

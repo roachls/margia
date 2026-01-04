@@ -1,6 +1,7 @@
 package org.roach.margia.actions;
 
 import org.roach.margia.*;
+import org.roach.margia.rules.AbstractMusicianRule;
 
 /**
  * 
@@ -23,7 +24,7 @@ public record PlayPseudoRandomNote(Musician musician, int spread, int num) imple
             musician.playNote(randomNote);
         } else {
             musician.getLogger().atDebug().log("{}: playing rest", musician.getId());
-            musician.playNote(MusicianRule.REST.apply(1));
+            musician.playNote(AbstractMusicianRule.REST.apply(1));
         }
     }
 

@@ -1,4 +1,4 @@
-package org.roach.margia;
+package org.roach.margia.rules;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,12 +6,13 @@ import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.margia.*;
 import org.roach.margia.actions.MusicalAction;
 
 /**
- * A rule for a {@link Musician} to follow when it 'hears' a note
+ * Abstract implementation of {@link MusicianRule}
  */
-public abstract class MusicianRule {
+public abstract class AbstractMusicianRule implements MusicianRule {
 
     protected Musician musician;
     protected final Logger logger = LogManager.getLogger(getClass());
@@ -25,14 +26,6 @@ public abstract class MusicianRule {
      * @param musician the {@link Musician} that this rule applies to
      */
     public void setMusician(Musician musician) { this.musician = musician; }
-
-    /**
-     * Calculate action to be taken when doAction is called. This should set
-     * nextNote.
-     * 
-     * @param tick the tick number
-     */
-    public abstract void calculateAction(long tick);
 
     /**
      * Do the actions previously calculated for a tick

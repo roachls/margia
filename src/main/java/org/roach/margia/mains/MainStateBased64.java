@@ -5,8 +5,7 @@ import java.util.List;
 
 import org.roach.margia.*;
 import org.roach.margia.mains.params.StateBasedParams;
-import org.roach.margia.rules.RandomRule;
-import org.roach.margia.rules.StateBasedRule;
+import org.roach.margia.rules.*;
 
 /**
  * A state-based ruleset
@@ -19,7 +18,7 @@ public class MainStateBased64 implements Algorithm<StateBasedParams> {
         var musicians = new ArrayList<Musician>();
         for (var x = 0; x < sbParams.numCols; x++) {
             for (var y = 0; y < sbParams.numRows; y++) {
-                MusicianRule rule;
+                AbstractMusicianRule rule;
                 if (x == 0)
                     rule = new RandomRule();
                 else

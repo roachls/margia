@@ -3,14 +3,13 @@ package org.roach.margia.rules;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.roach.margia.MusicianRule;
 import org.roach.margia.NoteInfo;
 import org.roach.margia.actions.*;
 
 /**
  * A state-machine based agent
  */
-public class StateBasedRule extends MusicianRule {
+public class StateBasedRule extends AbstractMusicianRule {
     private int sequenceLength;
     private static final String DIRECT_REPEAT = "direct repeat";
     private static final String UP_FOURTH = "up 4th";
@@ -25,6 +24,13 @@ public class StateBasedRule extends MusicianRule {
     private int tickCountdown;
     private int initialTickDelay;
     private final BlockingQueue<NoteInfo> delayQueue = new LinkedBlockingQueue<>();
+
+    /**
+     * No-arg constructor needed for ServiceLoader
+     */
+    public StateBasedRule() {
+        this(1, 0);
+    }
 
     /**
      * @param sequenceLength sequence length
@@ -177,4 +183,7 @@ public class StateBasedRule extends MusicianRule {
      * @return the current sequence length
      */
     public int getSequenceLength() { return sequenceLength; }
+
+    @Override
+    public String getName() { return "State-based"; }
 }

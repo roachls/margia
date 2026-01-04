@@ -5,8 +5,7 @@ import java.util.List;
 
 import org.roach.margia.*;
 import org.roach.margia.mains.params.CircleParams;
-import org.roach.margia.rules.RandomRule;
-import org.roach.margia.rules.StateBasedRule;
+import org.roach.margia.rules.*;
 
 /**
  * State-based agents in a circle
@@ -17,7 +16,7 @@ public class MainStateBasedCircle implements Algorithm<CircleParams> {
     public List<Musician> initMusicians(MainParams mainParams, MargiaParams margiaParams) {
         var algParams = (CircleParams) margiaParams;
         var musicians = new ArrayList<Musician>();
-        MusicianRule rule = new RandomRule();
+        AbstractMusicianRule rule = new RandomRule();
         var musician = new Musician(0, 0, rule);
         musicians.add(musician);
 

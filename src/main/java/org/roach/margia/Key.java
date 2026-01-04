@@ -2,8 +2,12 @@ package org.roach.margia;
 
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.stream.Collectors;
 
-@SuppressWarnings("javadoc")
+/**
+ * Represents a musical key along with a range of allowed notes
+ */
+@SuppressWarnings({"javadoc", "java:S2386"})
 public interface Key {
     Random RANDOM = new SecureRandom();
 
@@ -28,7 +32,7 @@ public interface Key {
      * @param rangeHi      end range
      * @return a key
      */
-    static Key generateKey(List<Integer> intervals, int startingNote, int rangeHi) {
+    static Key generateKey(String name, List<Integer> intervals, int startingNote, int rangeHi) {
         var n = startingNote;
         var intervalNum = 0;
         var list = new ArrayList<Integer>();
@@ -38,7 +42,17 @@ public interface Key {
             intervalNum++;
             intervalNum %= intervals.size();
         }
-        return () -> list;
+        return new Key() {
+
+            @Override
+            public List<Integer> notes() {
+                return list;
+            }
+
+            @Override
+            public String getName() { return name; }
+
+        };
     }
 
     /**
@@ -48,37 +62,41 @@ public interface Key {
      *                  and O6 will also include all notes from O3, O4, and O5.
      * @return a key
      */
-    static Key generateKey(List<Integer> intervals, List<Octave> octaves) {
+    static Key generateKey(String name, List<Integer> intervals, List<Octave> octaves) {
         if (octaves == null || octaves.isEmpty()) {
             throw new IllegalArgumentException("octaves list must not be null or empty");
         }
         var low = octaves.stream().map(Octave::getLow).min(Integer::compare).orElse(0);
         var high = octaves.stream().map(Octave::getHigh).max(Integer::compare).orElse(127);
-        return generateKey(intervals, low, high);
+        return generateKey(name, intervals, low, high);
     }
 
-    static Key generateKey(List<Integer> intervals) {
-        return generateKey(intervals, List.of(Octave.O_NEG2, Octave.O7));
+    static Key generateKey(String name, List<Integer> intervals) {
+        return generateKey(name, intervals, List.of(Octave.O_NEG2, Octave.O7));
     }
 
-    Key CMajor = generateKey(MAJOR_INTERVALS, 0, 127);
-    Key DbMajor = CMajor.transposeUp(1);
-    Key DMajor = CMajor.transposeUp(2);
-    Key EbMajor = CMajor.transposeUp(3);
-    Key EMajor = CMajor.transposeUp(4);
-    Key FMajor = CMajor.transposeUp(5);
-    Key GbMajor = CMajor.transposeUp(6);
-    Key GMajor = CMajor.transposeUp(7);
-    Key AbMajor = CMajor.transposeUp(8);
-    Key AMajor = CMajor.transposeUp(9);
-    Key BbMajor = CMajor.transposeUp(10);
-    Key BMajor = CMajor.transposeUp(11);
+    Key CMajor = generateKey("C Major", MAJOR_INTERVALS, 0, 127);
+    Key DbMajor = CMajor.transposeUp("Db Major", 1);
+    Key DMajor = CMajor.transposeUp("D Major", 2);
+    Key EbMajor = CMajor.transposeUp("Eb Major", 3);
+    Key EMajor = CMajor.transposeUp("E Major", 4);
+    Key FMajor = CMajor.transposeUp("F Major", 5);
+    Key GbMajor = CMajor.transposeUp("Gb Major", 6);
+    Key GMajor = CMajor.transposeUp("G Major", 7);
+    Key AbMajor = CMajor.transposeUp("Ab Major", 8);
+    Key AMajor = CMajor.transposeUp("A Major", 9);
+    Key BbMajor = CMajor.transposeUp("Bb Major", 10);
+    Key BMajor = CMajor.transposeUp("B Major", 11);
 
-    Key CPentatonic = generateKey(PENTATONIC_INTERVALS, 0, 127);
+    Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_INTERVALS, 0, 127);
 
-    Key Chromatic = generateKey(CHROMATIC_INTERVALS, 0, 127);
+    Key Chromatic = generateKey("Chromatic", CHROMATIC_INTERVALS, 0, 127);
 
     Key DRUMPAD = Chromatic.of(Octave.O1, Octave.O1);
+
+    static final Map<String, Key> BUILTIN_KEYS = List.of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor,
+            AbMajor, AMajor, BbMajor, BMajor, CPentatonic, Chromatic, DRUMPAD).stream()
+            .collect(Collectors.toMap(Key::getName, k -> k, (_, k2) -> k2, TreeMap::new));
 
     List<Integer> notes();
 
@@ -94,7 +112,17 @@ public interface Key {
         }
         var indexLow = indexOfNearestNoteToRangeLow;
         var indexHi = indexOfNearestNoteToRangeHi;
-        return () -> origNotes.subList(indexLow, indexHi + 1);
+        var name = this.getName();
+        return new Key() {
+
+            @Override
+            public List<Integer> notes() {
+                return origNotes.subList(indexLow, indexHi + 1);
+            }
+
+            @Override
+            public String getName() { return name; }
+        };
     }
 
     default Key of(Octave o1, Octave o2) {
@@ -183,8 +211,10 @@ public interface Key {
         return (float) (note - lowestNote()) / range();
     }
 
-    default Key transposeUp(int interval) {
+    default Key transposeUp(String name, int interval) {
         var newNotes = this.notes().stream().map(n -> n + interval).filter(n -> n <= 127).toList();
-        return generateKey(newNotes);
+        return generateKey(name, newNotes);
     }
+
+    String getName();
 }
