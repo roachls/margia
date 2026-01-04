@@ -82,7 +82,7 @@ public class Options {
         } else {
             var mapKey = propertyName.substring(0, indexOfPeriod);
             var cdrKey = propertyName.substring(indexOfPeriod + 1);
-            var obj = map.computeIfAbsent(mapKey, k -> new HashMap<String, Object>());
+            var obj = map.computeIfAbsent(mapKey, _ -> new HashMap<String, Object>());
             _put(cdrKey, value, (Map<String, Object>) obj, fullPropertyName);
         }
 
