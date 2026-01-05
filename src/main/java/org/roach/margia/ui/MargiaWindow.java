@@ -56,13 +56,13 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        optionPanel = new OptionPanel(musicians);
+        optionPanel = new OptionPanel();
         updateTitle();
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel(musicians);
-        agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionPanel);
+        agentPanel.addVetoableChangeListener(optionPanel);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
         getContentPane().add(optionPanel, BorderLayout.EAST);

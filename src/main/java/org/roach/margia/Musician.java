@@ -12,6 +12,7 @@ import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.ui.PropertyChangeEmitter;
+import org.roach.margia.util.Range;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -42,7 +43,7 @@ public class Musician implements PropertyChangeEmitter {
     private final int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
-    private final int channel;
+    private int channel;
     private final List<Musician> peers = new ArrayList<>();
     private AbstractMusicianRule rule;
     private int notesIvePlayed;
@@ -198,9 +199,19 @@ public class Musician implements PropertyChangeEmitter {
     public int getRangeLow() { return rangeLow; }
 
     /**
+     * @param rangeLow the lowest note that this musician can play
+     */
+    public void setRangeLow(int rangeLow) { this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127); }
+
+    /**
      * @return the highest note that this musician can play
      */
     public int getRangeHi() { return rangeHi; }
+
+    /**
+     * @param rangeHigh the lowest note that this musician can play
+     */
+    public void setRangeHigh(int rangeHigh) { this.rangeLow = Range.check("rangeLow", rangeHigh, 0, 127); }
 
     /**
      * @return the key that this musician plays in
@@ -211,6 +222,8 @@ public class Musician implements PropertyChangeEmitter {
      * @param key The key for this musician (default is {@link Key#CPentatonic})
      */
     public void setKey(Key key) {
+        if (key == null)
+            return;
         this.key = key;
         this.rangeLow = key.lowestNote();
         this.rangeHi = key.highestNote();
@@ -328,7 +341,19 @@ public class Musician implements PropertyChangeEmitter {
      * @param rule the rule this musician will use for generating notes
      */
     public void setRule(AbstractMusicianRule rule) {
+        if (rule == null)
+            return;
         this.rule = rule;
         this.rule.setMusician(this);
     }
+
+    /**
+     * @return the MIDI channel this musician will send notes to
+     */
+    public int getChannel() { return this.channel; }
+
+    /**
+     * @param channel the MIDI channel this musician will send notes to
+     */
+    public void setChannel(int channel) { this.channel = Range.check("channel", channel, 0, 16); }
 }

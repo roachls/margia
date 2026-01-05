@@ -1,11 +1,15 @@
 package org.roach.margia;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 @SuppressWarnings("javadoc")
 public class Note {
     /**
      * A note number of -1 indicates a rest
      */
     public static final int REST = -1;
+
     private Note() {
         // no instantiation
     }
@@ -26,7 +30,7 @@ public class Note {
     public static final int A_N2 = 9;
     public static final int AS_N2 = 10;
     public static final int B_N2 = 11;
-    
+
     public static final int C_N1 = 12;
     public static final int CS_N1 = 13;
     public static final int DF_N1 = 13;
@@ -61,7 +65,7 @@ public class Note {
     public static final int AS0 = 34;
     public static final int BF0 = 34;
     public static final int B0 = 35;
-    
+
     public static final int C1 = 36;
     public static final int CS1 = 37;
     public static final int DF1 = 37;
@@ -79,7 +83,7 @@ public class Note {
     public static final int AS1 = 46;
     public static final int BF1 = 46;
     public static final int B1 = 47;
-    
+
     public static final int C2 = 48;
     public static final int CS2 = 49;
     public static final int DF2 = 49;
@@ -97,7 +101,7 @@ public class Note {
     public static final int AS2 = 58;
     public static final int BF2 = 58;
     public static final int B2 = 59;
-    
+
     public static final int C3 = 60;
     public static final int CS3 = 61;
     public static final int DF3 = 61;
@@ -115,7 +119,7 @@ public class Note {
     public static final int AS3 = 70;
     public static final int BF3 = 70;
     public static final int B3 = 71;
-    
+
     public static final int C4 = 72;
     public static final int CS4 = 73;
     public static final int DF4 = 73;
@@ -133,7 +137,7 @@ public class Note {
     public static final int AS4 = 82;
     public static final int BF4 = 82;
     public static final int B4 = 83;
-    
+
     public static final int C5 = 84;
     public static final int CS5 = 85;
     public static final int DF5 = 85;
@@ -151,7 +155,7 @@ public class Note {
     public static final int AS5 = 94;
     public static final int BF5 = 94;
     public static final int B5 = 95;
-    
+
     public static final int C6 = 96;
     public static final int CS6 = 97;
     public static final int DF6 = 97;
@@ -169,7 +173,7 @@ public class Note {
     public static final int AS6 = 106;
     public static final int BF6 = 106;
     public static final int B6 = 107;
-    
+
     public static final int C7 = 108;
     public static final int CS7 = 109;
     public static final int DF7 = 109;
@@ -187,7 +191,7 @@ public class Note {
     public static final int AS7 = 118;
     public static final int BF7 = 118;
     public static final int B7 = 119;
-    
+
     public static final int C8 = 120;
     public static final int CS8 = 121;
     public static final int D8 = 122;
@@ -196,4 +200,141 @@ public class Note {
     public static final int F8 = 125;
     public static final int FS8 = 126;
     public static final int G8 = 127;
+
+    public static final Map<Integer, String> NOTE_NAMES = new LinkedHashMap<>();
+    public static final Map<String, Integer> NOTE_NUMBERS;
+
+    static {
+        NOTE_NAMES.put(C_N2, "C-2");
+        NOTE_NAMES.put(CS_N2, "C#/D♭-2");
+        NOTE_NAMES.put(D_N2, "D-2");
+        NOTE_NAMES.put(DS_N2, "D#/E♭-2");
+        NOTE_NAMES.put(E_N2, "E-2");
+        NOTE_NAMES.put(F_N2, "F-2");
+        NOTE_NAMES.put(FS_N2, "F#/G♭-2");
+        NOTE_NAMES.put(G_N2, "G-2");
+        NOTE_NAMES.put(GS_N2, "G#/A♭-2");
+        NOTE_NAMES.put(A_N2, "A-2");
+        NOTE_NAMES.put(AS_N2, "A#/B♭-2");
+        NOTE_NAMES.put(B_N2, "B-2");
+        NOTE_NAMES.put(C_N1, "C-1");
+        NOTE_NAMES.put(CS_N1, "C#/D♭-1");
+        NOTE_NAMES.put(D_N1, "D-1");
+        NOTE_NAMES.put(DS_N1, "D#/E♭-1");
+        NOTE_NAMES.put(E_N1, "E-1");
+        NOTE_NAMES.put(F_N1, "F-1");
+        NOTE_NAMES.put(FS_N1, "F#/G♭-1");
+        NOTE_NAMES.put(G_N1, "G-1");
+        NOTE_NAMES.put(GS_N1, "G#/A♭-1");
+        NOTE_NAMES.put(A_N1, "A-1");
+        NOTE_NAMES.put(AS_N1, "A#/B♭-1");
+        NOTE_NAMES.put(B_N1, "B-1");
+        NOTE_NAMES.put(C0, "C 0");
+        NOTE_NAMES.put(CS0, "C#/D♭ 0");
+        NOTE_NAMES.put(D0, "D 0");
+        NOTE_NAMES.put(DS0, "D#/E♭ 0");
+        NOTE_NAMES.put(E0, "E 0");
+        NOTE_NAMES.put(F0, "F 0");
+        NOTE_NAMES.put(FS0, "F#/G♭ 0");
+        NOTE_NAMES.put(G0, "G 0");
+        NOTE_NAMES.put(GS0, "G#/A♭ 0");
+        NOTE_NAMES.put(A0, "A 0");
+        NOTE_NAMES.put(AS0, "A#/B♭ 0");
+        NOTE_NAMES.put(B0, "B 0");
+        NOTE_NAMES.put(C1, "C 1");
+        NOTE_NAMES.put(CS1, "C#/D♭ 1");
+        NOTE_NAMES.put(D1, "D 1");
+        NOTE_NAMES.put(DS1, "D#/E♭ 1");
+        NOTE_NAMES.put(E1, "E 1");
+        NOTE_NAMES.put(F1, "F 1");
+        NOTE_NAMES.put(FS1, "F#/G♭ 1");
+        NOTE_NAMES.put(G1, "G 1");
+        NOTE_NAMES.put(GS1, "G#/A♭ 1");
+        NOTE_NAMES.put(A1, "A 1");
+        NOTE_NAMES.put(AS1, "A#/B♭ 1");
+        NOTE_NAMES.put(B1, "B 1");
+        NOTE_NAMES.put(C2, "C 2");
+        NOTE_NAMES.put(CS2, "C#/D♭ 2");
+        NOTE_NAMES.put(D2, "D 2");
+        NOTE_NAMES.put(DS2, "D#/E♭ 2");
+        NOTE_NAMES.put(E2, "E 2");
+        NOTE_NAMES.put(F2, "F 2");
+        NOTE_NAMES.put(FS2, "F#/G♭ 2");
+        NOTE_NAMES.put(G2, "G 2");
+        NOTE_NAMES.put(GS2, "G#/A♭ 2");
+        NOTE_NAMES.put(A2, "A 2");
+        NOTE_NAMES.put(AS2, "A#/B♭ 2");
+        NOTE_NAMES.put(B2, "B 2");
+        NOTE_NAMES.put(C3, "C 3");
+        NOTE_NAMES.put(CS3, "C#/D♭ 3");
+        NOTE_NAMES.put(D3, "D 3");
+        NOTE_NAMES.put(DS3, "D#/E♭ 3");
+        NOTE_NAMES.put(E3, "E 3");
+        NOTE_NAMES.put(F3, "F 3");
+        NOTE_NAMES.put(FS3, "F#/G♭ 3");
+        NOTE_NAMES.put(G3, "G 3");
+        NOTE_NAMES.put(GS3, "G#/A♭ 3");
+        NOTE_NAMES.put(A3, "A 3");
+        NOTE_NAMES.put(AS3, "A#/B♭ 3");
+        NOTE_NAMES.put(B3, "B 3");
+        NOTE_NAMES.put(C4, "C 4");
+        NOTE_NAMES.put(CS4, "C#/D♭ 4");
+        NOTE_NAMES.put(D4, "D 4");
+        NOTE_NAMES.put(DS4, "D#/E♭ 4");
+        NOTE_NAMES.put(E4, "E 4");
+        NOTE_NAMES.put(F4, "F 4");
+        NOTE_NAMES.put(FS4, "F#/G♭ 4");
+        NOTE_NAMES.put(G4, "G 4");
+        NOTE_NAMES.put(GS4, "G#/A♭ 4");
+        NOTE_NAMES.put(A4, "A 4");
+        NOTE_NAMES.put(AS4, "A#/B♭ 4");
+        NOTE_NAMES.put(B4, "B 4");
+        NOTE_NAMES.put(C5, "C 5");
+        NOTE_NAMES.put(CS5, "C#/D♭ 5");
+        NOTE_NAMES.put(D5, "D 5");
+        NOTE_NAMES.put(DS5, "D#/E♭ 5");
+        NOTE_NAMES.put(E5, "E 5");
+        NOTE_NAMES.put(F5, "F 5");
+        NOTE_NAMES.put(FS5, "F#/G♭ 5");
+        NOTE_NAMES.put(G5, "G 5");
+        NOTE_NAMES.put(GS5, "G#/A♭ 5");
+        NOTE_NAMES.put(A5, "A 5");
+        NOTE_NAMES.put(AS5, "A#/B♭ 5");
+        NOTE_NAMES.put(B5, "B 5");
+        NOTE_NAMES.put(C6, "C 6");
+        NOTE_NAMES.put(CS6, "C#/D♭ 6");
+        NOTE_NAMES.put(D6, "D 6");
+        NOTE_NAMES.put(DS6, "D#/E♭ 6");
+        NOTE_NAMES.put(E6, "E 6");
+        NOTE_NAMES.put(F6, "F 6");
+        NOTE_NAMES.put(FS6, "F#/G♭ 6");
+        NOTE_NAMES.put(G6, "G 6");
+        NOTE_NAMES.put(GS6, "G#/A♭ 6");
+        NOTE_NAMES.put(A6, "A 6");
+        NOTE_NAMES.put(AS6, "A#/B♭ 6");
+        NOTE_NAMES.put(B6, "B 6");
+        NOTE_NAMES.put(C7, "C 7");
+        NOTE_NAMES.put(CS7, "C#/D♭ 7");
+        NOTE_NAMES.put(D7, "D 7");
+        NOTE_NAMES.put(DS7, "D#/E♭ 7");
+        NOTE_NAMES.put(E7, "E 7");
+        NOTE_NAMES.put(F7, "F 7");
+        NOTE_NAMES.put(FS7, "F#/G♭ 7");
+        NOTE_NAMES.put(G7, "G 7");
+        NOTE_NAMES.put(GS7, "G#/A♭ 7");
+        NOTE_NAMES.put(A7, "A 7");
+        NOTE_NAMES.put(AS7, "A#/B♭ 7");
+        NOTE_NAMES.put(B7, "B 7");
+        NOTE_NAMES.put(C8, "C 8");
+        NOTE_NAMES.put(CS8, "C#/D♭ 8");
+        NOTE_NAMES.put(D8, "D 8");
+        NOTE_NAMES.put(DS8, "D#/E♭ 8");
+        NOTE_NAMES.put(E8, "E 8");
+        NOTE_NAMES.put(F8, "F 8");
+        NOTE_NAMES.put(FS8, "F#/G♭ 8");
+        NOTE_NAMES.put(G8, "G 8");
+
+        NOTE_NUMBERS = NOTE_NAMES.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, (_, k2) -> k2, LinkedHashMap::new));
+    }
 }

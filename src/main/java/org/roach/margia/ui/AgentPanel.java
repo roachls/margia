@@ -3,6 +3,7 @@ package org.roach.margia.ui;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.beans.PropertyVetoException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
-    private int selectedAgentId = -1;
+    private MusicianComponent selectedAgent;
 
     /**
      * default edge length
@@ -343,12 +344,16 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void handleMusicianSelection(Component comp) {
-            if (comp instanceof MusicianComponent mc) {
-                firePropertyChange(SELECTED_AGENT_PROPERTY, selectedAgentId, mc.getMusician().getId());
-                selectedAgentId = mc.getMusician().getId();
-            } else {
-                firePropertyChange(SELECTED_AGENT_PROPERTY, selectedAgentId, -1);
-                selectedAgentId = -1;
+            try {
+                if (comp instanceof MusicianComponent mc) {
+                    fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, mc);
+                    selectedAgent = mc;
+                } else {
+                    fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, null);
+                    selectedAgent = null;
+                } 
+            } catch (PropertyVetoException e) {
+                e.printStackTrace();
             }
         }
 

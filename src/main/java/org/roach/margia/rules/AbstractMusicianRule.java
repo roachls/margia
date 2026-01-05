@@ -12,7 +12,7 @@ import org.roach.margia.actions.MusicalAction;
 /**
  * Abstract implementation of {@link MusicianRule}
  */
-public abstract class AbstractMusicianRule implements MusicianRule {
+public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
 
     protected Musician musician;
     protected final Logger logger = LogManager.getLogger(getClass());

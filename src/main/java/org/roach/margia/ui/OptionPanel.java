@@ -1,42 +1,40 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
-import java.util.ServiceLoader;
+import java.awt.event.ActionListener;
+import java.beans.*;
+import java.util.*;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.*;
+import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 
 /**
  * GUI and musical options
  */
 @SuppressWarnings({ "java:S1948" })
-public class OptionPanel extends JPanel implements PropertyChangeListener {
+public class OptionPanel extends JPanel implements VetoableChangeListener {
     private JSpinner radius;
     private JSpinner gravity;
     private JSpinner edgeLength;
     private JCheckBox showNumbers;
-    private final java.util.List<Musician> musicians;
     private JComboBox<String> rule;
     private JComboBox<String> key;
     private JSpinner rangeLow;
     private JSpinner rangeHi;
+    private JSpinner channel;
     private TitledBorder musicianPanelBorder;
     private JPanel musPanel;
+    private HashMap<String, MusicianRule> availableRules;
 
     /**
      * constructor
-     * 
-     * @param musicians list of musicians
      */
-    public OptionPanel(java.util.List<Musician> musicians) {
-        this.musicians = musicians;
+    public OptionPanel() {
         this.setLayout(new GridBagLayout());
         var constraints = new GridBagConstraints();
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -89,8 +87,8 @@ public class OptionPanel extends JPanel implements PropertyChangeListener {
         return uiPanel;
     }
 
-    private JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
-            Double step, Class<? extends Number> type) {
+    private JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max, Double step,
+            Class<? extends Number> type) {
 
         SpinnerNumberModel model;
         if (type.equals(Integer.class))
@@ -119,10 +117,13 @@ public class OptionPanel extends JPanel implements PropertyChangeListener {
         panel.setBorder(musicianPanelBorder);
         panel.setLayout(new GridLayout(0, 2, 3, 5));
 
-        var availableRules = new ArrayList<String>();
-        availableRules.add("");
-        ServiceLoader.load(MusicianRule.class).forEach(r -> availableRules.add(r.getName()));
-        var ruleModel = new DefaultComboBoxModel<String>(availableRules.toArray(new String[0]));
+        availableRules = new HashMap<>();
+        var ruleNames = new ArrayList<String>();
+        ServiceLoader.load(MusicianRule.class).forEach(r -> {
+            availableRules.put(r.getName(), r);
+            ruleNames.add(r.getName());
+        });
+        var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
         ruleModel.setSelectedItem("");
         rule = new JComboBox<>(ruleModel);
         var ruleLabel = new JLabel("Rule");
@@ -140,9 +141,20 @@ public class OptionPanel extends JPanel implements PropertyChangeListener {
         keyLabel.setLabelFor(key);
         panel.add(keyLabel);
         panel.add(key);
-        
-        rangeLow = addSpinner(panel, "Low", 0d, 0d, 127d, 1d, Integer.class);
-        rangeHi = addSpinner(panel, "High", 127d, 0d, 127d, 1d, Integer.class);
+
+        var rangeLowModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
+        rangeLow = new JSpinner(rangeLowModel);
+        var rangeLowLabel = new JLabel("Low note");
+        rangeLowLabel.setLabelFor(rangeLow);
+        panel.add(rangeLowLabel);
+        panel.add(rangeLow);
+        var rangeHiModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
+        rangeHi = new JSpinner(rangeHiModel);
+        var rangeHiLabel = new JLabel("High note");
+        rangeHiLabel.setLabelFor(rangeHi);
+        panel.add(rangeHiLabel);
+        panel.add(rangeHi);
+        channel = addSpinner(panel, "MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
 
         return panel;
     }
@@ -197,26 +209,69 @@ public class OptionPanel extends JPanel implements PropertyChangeListener {
         Options.getInstance().put(propertyName, property.toString());
     }
 
+    private ActionListener ruleActionListener;
+    private ActionListener keyActionListener;
+    private ChangeListener channelChangeListener;
+    private ChangeListener rangeLowChangeListener;
+    private ChangeListener rangeHiChangeListener;
+    private MusicianComponent selectedMusician;
+
     @Override
-    public void propertyChange(PropertyChangeEvent evt) {
+    @SuppressWarnings("java:S1121")
+    public void vetoableChange(PropertyChangeEvent evt) {
         switch (evt.getPropertyName()) {
         case AgentPanel.SELECTED_AGENT_PROPERTY:
-            var musId = (int) evt.getNewValue();
-            if (musId == -1) {
+            if (selectedMusician != null) {
+                selectedMusician.setSelected(false);
+                selectedMusician = null;
+            }
+            var sel = (MusicianComponent) evt.getNewValue();
+            if (sel == null) {
                 musicianPanelBorder.setTitle("Musician options");
+                if (ruleActionListener != null) {
+                    rule.removeActionListener(ruleActionListener);
+                    ruleActionListener = null;
+                }
                 rule.setSelectedItem("");
+                if (keyActionListener != null) {
+                    key.removeActionListener(keyActionListener);
+                    keyActionListener = null;
+                }
                 key.setSelectedItem("");
-                rangeLow.setValue(0);
-                rangeHi.setValue(127);
+                if (rangeLowChangeListener != null) {
+                    rangeLow.removeChangeListener(rangeLowChangeListener);
+                    rangeLowChangeListener = null;
+                }
+                rangeLow.setValue(Note.NOTE_NAMES.get(0));
+                if (rangeHiChangeListener != null) {
+                    rangeHi.removeChangeListener(rangeHiChangeListener);
+                    rangeHiChangeListener = null;
+                }
+                rangeHi.setValue(Note.NOTE_NAMES.get(127));
+                if (channelChangeListener != null) {
+                    channel.removeChangeListener(channelChangeListener);
+                    channelChangeListener = null;
+                }
+                channel.setValue(0);
             } else {
-                var selectedMusician = musicians.stream().filter(m -> m.getId() == musId).findAny();
-                selectedMusician.ifPresent(m -> {
-                    musicianPanelBorder.setTitle("Musician options (" + musId + ")");
-                    rule.setSelectedItem(m.getRule().getName());
-                    key.setSelectedItem(m.getKey().getName());
-                    rangeLow.setValue(m.getRangeLow());
-                    rangeHi.setValue(m.getRangeHi());
-                });
+                selectedMusician = sel;
+                selectedMusician.setSelected(true);
+                musicianPanelBorder.setTitle("Musician options (" + sel.getMusician().getId() + ")");
+                rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
+                rule.addActionListener(ruleActionListener = _ -> selectedMusician.getMusician()
+                        .setRule((AbstractMusicianRule) availableRules.get(rule.getSelectedItem())));
+                key.setSelectedItem(selectedMusician.getMusician().getKey().getName());
+                key.addActionListener(keyActionListener = _ -> selectedMusician.getMusician()
+                        .setKey(Key.BUILTIN_KEYS.get(key.getSelectedItem())));
+                rangeLow.setValue(Note.NOTE_NAMES.get(selectedMusician.getMusician().getRangeLow()));
+                rangeLow.addChangeListener(rangeLowChangeListener = _ -> selectedMusician.getMusician()
+                        .setRangeLow(Note.NOTE_NUMBERS.get(rangeLow.getValue())));
+                rangeHi.setValue(Note.NOTE_NAMES.get(selectedMusician.getMusician().getRangeHi()));
+                rangeHi.addChangeListener(rangeHiChangeListener = _ -> selectedMusician.getMusician()
+                        .setRangeHigh(Note.NOTE_NUMBERS.get(rangeHi.getValue())));
+                channel.setValue(selectedMusician.getMusician().getChannel());
+                channel.addChangeListener(channelChangeListener = _ -> selectedMusician.getMusician()
+                        .setChannel((int) channel.getValue()));
             }
             musPanel.repaint();
             break;

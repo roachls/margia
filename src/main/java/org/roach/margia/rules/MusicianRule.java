@@ -5,7 +5,7 @@ import org.roach.margia.Musician;
 /**
  * A rule for a {@link Musician} to follow when it 'hears' a note
  */
-public interface MusicianRule {
+public sealed interface MusicianRule permits AbstractMusicianRule {
 
     /**
      * Calculate action to be taken when doAction is called. This should set
