@@ -39,6 +39,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
     private MusicianComponent selectedAgent;
+    private int width;
+    private int height;
 
     /**
      * default edge length
@@ -80,9 +82,34 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         setBackground(Color.LIGHT_GRAY);
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
+        addComponentListener(new Resizer());
+    }
+
+    private class Resizer extends ComponentAdapter {
+        @Override
+        public void componentResized(ComponentEvent e) {
+            // width and height are from before the resize
+            var newWidth = getWidth();
+            var newHeight = getHeight();
+            var xRatio = (double) newWidth / (double) width;
+            var yRatio = (double) newHeight / (double) height;
+            musicianComponents.forEach(mc -> {
+                var locked = mc.isLocked();
+                mc.setLocked(false);
+                mc.setPosition(mc.getPosition().getX() * xRatio, mc.getPosition().getY() * yRatio);
+                mc.setVelocity(mc.getVelocity().x() * xRatio, mc.getVelocity().y() * yRatio);
+                // restore to previous locked status
+                mc.setLocked(locked);
+            });
+            width = newWidth;
+            height = newHeight;
+        }
     }
 
     void initMusicians() {
+        // store width and height in case we resize later
+        width = getWidth();
+        height = getHeight();
         var rand = new SecureRandom();
         for (var musician : musicians) {
             var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
@@ -351,7 +378,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 } else {
                     fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, null);
                     selectedAgent = null;
-                } 
+                }
             } catch (PropertyVetoException e) {
                 e.printStackTrace();
             }
