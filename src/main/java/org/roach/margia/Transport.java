@@ -28,6 +28,10 @@ public class Transport {
      * Property fired when beatNum updates
      */
     public static final String BEAT_PROPERTY = "beat";
+    /**
+     * Property fired to notify listeners of a reset
+     */
+    public static final String RESET_PROPERTY = "reset";
     private final List<Musician> musicians;
     private long tick = 1;
     private final Logger logger = LogManager.getLogger(getClass());
@@ -54,6 +58,16 @@ public class Transport {
      */
     public void addPropertyListener(PropertyChangeListener listener) {
         propertyChangeSupport.addPropertyChangeListener(listener);
+    }
+
+    /**
+     * Register a listener for a specific property
+     * 
+     * @param property property name
+     * @param listener listener
+     */
+    public void addPropertyListener(String property, PropertyChangeListener listener) {
+        propertyChangeSupport.addPropertyChangeListener(property, listener);
     }
 
     /**
@@ -152,6 +166,7 @@ public class Transport {
         propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, beatNum, 1);
         propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, currentClockPulse, 1);
         propertyChangeSupport.firePropertyChange(TICK_PROPERTY, tick, 1L);
+        propertyChangeSupport.firePropertyChange(RESET_PROPERTY, 0, 1);
         this.measureNum = 1;
         this.beatNum = 1;
         this.currentClockPulse = 1;

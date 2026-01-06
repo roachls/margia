@@ -1,6 +1,5 @@
 package org.roach.margia.random;
 
-import java.security.SecureRandom;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -9,7 +8,8 @@ import java.util.regex.Pattern;
  */
 public class DieRoller {
     private static final Pattern REGEX = Pattern.compile("\\d+d\\d+");
-    private static final Random RANDOM = new SecureRandom();
+    private static Random random = new Random();
+    private static long seed;
 
     private static record DiceNums(int numDice, int numSides) {
     }
@@ -22,7 +22,8 @@ public class DieRoller {
      * @param seed the seed for the random generator
      */
     public static void setSeed(long seed) {
-        RANDOM.setSeed(seed);
+        DieRoller.seed = seed;
+        random.setSeed(seed);
     }
 
     /**
@@ -34,7 +35,7 @@ public class DieRoller {
         var nums = parseString(diceDescription);
         int num = 0;
         for (var i = 0; i < nums.numDice; i++) {
-            num += RANDOM.nextInt(nums.numSides) + 1;
+            num += random.nextInt(nums.numSides) + 1;
         }
         return num;
     }
@@ -66,5 +67,13 @@ public class DieRoller {
     public static int getMax(final String diceDescription) {
         var nums = parseString(diceDescription);
         return nums.numDice * nums.numSides;
+    }
+
+    /**
+     * reset the random number generator to its original state
+     */
+    public static void reset() {
+        random = new Random();
+        random.setSeed(seed);
     }
 }

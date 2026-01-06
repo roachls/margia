@@ -1,7 +1,6 @@
 package org.roach.margia;
 
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
+import java.beans.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,7 +18,7 @@ import org.roach.margia.util.Range;
  * polls its own message queue and responds to any messages it receives in the
  * order they were received.
  */
-public class Musician implements PropertyChangeEmitter {
+public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * the property to fire when the last note changes
      */
@@ -356,4 +355,15 @@ public class Musician implements PropertyChangeEmitter {
      * @param channel the MIDI channel this musician will send notes to
      */
     public void setChannel(int channel) { this.channel = Range.check("channel", channel, 0, 16); }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (Transport.RESET_PROPERTY.equals(evt.getPropertyName())) {
+            messageQueue.clear();
+            myLastNote = null;
+            currentTick = 0;
+            notesIvePlayed = 0;
+            listening = true;
+        }
+    }
 }

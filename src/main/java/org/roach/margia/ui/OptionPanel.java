@@ -73,7 +73,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                         .getOrDefaultAsDouble(AgentPanel.GRAVITY_PROPERTY, AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT),
                 -20.0, 20.0, 0.1, Double.class);
         edgeLength = addSpinner(uiPanel, AgentPanel.EDGE_LENGTH_PROPERTY, Options.getInstance().getOrDefaultAsDouble(
-                AgentPanel.EDGE_LENGTH_PROPERTY, AgentPanel.DEFAULT_EDGE_LENGTH), 20d, 150d, 1d, Integer.class);
+                AgentPanel.EDGE_LENGTH_PROPERTY, AgentPanel.DEFAULT_EDGE_LENGTH), 20d, 300d, 1d, Integer.class);
         showNumbers = new JCheckBox();
         showNumbers.setSelected(
                 Options.getInstance().getOrDefaultAsBoolean(MusicianComponent.SHOW_NUMBERS_PROPERTY, true));
@@ -159,29 +159,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         return panel;
     }
 
-    /**
-     * @param property property to listen for
-     * @param listener listener for property changes
-     */
-    public void addChangeListener(String property, ChangeListener listener) {
-        switch (property) {
-        case MusicianComponent.RADIUS_PROPERTY:
-            this.radius.addChangeListener(listener);
-            break;
-        case AgentPanel.GRAVITY_PROPERTY:
-            this.gravity.addChangeListener(listener);
-            break;
-        case AgentPanel.EDGE_LENGTH_PROPERTY:
-            this.edgeLength.addChangeListener(listener);
-            break;
-        case MusicianComponent.SHOW_NUMBERS_PROPERTY:
-            this.showNumbers.addChangeListener(listener);
-            break;
-        default:
-            break;
-        }
-    }
-
     void updateOptions() {
         var options = Options.getInstance();
         for (var option : options.entrySet()) {
@@ -206,7 +183,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     }
 
     void updateOption(String propertyName, Object property) {
-        Options.getInstance().put(propertyName, property.toString());
+        Options.getInstance().put(propertyName, property);
     }
 
     private ActionListener ruleActionListener;

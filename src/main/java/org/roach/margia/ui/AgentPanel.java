@@ -39,8 +39,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
     private MusicianComponent selectedAgent;
-    private int width;
-    private int height;
+    private int oldWidth;
+    private int oldHeight;
 
     /**
      * default edge length
@@ -91,8 +91,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             // width and height are from before the resize
             var newWidth = getWidth();
             var newHeight = getHeight();
-            var xRatio = (double) newWidth / (double) width;
-            var yRatio = (double) newHeight / (double) height;
+            var xRatio = (double) newWidth / (double) oldWidth;
+            var yRatio = (double) newHeight / (double) oldHeight;
             musicianComponents.forEach(mc -> {
                 var locked = mc.isLocked();
                 mc.setLocked(false);
@@ -101,16 +101,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 // restore to previous locked status
                 mc.setLocked(locked);
             });
-            width = newWidth;
-            height = newHeight;
+            oldWidth = newWidth;
+            oldHeight = newHeight;
         }
     }
 
     void initMusicians() {
         // store width and height in case we resize later
-        width = getWidth();
-        height = getHeight();
+        oldWidth = getWidth();
+        oldHeight = getHeight();
         var rand = new SecureRandom();
+        rand.setSeed(1L); // repeatability
         for (var musician : musicians) {
             var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
             Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);

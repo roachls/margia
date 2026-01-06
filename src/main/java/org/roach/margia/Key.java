@@ -1,6 +1,5 @@
 package org.roach.margia;
 
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -9,7 +8,22 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"javadoc", "java:S2386"})
 public interface Key {
-    Random RANDOM = new SecureRandom();
+    RandomHolder randomHolder = new RandomHolder();
+    
+    class RandomHolder {
+        private Random random = new Random();
+        private long seed;
+        
+        void setRandomSeed(long seed) {
+            this.seed = seed;
+            random.setSeed(seed);
+        }
+        
+        void reset() {
+            this.random = new Random();
+            random.setSeed(seed);
+        }
+    }
 
     static final List<Integer> MAJOR_INTERVALS = List.of(2, 2, 1, 2, 2, 2, 1);
     static final List<Integer> PENTATONIC_INTERVALS = List.of(2, 2, 3, 2, 3);
@@ -19,7 +33,7 @@ public interface Key {
      * @param seed random seed to use
      */
     static void setRandomSeed(long seed) {
-        RANDOM.setSeed(seed);
+        randomHolder.setRandomSeed(seed);
     }
 
     /**
@@ -130,7 +144,7 @@ public interface Key {
     }
 
     default int randomNote() {
-        var noteNum = RANDOM.nextInt(notes().size());
+        var noteNum = randomHolder.random.nextInt(notes().size());
         return notes().get(noteNum);
     }
 
@@ -217,4 +231,8 @@ public interface Key {
     }
 
     String getName();
+
+    static void reset() {
+        randomHolder.reset();
+    }
 }

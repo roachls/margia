@@ -88,6 +88,11 @@ public class Main {
         DieRoller.setSeed(params.randomSeed);
 
         var transport = new Transport(musicians, params.tempo);
+        musicians.forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
+        transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
+            Key.reset();
+            DieRoller.reset();
+        });
         transport.setControlDawTiming(params.sendExternalMidi);
 
         var timing = new InternalTimingSource(transport, tempo);

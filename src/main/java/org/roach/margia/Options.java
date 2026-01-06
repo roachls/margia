@@ -77,7 +77,7 @@ public class Options {
             if (!value.equals(oldValue)) {
                 this.dirty = true;
                 emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "true"));
-                emitter.fireChangeEvent(propertyName, new ChangeSource(this, fullPropertyName, value));
+                emitter.fireChangeEvent(fullPropertyName, new ChangeSource(this, fullPropertyName, value));
             }
         } else {
             var mapKey = propertyName.substring(0, indexOfPeriod);
