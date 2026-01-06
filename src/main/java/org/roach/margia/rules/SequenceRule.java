@@ -93,4 +93,12 @@ public class SequenceRule extends AbstractMusicianRule {
     @Override
     public String getName() { return "Sequence"; }
 
+    @Override
+    public void reset() {
+        index = 0;
+        this.sequence = seqMap.get(musician.getId() % seqMap.size());
+        isPlayingSequence = false;
+        ticksRemainingInNote = 0;
+    }
+
 }

@@ -20,4 +20,8 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
      */
     String getName();
 
+    /**
+     * Reset this rule back to its defaults (for rewinds)
+     */
+    void reset();
 }

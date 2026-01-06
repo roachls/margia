@@ -186,4 +186,14 @@ public class StateBasedRule extends AbstractMusicianRule {
 
     @Override
     public String getName() { return "State-based"; }
+
+    @Override
+    public void reset() {
+        sequenceLength = 0;
+        sequenceCountdown = 0;
+        state = DIRECT_REPEAT;
+        tickCountdown = 0;
+        initialTickDelay = 0;
+        delayQueue.clear();
+    }
 }

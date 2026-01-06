@@ -123,7 +123,22 @@ public class Options {
      * @return options
      */
     public Set<Entry<String, Object>> entrySet() {
-        return opts.entrySet();
+        var set = new LinkedHashSet<Entry<String, Object>>();
+        traverseOptions("", opts, set);
+        return set;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void traverseOptions(String parent, Map<String, Object> mapBeingTraversed,
+            Set<Entry<String, Object>> setBeingBuilt) {
+        for (var entry : mapBeingTraversed.entrySet()) {
+            if (entry.getValue() instanceof Map<?, ?> submap) {
+                var childKey = "".equals(parent) ? "" : parent + ".";
+                traverseOptions(childKey + entry.getKey(), (Map<String, Object>) submap, setBeingBuilt);
+            } else {
+                setBeingBuilt.add(Map.entry(parent + "." + entry.getKey(), entry.getValue()));
+            }
+        }
     }
 
     /**

@@ -364,6 +364,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             currentTick = 0;
             notesIvePlayed = 0;
             listening = true;
+            rule.reset();
         }
     }
+    
 }

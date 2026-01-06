@@ -40,4 +40,9 @@ public class RandomRule extends AbstractMusicianRule {
     @Override
     public String getName() { return "Random"; }
 
+    @Override
+    public void reset() {
+        // nothing to do
+    }
+
 }
