@@ -8,8 +8,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.JPanel;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -41,6 +40,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private MusicianComponent selectedAgent;
     private int oldWidth;
     private int oldHeight;
+    private Point dragStart;
+    private Point dragEnd;
 
     /**
      * default edge length
@@ -83,6 +84,26 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
         addComponentListener(new Resizer());
+        addKeyListener(new AgentPanelKeyListener());
+    }
+
+    private class AgentPanelKeyListener extends KeyAdapter {
+
+        @Override
+        public void keyTyped(KeyEvent e) {
+            super.keyTyped(e);
+            switch (e.getKeyCode()) {
+            case KeyEvent.VK_ESCAPE:
+                deselectAll();
+                break;
+            case KeyEvent.VK_DELETE:
+                deleteSelected();
+                break;
+            default:
+                break;
+            }
+        }
+
     }
 
     private class Resizer extends ComponentAdapter {
@@ -178,6 +199,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             g2d.drawLine((int) startSelection.getX(), (int) startSelection.getY(), (int) endSelection.getX(),
                     (int) endSelection.getY());
         }
+
+        if (dragStart != null && dragEnd != null) {
+            g2d.setColor(Color.yellow);
+            g2d.setStroke(SELECTION_LINE_STROKE);
+            var rect = makeSelectionRectangle(dragStart, dragEnd);
+            g2d.drawRect(rect.x, rect.y, rect.width, rect.height);
+        }
     }
 
     private void calcEdges() {
@@ -252,22 +280,31 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private final MouseAdapter mouseAdapter = new MouseAdapter() {
         private MusicianComponent source;
         private MusicianComponent movingComponent;
+        // position of cursor in movingComponent space
+        private Point movingComponentXY;
+        private static final int BUTTON1 = InputEvent.BUTTON1_DOWN_MASK;
+        private static final int SHIFT_BUTTON1 = InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
 
         @Override
-        @SuppressWarnings("java:S1301")
         public void mousePressed(MouseEvent e) {
-            switch (e.getButton()) {
-            case MouseEvent.BUTTON1:
+            if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonPressed(e);
-                break;
-            default:
-                break;
             }
         }
 
         private void leftMouseButtonPressed(MouseEvent e) {
+            if (e.getModifiersEx() == BUTTON1) {
+                leftMousePressedSingleSelectionMode(e);
+            } else if (e.getModifiersEx() == SHIFT_BUTTON1) {
+                deselectAllMusicians();
+                dragStart = e.getPoint();
+            }
+        }
+
+        private void leftMousePressedSingleSelectionMode(MouseEvent e) {
             var comp = getComponentAt(e.getPoint());
             if (comp instanceof MusicianComponent mc) {
+                mc.setSelected(false);
                 switch (mode) {
                 case CONNECT:
                     if (source != null) {
@@ -282,11 +319,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 case MOVE:
                     mc.setSelected(true);
                     movingComponent = mc;
+                    movingComponentXY = SwingUtilities.convertPoint(AgentPanel.this, e.getPoint(), mc);
                     setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
                     break;
                 default:
                     break;
                 }
+            } else {
+                deselectAllMusicians();
             }
         }
 
@@ -294,32 +334,50 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         public void mouseReleased(MouseEvent e) {
             if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonReleased(e);
+            } else if (e.getButton() == MouseEvent.BUTTON3) {
+                var selectedComponent = getComponentAt(e.getPoint());
+                handleMusicianSelection(selectedComponent);
             }
         }
 
         private void leftMouseButtonReleased(MouseEvent e) {
+            if (e.getModifiersEx() == 0) {
+                // no modifier keys
+                leftMouseButtonReleasedSingleSelection(e);
+            } else if (e.getModifiersEx() == InputEvent.SHIFT_DOWN_MASK && dragStart != null && dragEnd != null) {
+                // shift held down
+                var rectangle = makeSelectionRectangle(dragStart, dragEnd);
+                var selectedComponents = AgentPanel.this.getComponentsInRectangle(rectangle);
+                dragStart = null;
+                dragEnd = null;
+                handleMultipleSelection(selectedComponents);
+            }
+
+        }
+
+        private void handleMultipleSelection(List<MusicianComponent> selectedMusicians) {
+            switch (mode) {
+            case ADD, NONE:
+                break;
+            case CONNECT:
+                break;
+            case MOVE:
+                break;
+            case SELECT:
+                selectedMusicians.forEach(mc -> mc.setSelected(true));
+                break;
+            default:
+                break;
+
+            }
+        }
+
+        private void leftMouseButtonReleasedSingleSelection(MouseEvent e) {
             var comp = getComponentAt(e.getPoint());
             switch (mode) {
             case ADD:
                 if (comp instanceof AgentPanel)
                     handleAdd(e);
-                break;
-            case DELETE:
-                if (comp instanceof MusicianComponent mc)
-                    handleRemove(mc);
-                break;
-            case LOCK:
-                if (comp instanceof MusicianComponent mc) {
-                    mc.toggleLocked();
-                }
-                break;
-            case MUTE:
-                if (comp instanceof MusicianComponent mc) {
-                    mc.toggleMuted();
-                }
-                break;
-            case SELECT:
-                handleMusicianSelection(comp);
                 break;
             case CONNECT:
                 handleMusicianConnection(comp);
@@ -336,7 +394,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private void handleMusicianMove(MouseEvent e) {
             if (movingComponent != null) {
                 movingComponent.setLocked(false);
-                movingComponent.setPosition(e.getX(), e.getY());
+                movingComponent.setPosition(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY());
                 movingComponent.setLocked(true);
                 movingComponent.setSelected(false);
                 setCursor(Cursor.getDefaultCursor());
@@ -385,19 +443,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
-        private void handleRemove(MusicianComponent mc) {
-            musicians.remove(mc.getMusician());
-            numMusicians = musicians.size();
-            musicianComponents.remove(mc);
-            var edgeIter = edges.iterator();
-            while (edgeIter.hasNext()) {
-                var edge = edgeIter.next();
-                if (edge.source.equals(mc) || edge.target.equals(mc))
-                    edgeIter.remove();
-            }
-            remove(mc);
-        }
-
         private void handleAdd(MouseEvent e) {
             var newId = musicians.stream().map(Musician::getId).max(Integer::compare).orElse(-1) + 1;
             var musician = new Musician(newId, 0, new RandomRule());
@@ -415,10 +460,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         public void mouseDragged(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
                 endSelection = e.getPoint();
-            } else if (mode == EditMode.MOVE && movingComponent != null) {
+            } else if (mode == EditMode.MOVE && e.getModifiersEx() == BUTTON1 && movingComponent != null) {
                 movingComponent.setLocked(false);
-                movingComponent.setPosition(e.getX(), e.getY());
+                movingComponent.setPosition(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY());
                 movingComponent.setLocked(true);
+            } else if (e.getModifiersEx() == SHIFT_BUTTON1) {
+                dragEnd = e.getPoint();
             }
         }
 
@@ -464,18 +511,51 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
     }
 
-    void setEditMode(EditMode mode) { this.mode = mode; }
-
-    enum EditMode {
-        ADD, DELETE, MUTE, SELECT, LOCK, CONNECT, MOVE;
+    private static Rectangle makeSelectionRectangle(Point p1, Point p2) {
+        var x = Math.min(p1.x, p2.x);
+        var y = Math.min(p1.y, p2.y);
+        var width = Math.abs(p1.x - p2.x);
+        var height = Math.abs(p1.y - p2.y);
+        return new Rectangle(x, y, width, height);
     }
 
-    void unlockAll() {
+    private List<MusicianComponent> getComponentsInRectangle(Rectangle targetRect) {
+        List<MusicianComponent> componentsInArea = new ArrayList<>();
+        Component[] components = getComponents(); // Get all components in the panel.
+
+        for (Component component : components) {
+            // Get the bounds of the current component.
+            var componentBounds = component.getBounds();
+
+            // Check if the component's bounds intersect with the target rectangle.
+            if (componentBounds.intersects(targetRect) && component instanceof MusicianComponent mc) {
+                componentsInArea.add(mc);
+            }
+        }
+
+        return componentsInArea;
+    }
+
+    void setEditMode(EditMode mode) { this.mode = mode; }
+
+    private void deselectAllMusicians() {
+        musicianComponents.forEach(mc -> mc.setSelected(false));
+    }
+
+    private void unlockAll() {
         musicianComponents.forEach(mc -> mc.setLocked(false));
     }
 
     void lockAll() {
         musicianComponents.forEach(mc -> mc.setLocked(true));
+    }
+
+    void unlock(List<MusicianComponent> selectedMusicianComponents) {
+        selectedMusicianComponents.forEach(mc -> mc.setLocked(false));
+    }
+
+    void lock(List<MusicianComponent> selectedMusicianComponents) {
+        selectedMusicianComponents.forEach(mc -> mc.setLocked(true));
     }
 
     void muteAll() {
@@ -484,5 +564,63 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void unmuteAll() {
         musicianComponents.forEach(mc -> mc.getMusician().setMuted(false));
+    }
+
+    void mute(List<MusicianComponent> selectedMusicianComponents) {
+        selectedMusicianComponents.forEach(mc -> mc.getMusician().setMuted(true));
+    }
+
+    void unmute(List<MusicianComponent> selectedMusicianComponents) {
+        selectedMusicianComponents.forEach(mc -> mc.getMusician().setMuted(false));
+    }
+
+    void delete(List<MusicianComponent> selectedMusicianComponents) {
+        for (var mc : selectedMusicianComponents) {
+            musicians.remove(mc.getMusician());
+            numMusicians = musicians.size();
+            musicianComponents.remove(mc);
+            var edgeIter = edges.iterator();
+            while (edgeIter.hasNext()) {
+                var edge = edgeIter.next();
+                if (edge.source.equals(mc) || edge.target.equals(mc))
+                    edgeIter.remove();
+            }
+            remove(mc);
+        }
+    }
+
+    enum EditMode {
+        NONE, ADD, CONNECT, MOVE, SELECT;
+    }
+
+    void selectAll() {
+        musicianComponents.forEach(mc -> mc.setSelected(true));
+    }
+
+    void deselectAll() {
+        musicianComponents.forEach(mc -> mc.setSelected(false));
+    }
+
+    void muteSelected() {
+        musicianComponents.stream().filter(MusicianComponent::isSelected)
+                .forEach(mc -> mc.getMusician().setMuted(true));
+    }
+
+    void unmuteSelected() {
+        musicianComponents.stream().filter(MusicianComponent::isSelected)
+                .forEach(mc -> mc.getMusician().setMuted(false));
+    }
+
+    void lockSelected() {
+        musicianComponents.stream().filter(MusicianComponent::isSelected).forEach(mc -> mc.setLocked(true));
+    }
+
+    void unlockSelected() {
+        musicianComponents.stream().filter(MusicianComponent::isSelected).forEach(mc -> mc.setLocked(false));
+    }
+
+    void deleteSelected() {
+        var selectedMusicians = musicianComponents.stream().filter(MusicianComponent::isSelected).toList();
+        delete(selectedMusicians);
     }
 }

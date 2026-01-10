@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.prefs.BackingStoreException;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -77,17 +78,24 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private void setupMenu() {
         var menubar = new JMenuBar();
 
+        setupFileMenu(menubar);
+        setupEditMenu(menubar);
+        setupHelpMenu(menubar);
+        this.setJMenuBar(menubar);
+    }
+
+    private void setupFileMenu(JMenuBar menubar) {
         var fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
-        var openMenuItem = new JMenuItem("Open");
+        var openMenuItem = new JMenuItem("Open", createImageIcon("/icons/open.png", "an open folder"));
         openMenuItem.setMnemonic(KeyEvent.VK_O);
         openMenuItem.addActionListener(this::openSettingsFromFile);
 
-        var saveMenuItem = new JMenuItem("Save");
+        var saveMenuItem = new JMenuItem("Save", createImageIcon("/icons/save.png", "a floppy disk"));
         saveMenuItem.setMnemonic(KeyEvent.VK_S);
         saveMenuItem.addActionListener(this::saveSettingsToFile);
 
-        var saveAsMenuItem = new JMenuItem("Save As...");
+        var saveAsMenuItem = new JMenuItem("Save As...", createImageIcon("/icons/save.png", "a floppy disk"));
         saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
         saveAsMenuItem.addActionListener(e -> {
             Options.getInstance().setFilename(null);
@@ -98,30 +106,67 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         fileMenu.add(saveMenuItem);
         fileMenu.add(saveAsMenuItem);
         menubar.add(fileMenu);
+    }
 
+    private void setupEditMenu(JMenuBar menubar) {
         var editMenu = new JMenu("Edit");
         editMenu.setMnemonic(KeyEvent.VK_E);
-        var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options");
+        var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options",
+                createImageIcon("/icons/options.png", "an Options icon"));
         showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
         showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
-        var showToolPaneMenuItem = new JCheckBoxMenuItem("Show Tools");
+        var showToolPaneMenuItem = new JCheckBoxMenuItem("Show Tools",
+                createImageIcon("/icons/tools.png", "an icon of a wrench and screwdriver"));
         showToolPaneMenuItem.setMnemonic(KeyEvent.VK_T);
         showToolPaneMenuItem.addActionListener(_ -> toolPanel.setVisible(showToolPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
         editMenu.add(showToolPaneMenuItem);
+        var selectAll = new JMenuItem("Select All");
+        selectAll.setMnemonic(KeyEvent.VK_S);
+        selectAll.addActionListener(_ -> agentPanel.selectAll());
+        editMenu.add(selectAll);
+        var deselectAll = new JMenuItem("Deselect All");
+        deselectAll.setMnemonic(KeyEvent.VK_D);
+        deselectAll.addActionListener(_ -> agentPanel.deselectAll());
+        editMenu.add(deselectAll);
+        var muteSelected = new JMenuItem("Mute selected",
+                createImageIcon("/icons/mute.png", "a speaker that is muted"));
+        muteSelected.setMnemonic(KeyEvent.VK_M);
+        muteSelected.addActionListener(_ -> agentPanel.muteSelected());
+        editMenu.add(muteSelected);
+        var unmuteSelected = new JMenuItem("Unmute selected",
+                createImageIcon("/icons/unmute.png", "a speaker that is unmuted"));
+        unmuteSelected.setMnemonic(KeyEvent.VK_U);
+        unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
+        editMenu.add(unmuteSelected);
+        var lockSelected = new JMenuItem("Lock selected", createImageIcon("/icons/lock.png", "a closed lock"));
+        lockSelected.setMnemonic(KeyEvent.VK_L);
+        lockSelected.addActionListener(_ -> agentPanel.lockSelected());
+        editMenu.add(lockSelected);
+        var unlockSelected = new JMenuItem("Unlock selected", createImageIcon("/icons/unlock.png", "an open lock"));
+        unlockSelected.setMnemonic(KeyEvent.VK_N);
+        unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
+        editMenu.add(unlockSelected);
+        var deleteSelected = new JMenuItem("Remove (delete) selected", createImageIcon("/icons/delete.png", "an large capital X"));
+        deleteSelected.setMnemonic(KeyEvent.VK_R);
+        deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
+        editMenu.add(deleteSelected);
         menubar.add(editMenu);
+    }
 
+    private void setupHelpMenu(JMenuBar menubar) {
         var helpMenu = new JMenu("Help");
+        helpMenu.setIcon(createImageIcon("/icons/help.png", "a question mark"));
         helpMenu.setMnemonic('H');
-        var aboutMenuItem = new JMenuItem("About");
+        var aboutMenuItem = new JMenuItem("About",
+                createImageIcon("/icons/about.png", "an circle with the letter i for information"));
         aboutMenuItem.setMnemonic(KeyEvent.VK_A);
         aboutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, ABOUT_MESSAGE));
         helpMenu.add(aboutMenuItem);
 
         menubar.add(Box.createHorizontalGlue());
         menubar.add(helpMenu);
-        this.setJMenuBar(menubar);
     }
 
     private void openSettingsFromFile(ActionEvent e) {
@@ -217,4 +262,15 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         setTitle(windowTitle);
     }
 
+    private ImageIcon createImageIcon(String path, String description) {
+        try (var resource = getClass().getResourceAsStream(path)) {
+            var image = ImageIO.read(resource);
+            var resizedImage = image.getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+            return new ImageIcon(resizedImage, description);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

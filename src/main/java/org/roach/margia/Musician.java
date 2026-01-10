@@ -331,13 +331,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     }
 
     /**
-     * Toggle the muted status of this musician
-     */
-    public void toggleMuted() {
-        muted = !muted;
-    }
-
-    /**
      * @return the rule used by this musician for generating notes
      */
     public MusicianRule getRule() { return rule; }

@@ -314,8 +314,4 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     boolean isLocked() { return locked; }
     void setLocked(boolean locked) { this.locked = locked; }
 
-    void toggleMuted() {
-        musician.toggleMuted();
-    }
-
 }
