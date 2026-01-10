@@ -51,22 +51,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     private int rangeLow = 0;
     private int rangeHi = 127;
     private boolean muted;
-    private Key key = Key.CPentatonic;
+    private Key key = Key.Chromatic;
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private boolean listening = true;
-
-    /**
-     * @return true if this musician is muted
-     */
-    public boolean isMuted() { return muted; }
-
-    /**
-     * @param muted true to mute this musician. A muted musician won't actually play
-     *              a note to the MIDI controller, but other musicians will still
-     *              hear it.
-     */
-    public void setMuted(boolean muted) { this.muted = muted; }
 
     /**
      * @param id      unique id of this {@link Musician}
@@ -173,9 +161,28 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void setMyLastNote(NoteInfo myLastNote) { this.myLastNote = myLastNote; }
 
     /**
+     * reset the number of notes this musician has played
+     */
+    public void resetNotesIvePlayed() {
+        this.notesIvePlayed = 0;
+    }
+
+    /**
      * @return the unique ID of this {@link Musician}
      */
     public int getId() { return id; }
+
+    /**
+     * @return true if this musician is muted
+     */
+    public boolean isMuted() { return muted; }
+
+    /**
+     * @param muted true to mute this musician. A muted musician won't actually play
+     *              a note to the MIDI controller, but other musicians will still
+     *              hear it.
+     */
+    public void setMuted(boolean muted) { this.muted = muted; }
 
     /**
      * @return current number of notes in this {@link Musician musician's} queue
@@ -200,7 +207,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rangeLow the lowest note that this musician can play
      */
-    public void setRangeLow(int rangeLow) { this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127); }
+    public void setRangeLow(int rangeLow) {
+        this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127);
+        this.key = this.key.of(rangeLow, rangeHi);
+    }
 
     /**
      * @return the highest note that this musician can play
@@ -208,9 +218,12 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public int getRangeHi() { return rangeHi; }
 
     /**
-     * @param rangeHigh the lowest note that this musician can play
+     * @param rangeHi the lowest note that this musician can play
      */
-    public void setRangeHigh(int rangeHigh) { this.rangeLow = Range.check("rangeLow", rangeHigh, 0, 127); }
+    public void setRangeHi(int rangeHi) {
+        this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127);
+        this.key = this.key.of(rangeLow, rangeHi);
+    }
 
     /**
      * @return the key that this musician plays in
@@ -226,13 +239,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
         this.key = key;
         this.rangeLow = key.lowestNote();
         this.rangeHi = key.highestNote();
-    }
-
-    /**
-     * reset the number of notes this musician has played
-     */
-    public void resetNotesIvePlayed() {
-        this.notesIvePlayed = 0;
     }
 
     /**
@@ -367,5 +373,5 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             rule.reset();
         }
     }
-    
+
 }

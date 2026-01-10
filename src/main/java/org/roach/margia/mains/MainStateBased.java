@@ -25,34 +25,6 @@ public class MainStateBased implements Algorithm<StateBasedParams> {
             musicians.add(musician);
         }
 
-        var baseKey = sbParams.key;
-        musicians.get(0).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
-        musicians.get(1).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
-        musicians.get(2).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
-        musicians.get(3).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
-        musicians.get(4).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
-        musicians.get(5).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
-        musicians.get(6).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getLow() + 2));
-        musicians.get(7).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
-        musicians.get(0 + 8).setKey(baseKey.of(Octave.O2.getLow(), Octave.O5.getHigh()));
-        musicians.get(1 + 8).setKey(baseKey.of(Octave.O2.getLow(), Octave.O4.getHigh()));
-        musicians.get(2 + 8).setKey(baseKey.of(Octave.O_NEG2.getLow(), Octave.O1.getHigh()));
-        musicians.get(3 + 8).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getHigh()));
-        musicians.get(4 + 8).setKey(baseKey.of(Octave.O4.getLow(), Octave.O5.getHigh()));
-        musicians.get(5 + 8).setKey(baseKey.of(Octave.O1.getLow(), Octave.O3.getHigh()));
-        musicians.get(6 + 8).setKey(baseKey.of(Octave.O3.getLow(), Octave.O4.getLow() + 2));
-        musicians.get(7 + 8).setKey(Key.Chromatic.of(Octave.O1.getLow(), Octave.O1.getHigh()));
-
-        // mute 2nd and 3rd rows
-        musicians.get(4).setMuted(true);
-        musicians.get(5).setMuted(true);
-        musicians.get(6).setMuted(true);
-        musicians.get(7).setMuted(true);
-        musicians.get(8).setMuted(true);
-        musicians.get(9).setMuted(true);
-        musicians.get(10).setMuted(true);
-        musicians.get(11).setMuted(true);
-
         for (var row = 0; row < sbParams.numRows; row++) {
             for (var col = 0; col < sbParams.numCols; col++) {
                 var index = row * sbParams.numCols + col;

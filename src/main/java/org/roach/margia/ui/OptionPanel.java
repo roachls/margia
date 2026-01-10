@@ -142,18 +142,20 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         panel.add(keyLabel);
         panel.add(key);
 
-        var rangeLowModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
-        rangeLow = new JSpinner(rangeLowModel);
-        var rangeLowLabel = new JLabel("Low note");
-        rangeLowLabel.setLabelFor(rangeLow);
-        panel.add(rangeLowLabel);
-        panel.add(rangeLow);
-        var rangeHiModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
-        rangeHi = new JSpinner(rangeHiModel);
-        var rangeHiLabel = new JLabel("High note");
-        rangeHiLabel.setLabelFor(rangeHi);
-        panel.add(rangeHiLabel);
-        panel.add(rangeHi);
+        rangeLow = addSpinner(panel, "Low note", 0d, 0d, 127d, 1d, Integer.class);
+//        var rangeLowModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
+//        rangeLow = new JSpinner(rangeLowModel);
+//        var rangeLowLabel = new JLabel("Low note");
+//        rangeLowLabel.setLabelFor(rangeLow);
+//        panel.add(rangeLowLabel);
+//        panel.add(rangeLow);
+//        var rangeHiModel = new SpinnerListModel(Note.NOTE_NUMBERS.keySet().stream().toList());
+        rangeHi = addSpinner(panel, "High note", 127d, 0d, 127d, 1d, Integer.class);
+//        rangeHi = new JSpinner(rangeHiModel);
+//        var rangeHiLabel = new JLabel("High note");
+//        rangeHiLabel.setLabelFor(rangeHi);
+//        panel.add(rangeHiLabel);
+//        panel.add(rangeHi);
         channel = addSpinner(panel, "MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
 
         return panel;
@@ -194,66 +196,72 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     private MusicianComponent selectedMusician;
 
     @Override
-    @SuppressWarnings("java:S1121")
     public void vetoableChange(PropertyChangeEvent evt) {
         switch (evt.getPropertyName()) {
         case AgentPanel.SELECTED_AGENT_PROPERTY:
             if (selectedMusician != null) {
                 selectedMusician.setSelected(false);
                 selectedMusician = null;
+                resetUiAndListeners();
             }
             var sel = (MusicianComponent) evt.getNewValue();
             if (sel == null) {
                 musicianPanelBorder.setTitle("Musician options");
-                if (ruleActionListener != null) {
-                    rule.removeActionListener(ruleActionListener);
-                    ruleActionListener = null;
-                }
-                rule.setSelectedItem("");
-                if (keyActionListener != null) {
-                    key.removeActionListener(keyActionListener);
-                    keyActionListener = null;
-                }
-                key.setSelectedItem("");
-                if (rangeLowChangeListener != null) {
-                    rangeLow.removeChangeListener(rangeLowChangeListener);
-                    rangeLowChangeListener = null;
-                }
-                rangeLow.setValue(Note.NOTE_NAMES.get(0));
-                if (rangeHiChangeListener != null) {
-                    rangeHi.removeChangeListener(rangeHiChangeListener);
-                    rangeHiChangeListener = null;
-                }
-                rangeHi.setValue(Note.NOTE_NAMES.get(127));
-                if (channelChangeListener != null) {
-                    channel.removeChangeListener(channelChangeListener);
-                    channelChangeListener = null;
-                }
-                channel.setValue(0);
+                resetUiAndListeners();
             } else {
                 selectedMusician = sel;
                 selectedMusician.setSelected(true);
                 musicianPanelBorder.setTitle("Musician options (" + sel.getMusician().getId() + ")");
                 rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
-                rule.addActionListener(ruleActionListener = _ -> selectedMusician.getMusician()
-                        .setRule((AbstractMusicianRule) availableRules.get(rule.getSelectedItem())));
+                ruleActionListener = _ -> selectedMusician.getMusician()
+                        .setRule((AbstractMusicianRule) availableRules.get(rule.getSelectedItem()));
+                rule.addActionListener(ruleActionListener);
                 key.setSelectedItem(selectedMusician.getMusician().getKey().getName());
-                key.addActionListener(keyActionListener = _ -> selectedMusician.getMusician()
-                        .setKey(Key.BUILTIN_KEYS.get(key.getSelectedItem())));
-                rangeLow.setValue(Note.NOTE_NAMES.get(selectedMusician.getMusician().getRangeLow()));
-                rangeLow.addChangeListener(rangeLowChangeListener = _ -> selectedMusician.getMusician()
-                        .setRangeLow(Note.NOTE_NUMBERS.get(rangeLow.getValue())));
-                rangeHi.setValue(Note.NOTE_NAMES.get(selectedMusician.getMusician().getRangeHi()));
-                rangeHi.addChangeListener(rangeHiChangeListener = _ -> selectedMusician.getMusician()
-                        .setRangeHigh(Note.NOTE_NUMBERS.get(rangeHi.getValue())));
+                keyActionListener = _ -> selectedMusician.getMusician()
+                        .setKey(Key.BUILTIN_KEYS.get(key.getSelectedItem()));
+                key.addActionListener(keyActionListener);
+                rangeLow.setValue(selectedMusician.getMusician().getRangeLow());
+                rangeLowChangeListener = _ -> selectedMusician.getMusician().setRangeLow((int) rangeLow.getValue());
+                rangeLow.addChangeListener(rangeLowChangeListener);
+                rangeHi.setValue(selectedMusician.getMusician().getRangeHi());
+                rangeHiChangeListener = _ -> selectedMusician.getMusician().setRangeHi((int) rangeHi.getValue());
+                rangeHi.addChangeListener(rangeHiChangeListener);
                 channel.setValue(selectedMusician.getMusician().getChannel());
-                channel.addChangeListener(channelChangeListener = _ -> selectedMusician.getMusician()
-                        .setChannel((int) channel.getValue()));
+                channelChangeListener = _ -> selectedMusician.getMusician().setChannel((int) channel.getValue());
+                channel.addChangeListener(channelChangeListener);
             }
             musPanel.repaint();
             break;
         default:
             break;
         }
+    }
+
+    private void resetUiAndListeners() {
+        if (ruleActionListener != null) {
+            rule.removeActionListener(ruleActionListener);
+            ruleActionListener = null;
+        }
+        rule.setSelectedItem("");
+        if (keyActionListener != null) {
+            key.removeActionListener(keyActionListener);
+            keyActionListener = null;
+        }
+        key.setSelectedItem("");
+        if (rangeLowChangeListener != null) {
+            rangeLow.removeChangeListener(rangeLowChangeListener);
+            rangeLowChangeListener = null;
+        }
+        rangeLow.setValue(0);
+        if (rangeHiChangeListener != null) {
+            rangeHi.removeChangeListener(rangeHiChangeListener);
+            rangeHiChangeListener = null;
+        }
+        rangeHi.setValue(127);
+        if (channelChangeListener != null) {
+            channel.removeChangeListener(channelChangeListener);
+            channelChangeListener = null;
+        }
+        channel.setValue(0);
     }
 }

@@ -401,6 +401,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private void handleAdd(MouseEvent e) {
             var newId = musicians.stream().map(Musician::getId).max(Integer::compare).orElse(-1) + 1;
             var musician = new Musician(newId, 0, new RandomRule());
+            musician.setMuted(true);
             musicians.add(musician);
             numMusicians = musicians.size();
             var musicianComponent = new MusicianComponent(musician, tickLengthMillis, 1.0);
