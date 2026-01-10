@@ -7,13 +7,17 @@ import java.beans.PropertyVetoException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Musician;
 import org.roach.margia.Options;
+import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -42,6 +46,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private int oldHeight;
     private Point dragStart;
     private Point dragEnd;
+    private List<MusicianComponent> copiedComponents;
+    private static final Random RANDOM = new SecureRandom();
 
     /**
      * default edge length
@@ -111,20 +117,25 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // store width and height in case we resize later
         oldWidth = getWidth();
         oldHeight = getHeight();
-        var rand = new SecureRandom();
         for (var musician : musicians) {
-            var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
-            Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
-            n.setPosition(rand.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
-                    rand.nextInt(n.getDiameter(), getHeight() - n.getDiameter()));
-            musicianComponents.add(n);
-            add(n);
+            addMusicianComponent(musician);
         }
 
         calcEdges();
 
         // Use a Timer for animation
         new Timer(20, this).start();
+    }
+
+    private MusicianComponent addMusicianComponent(Musician musician) {
+        var n = new MusicianComponent(musician);
+        Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
+        n.setPosition(RANDOM.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
+                RANDOM.nextInt(n.getDiameter(), getHeight() - n.getDiameter()));
+        musicianComponents.add(n);
+        add(n);
+        numMusicians = musicianComponents.size();
+        return n;
     }
 
     @Override
@@ -245,7 +256,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (dist == 0.0) // prevent division by zero
                 continue;
 
-            var force = gravity / dist;
+            var force = n1.getMass() * gravity / dist;
             var forceVec = vec.multiply(force);
             n1.setForce(n1.getForce().subtract(forceVec));
         }
@@ -314,8 +325,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonReleased(e);
             } else if (e.getButton() == MouseEvent.BUTTON3) {
-                var selectedComponent = getComponentAt(e.getPoint());
-                handleMusicianSelection(selectedComponent);
+                deselectAll();
+                var editingComponent = getComponentAt(e.getPoint());
+                handleMusicianSelection(editingComponent);
             }
         }
 
@@ -416,12 +428,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void handleAdd(MouseEvent e) {
-            var newId = musicians.stream().map(Musician::getId).max(Integer::compare).orElse(-1) + 1;
-            var musician = new Musician(newId, 0, new RandomRule());
+            var musician = new Musician(0, new RandomRule());
             musician.setMuted(true);
             musicians.add(musician);
             numMusicians = musicians.size();
-            var musicianComponent = new MusicianComponent(musician, tickLengthMillis, 1.0);
+            var musicianComponent = new MusicianComponent(musician);
             musicianComponents.add(musicianComponent);
             Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, musicianComponent);
             musicianComponent.setPosition(e.getX(), e.getY());
@@ -496,7 +507,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 break;
             case TimingSource.TEMPO_PROPERTY:
                 this.tickLengthMillis = 60000 / ((int) cs.newValue() * 24);
-                musicianComponents.forEach(m -> m.setTickLengthMillis(tickLengthMillis));
+                MusicianComponent.setTickLengthMillis(tickLengthMillis);
                 break;
             default:
                 break;
@@ -625,5 +636,27 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 }
             }
         }
+    }
+
+    void copySelectedComponents() {
+        this.copiedComponents = musicianComponents.stream().filter(MusicianComponent::isSelected).toList();
+    }
+
+    void paste() {
+        if (this.copiedComponents == null)
+            return;
+        for (var componentToCopy : copiedComponents) {
+            var musicianToCopy = componentToCopy.getMusician();
+            var newMusician = new Musician(musicianToCopy.getChannel(),
+                    (AbstractMusicianRule) musicianToCopy.getRule());
+            newMusician.setKey(musicianToCopy.getKey());
+            newMusician.setMuted(musicianToCopy.isMuted());
+            var newComponent = addMusicianComponent(newMusician);
+            newComponent.setMass(componentToCopy.getMass());
+            newComponent.setCircleRadius(componentToCopy.getRadius());
+        }
+        invalidate();
+        this.copiedComponents = null;
+        deselectAll();
     }
 }

@@ -4,6 +4,7 @@ import java.beans.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,14 +56,14 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private boolean listening = true;
+    private static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
 
     /**
-     * @param id      unique id of this {@link Musician}
      * @param channel MIDI channel
      * @param rule    The rule that governs a musician's behavior
      */
-    public Musician(final int id, int channel, final AbstractMusicianRule rule) {
-        this.id = id;
+    public Musician(int channel, final AbstractMusicianRule rule) {
+        this.id = ID_GENERATOR.getAndIncrement();
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
         this.channel = channel;

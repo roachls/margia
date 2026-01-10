@@ -21,7 +21,7 @@ public class MainRandom implements Algorithm<RandomParams> {
         var rand = new SecureRandom();
         rand.setSeed(mainParams.randomSeed);
         for (int i = 0; i < numMusicians; i++) {
-            var m = new Musician(i, i % mainParams.numChannels, new RandomRule());
+            var m = new Musician(i % mainParams.numChannels, new RandomRule());
             m.setMuted(rand.nextBoolean());
             m.setKey(rParams.key);
             musicians.add(m);

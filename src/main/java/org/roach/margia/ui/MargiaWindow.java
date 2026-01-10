@@ -41,6 +41,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private AgentPanel agentPanel;
     private String algorithmTitle;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
+    // OS-specific control key (Ctrl for Windows, Option for Mac)
+    private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
 
     /**
      * @param title     window title
@@ -95,6 +97,30 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     complete = true;
                 }
                 break;
+            case KeyEvent.VK_C:
+                if (e.isControlDown()) {
+                    agentPanel.copySelectedComponents();
+                    complete = true;
+                }
+                break;
+            case KeyEvent.VK_V:
+                if (e.isControlDown()) {
+                    agentPanel.paste();
+                    complete = true;
+                }
+                break;
+            case KeyEvent.VK_S:
+                if (e.isControlDown()) {
+                    saveSettingsToFile();
+                    complete = true;
+                }
+                break;
+            case KeyEvent.VK_O:
+                if (e.isControlDown()) {
+                    openSettingsFromFile();
+                    complete = true;
+                }
+                break;
             default:
                 break;
             }
@@ -117,17 +143,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         fileMenu.setMnemonic(KeyEvent.VK_F);
         var openMenuItem = new JMenuItem("Open", createImageIcon("/icons/open.png", "an open folder"));
         openMenuItem.setMnemonic(KeyEvent.VK_O);
-        openMenuItem.addActionListener(this::openSettingsFromFile);
+        openMenuItem.addActionListener(_ -> openSettingsFromFile());
 
         var saveMenuItem = new JMenuItem("Save", createImageIcon("/icons/save.png", "a floppy disk"));
         saveMenuItem.setMnemonic(KeyEvent.VK_S);
-        saveMenuItem.addActionListener(this::saveSettingsToFile);
+        saveMenuItem.addActionListener(_ -> saveSettingsToFile());
 
-        var saveAsMenuItem = new JMenuItem("Save As...", createImageIcon("/icons/save.png", "a floppy disk"));
+        var saveAsMenuItem = new JMenuItem("Save As... (" + CONTROL_TEXT + "+S)",
+                createImageIcon("/icons/save.png", "a floppy disk"));
         saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
-        saveAsMenuItem.addActionListener(e -> {
+        saveAsMenuItem.addActionListener(_ -> {
             Options.getInstance().setFilename(null);
-            saveSettingsToFile(e);
+            saveSettingsToFile();
         });
 
         fileMenu.add(openMenuItem);
@@ -145,24 +172,35 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
 
+        var copyMenuItem = new JMenuItem("Copy (" + CONTROL_TEXT + "+C)",
+                createImageIcon("/icons/copy.png", "two clipboards"));
+        copyMenuItem.setMnemonic(KeyEvent.VK_C);
+        copyMenuItem.addActionListener(_ -> agentPanel.copySelectedComponents());
+        editMenu.add(copyMenuItem);
+        var pasteMenuItem = new JMenuItem("Paste (" + CONTROL_TEXT + "+V)",
+                createImageIcon("/icons/paste.png", "a clipboard"));
+        pasteMenuItem.setMnemonic(KeyEvent.VK_P);
+        pasteMenuItem.addActionListener(_ -> agentPanel.paste());
+        editMenu.add(pasteMenuItem);
+
         setupModesMenu(editMenu);
 
-        var selectAll = new JMenuItem("Select All");
+        var selectAll = new JMenuItem("Select All (" + CONTROL_TEXT + "+A)");
         selectAll.setMnemonic(KeyEvent.VK_S);
         selectAll.addActionListener(_ -> agentPanel.selectAll());
         editMenu.add(selectAll);
-        var deselectAll = new JMenuItem("Deselect All");
+        var deselectAll = new JMenuItem("Deselect All (" + KeyEvent.getKeyText(KeyEvent.VK_ESCAPE) + ")");
         deselectAll.setMnemonic(KeyEvent.VK_D);
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
         editMenu.add(deselectAll);
         var muteSelected = new JMenuItem("Mute selected",
                 createImageIcon("/icons/mute.png", "a speaker that is muted"));
-        muteSelected.setMnemonic(KeyEvent.VK_M);
+        muteSelected.setMnemonic(KeyEvent.VK_U);
         muteSelected.addActionListener(_ -> agentPanel.muteSelected());
         editMenu.add(muteSelected);
         var unmuteSelected = new JMenuItem("Unmute selected",
                 createImageIcon("/icons/unmute.png", "a speaker that is unmuted"));
-        unmuteSelected.setMnemonic(KeyEvent.VK_U);
+        unmuteSelected.setMnemonic(KeyEvent.VK_E);
         unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
         editMenu.add(unmuteSelected);
         var lockSelected = new JMenuItem("Lock selected", createImageIcon("/icons/lock.png", "a closed lock"));
@@ -173,14 +211,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         unlockSelected.setMnemonic(KeyEvent.VK_N);
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
         editMenu.add(unlockSelected);
-        var deleteSelected = new JMenuItem("Remove (delete) selected",
+        var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
                 createImageIcon("/icons/delete.png", "an large capital X"));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
         deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
         editMenu.add(deleteSelected);
         var connectSelected = new JMenuItem("Connect selected",
                 createImageIcon("/icons/connect.png", "two dots with a line between them"));
-        connectSelected.setMnemonic(KeyEvent.VK_C);
+        connectSelected.setMnemonic(KeyEvent.VK_T);
         connectSelected.addActionListener(_ -> agentPanel.connectSelected());
         editMenu.add(connectSelected);
         var disconnectSelected = new JMenuItem("Disconnect selected",
@@ -204,7 +242,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         addMode.setName(EditMode.ADD.name());
         var moveMode = new JRadioButtonMenuItem("Move Musician",
                 createImageIcon("/icons/move.png", "a four-way arrow icon"));
-        moveMode.setMnemonic(KeyEvent.VK_M);
+        moveMode.setMnemonic(KeyEvent.VK_V);
         moveMode.setName(EditMode.MOVE.name());
         var connectMode = new JRadioButtonMenuItem("Connect/Disconnect two musicians",
                 createImageIcon("/icons/connect.png", "two dots with a line between them"));
@@ -258,7 +296,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         menubar.add(helpMenu);
     }
 
-    private void openSettingsFromFile(ActionEvent e) {
+    private void openSettingsFromFile() {
         var newSaveLocation = getFilePathFromUser(this, "Select file", FileAction.LOAD);
         if (newSaveLocation == null)
             return;
@@ -272,7 +310,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         }
     }
 
-    private void saveSettingsToFile(ActionEvent e) {
+    private void saveSettingsToFile() {
         var options = Options.getInstance();
         if (Options.getInstance().getFilename() == null) {
             Options.getInstance().setFilename(getFilePathFromUser(this, "Select Save location", FileAction.SAVE));

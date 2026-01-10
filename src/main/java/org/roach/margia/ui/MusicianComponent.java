@@ -15,6 +15,7 @@ import javax.swing.event.ChangeListener;
 
 import org.roach.margia.*;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
+import org.roach.margia.util.Range;
 
 /**
  * GUI element that displays an agent as a colored circle
@@ -24,7 +25,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
     private final Musician musician;
     private Color color;
-    private int tickLengthMillis;
+    private static int tickLengthMillis;
     private Timer timer;
     private boolean selected;
     private boolean locked;
@@ -33,7 +34,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * size of circle to draw
      */
     private int radius = MusicianComponent.DEFAULT_RADIUS;
-    private final double mass;
+    private double mass = 1.0;
     private final Point2D.Double position = new Point2D.Double();
     private Vector2D velocity = new Vector2D(0, 0);
     private Vector2D force = new Vector2D(0, 0);
@@ -48,6 +49,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * property name of radius spinner
      */
     static final String RADIUS_PROPERTY = "ui.radius";
+    static final String MASS_PROPERTY = "ui.mass";
     /**
      * property name of whether to show numbers
      */
@@ -67,13 +69,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     /**
      * @param musician         the {@link Musician} being displayed
      * @param tickLengthMillis length of a tick in milliseconds
-     * @param mass             mass to use in position calculations
      */
-    MusicianComponent(Musician musician, int tickLengthMillis, double mass) {
+    MusicianComponent(Musician musician) {
         this.musician = musician;
         this.setName("Musician_" + musician.getId());
-        this.tickLengthMillis = tickLengthMillis;
-        this.mass = mass;
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
         setCircleRadius(Options.getInstance().getOrDefaultAsInt(RADIUS_PROPERTY, DEFAULT_RADIUS));
@@ -206,7 +205,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     /**
      * @param tickLengthMillis tick length in milliseconds, used for animations
      */
-    public void setTickLengthMillis(int tickLengthMillis) { this.tickLengthMillis = tickLengthMillis; }
+    public static void setTickLengthMillis(int tickLengthMillis) {
+        MusicianComponent.tickLengthMillis = tickLengthMillis;
+    }
 
     Color getColor() { return this.color; }
 
@@ -312,6 +313,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     }
 
     boolean isLocked() { return locked; }
+
     void setLocked(boolean locked) { this.locked = locked; }
 
+    static int getTickLengthMillis() { return tickLengthMillis; }
+
+    void setMass(double mass) { this.mass = Range.check("mass", mass, 0.1, 100.0); }
 }

@@ -22,7 +22,7 @@ public class MainSequence implements Algorithm<RandomParams> {
         var rand = new SecureRandom();
         rand.setSeed(mainParams.randomSeed);
         for (int i = 0; i < numMusicians; i++) {
-            var m = new Musician(i, i % mainParams.numChannels, new SequenceRule());
+            var m = new Musician(i % mainParams.numChannels, new SequenceRule());
             m.setListening(false);
             m.setKey(rParams.key);
             musicians.add(m);

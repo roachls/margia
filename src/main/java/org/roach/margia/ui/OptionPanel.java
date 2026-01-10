@@ -27,6 +27,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     private JSpinner rangeLow;
     private JSpinner rangeHi;
     private JSpinner channel;
+    private JSpinner mass;
     private TitledBorder musicianPanelBorder;
     private JPanel musPanel;
     private HashMap<String, MusicianRule> availableRules;
@@ -145,6 +146,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         rangeLow = addSpinner(panel, "Low note", 0d, 0d, 127d, 1d, Integer.class);
         rangeHi = addSpinner(panel, "High note", 127d, 0d, 127d, 1d, Integer.class);
         channel = addSpinner(panel, "MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
+        mass = addSpinner(panel, "Mass", 1d, 0.1d, 100d, 0.1d, Double.class);
 
         return panel;
     }
@@ -162,6 +164,9 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                 break;
             case MusicianComponent.SHOW_NUMBERS_PROPERTY:
                 showNumbers.setSelected(Boolean.parseBoolean(value));
+                break;
+            case MusicianComponent.MASS_PROPERTY:
+                mass.setValue(Double.parseDouble(value));
                 break;
             case AgentPanel.EDGE_LENGTH_PROPERTY:
                 edgeLength.setValue(Integer.parseInt(value));
@@ -182,6 +187,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     private ChangeListener rangeLowChangeListener;
     private ChangeListener rangeHiChangeListener;
     private MusicianComponent selectedMusician;
+    private ChangeListener massChangeListener;
 
     @Override
     public void vetoableChange(PropertyChangeEvent evt) {
@@ -214,6 +220,9 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             channel.setValue(selectedMusician.getMusician().getChannel());
             channelChangeListener = _ -> selectedMusician.getMusician().setChannel((int) channel.getValue());
             channel.addChangeListener(channelChangeListener);
+            mass.setValue(selectedMusician.getMass());
+            massChangeListener = _ -> selectedMusician.setMass((double) mass.getValue());
+            mass.addChangeListener(massChangeListener);
         }
         musPanel.repaint();
     }
@@ -244,5 +253,10 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             channelChangeListener = null;
         }
         channel.setValue(0);
+        if (massChangeListener != null) {
+            mass.removeChangeListener(massChangeListener);
+            massChangeListener = null;
+        }
+        mass.setValue(1.0);
     }
 }

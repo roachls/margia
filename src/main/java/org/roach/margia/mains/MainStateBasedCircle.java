@@ -17,12 +17,12 @@ public class MainStateBasedCircle implements Algorithm<CircleParams> {
         var algParams = (CircleParams) margiaParams;
         var musicians = new ArrayList<Musician>();
         AbstractMusicianRule rule = new RandomRule();
-        var musician = new Musician(0, 0, rule);
+        var musician = new Musician(0, rule);
         musicians.add(musician);
 
         for (int i = 1; i < algParams.numMusicians; i++) {
             rule = new StateBasedRule(algParams.startingSequenceLength, algParams.tickDelay);
-            musician = new Musician(i, i % mainParams.numChannels, rule);
+            musician = new Musician(i % mainParams.numChannels, rule);
             musician.setKey(algParams.key);
             rule.setMusician(musician);
             musicians.add(musician);

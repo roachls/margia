@@ -16,7 +16,7 @@ public class MainRandomSimple implements Algorithm<RandomParams> {
         var rParams = (RandomParams) algParams;
         var musicians = new ArrayList<Musician>();
         for (int i = 0; i < rParams.numMusicians; i++) {
-            var m = new Musician(i, i % mainParams.numChannels, new RandomRule());
+            var m = new Musician(i % mainParams.numChannels, new RandomRule());
             m.setKey(rParams.key);
             musicians.add(m);
         }
