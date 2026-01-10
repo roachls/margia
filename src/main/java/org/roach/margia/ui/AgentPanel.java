@@ -84,26 +84,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
         addComponentListener(new Resizer());
-        addKeyListener(new AgentPanelKeyListener());
-    }
-
-    private class AgentPanelKeyListener extends KeyAdapter {
-
-        @Override
-        public void keyTyped(KeyEvent e) {
-            super.keyTyped(e);
-            switch (e.getKeyCode()) {
-            case KeyEvent.VK_ESCAPE:
-                deselectAll();
-                break;
-            case KeyEvent.VK_DELETE:
-                deleteSelected();
-                break;
-            default:
-                break;
-            }
-        }
-
     }
 
     private class Resizer extends ComponentAdapter {
@@ -132,7 +112,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         oldWidth = getWidth();
         oldHeight = getHeight();
         var rand = new SecureRandom();
-        rand.setSeed(1L); // repeatability
         for (var musician : musicians) {
             var n = new MusicianComponent(musician, tickLengthMillis, 1.0);
             Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
@@ -341,13 +320,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void leftMouseButtonReleased(MouseEvent e) {
-            if (e.getModifiersEx() == 0) {
+            if (!e.isShiftDown()) {
                 // no modifier keys
                 leftMouseButtonReleasedSingleSelection(e);
-            } else if (e.getModifiersEx() == InputEvent.SHIFT_DOWN_MASK && dragStart != null && dragEnd != null) {
+            } else if (e.isShiftDown() && dragStart != null && dragEnd != null) {
                 // shift held down
                 var rectangle = makeSelectionRectangle(dragStart, dragEnd);
-                var selectedComponents = AgentPanel.this.getComponentsInRectangle(rectangle);
+                var selectedComponents = getComponentsInRectangle(rectangle);
                 dragStart = null;
                 dragEnd = null;
                 handleMultipleSelection(selectedComponents);
@@ -356,20 +335,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void handleMultipleSelection(List<MusicianComponent> selectedMusicians) {
-            switch (mode) {
-            case ADD, NONE:
-                break;
-            case CONNECT:
-                break;
-            case MOVE:
-                break;
-            case SELECT:
-                selectedMusicians.forEach(mc -> mc.setSelected(true));
-                break;
-            default:
-                break;
-
-            }
+            selectedMusicians.forEach(mc -> mc.setSelected(true));
         }
 
         private void leftMouseButtonReleasedSingleSelection(MouseEvent e) {
@@ -384,6 +350,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 break;
             case MOVE:
                 handleMusicianMove(e);
+                break;
+            case SELECT:
+                if (!e.isControlDown())
+                    deselectAll();
+                if (comp instanceof MusicianComponent mc)
+                    mc.setSelected(true);
                 break;
             default:
                 break;
@@ -476,6 +448,27 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
+        private List<MusicianComponent> getComponentsInRectangle(Rectangle targetRect) {
+            List<MusicianComponent> componentsInArea = new ArrayList<>();
+            Component[] components = getComponents(); // Get all components in the panel.
+
+            for (Component component : components) {
+                // Get the bounds of the current component.
+                var componentBounds = component.getBounds();
+
+                // Check if the component's bounds intersect with the target rectangle.
+                if (componentBounds.intersects(targetRect) && component instanceof MusicianComponent mc) {
+                    componentsInArea.add(mc);
+                }
+            }
+
+            return componentsInArea;
+        }
+
+        private void deselectAllMusicians() {
+            musicianComponents.forEach(mc -> mc.setSelected(false));
+        }
+
     };
 
     static class Edge {
@@ -519,32 +512,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         return new Rectangle(x, y, width, height);
     }
 
-    private List<MusicianComponent> getComponentsInRectangle(Rectangle targetRect) {
-        List<MusicianComponent> componentsInArea = new ArrayList<>();
-        Component[] components = getComponents(); // Get all components in the panel.
-
-        for (Component component : components) {
-            // Get the bounds of the current component.
-            var componentBounds = component.getBounds();
-
-            // Check if the component's bounds intersect with the target rectangle.
-            if (componentBounds.intersects(targetRect) && component instanceof MusicianComponent mc) {
-                componentsInArea.add(mc);
-            }
-        }
-
-        return componentsInArea;
-    }
-
     void setEditMode(EditMode mode) { this.mode = mode; }
-
-    private void deselectAllMusicians() {
-        musicianComponents.forEach(mc -> mc.setSelected(false));
-    }
-
-    private void unlockAll() {
-        musicianComponents.forEach(mc -> mc.setLocked(false));
-    }
 
     void lockAll() {
         musicianComponents.forEach(mc -> mc.setLocked(true));
@@ -590,7 +558,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     enum EditMode {
-        NONE, ADD, CONNECT, MOVE, SELECT;
+        ADD, CONNECT, MOVE, SELECT;
     }
 
     void selectAll() {
@@ -622,5 +590,40 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     void deleteSelected() {
         var selectedMusicians = musicianComponents.stream().filter(MusicianComponent::isSelected).toList();
         delete(selectedMusicians);
+    }
+
+    void connectSelected() {
+        var selectedMusicians = musicianComponents.stream().filter(MusicianComponent::isSelected).toList();
+        for (int i = 0; i < selectedMusicians.size() - 1; i++) {
+            for (int j = i + 1; j < selectedMusicians.size(); j++) {
+                var mc1 = selectedMusicians.get(i);
+                var mus1 = mc1.getMusician();
+                var mc2 = selectedMusicians.get(j);
+                var mus2 = mc2.getMusician();
+                mus1.addPeer(mus2);
+                mus2.addPeer(mus1);
+                edges.add(new Edge(mc1, mc2, DEFAULT_EDGE_LENGTH));
+                edges.add(new Edge(mc2, mc1, DEFAULT_EDGE_LENGTH));
+            }
+        }
+    }
+
+    void disconnectSelected() {
+        var selectedMusicians = musicianComponents.stream().filter(MusicianComponent::isSelected).toList();
+        for (int i = 0; i < selectedMusicians.size() - 1; i++) {
+            for (int j = i + 1; j < selectedMusicians.size(); j++) {
+                var mc1 = selectedMusicians.get(i);
+                var mc2 = selectedMusicians.get(j);
+                var edgeIter = edges.iterator();
+                while (edgeIter.hasNext()) {
+                    var edge = edgeIter.next();
+                    if ((mc1.equals(edge.source) && mc2.equals(edge.target))
+                            || (mc2.equals(edge.source) && mc1.equals(edge.target))) {
+                        edge.source.getMusician().removePeer(edge.target.getMusician());
+                        edgeIter.remove();
+                    }
+                }
+            }
+        }
     }
 }

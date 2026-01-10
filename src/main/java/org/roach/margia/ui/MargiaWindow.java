@@ -1,8 +1,7 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,8 +13,11 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.roach.margia.*;
 import org.roach.margia.timing.TimingSource;
+import org.roach.margia.ui.AgentPanel.EditMode;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
@@ -38,7 +40,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private OptionPanel optionPanel;
     private AgentPanel agentPanel;
     private String algorithmTitle;
-    private ToolPanel toolPanel;
+    private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
 
     /**
      * @param title     window title
@@ -67,12 +69,38 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
         getContentPane().add(optionPanel, BorderLayout.EAST);
-        toolPanel = new ToolPanel(agentPanel);
-        getContentPane().add(toolPanel, BorderLayout.WEST);
         pack();
         optionPanel.setVisible(false);
-        toolPanel.setVisible(false);
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
+    }
+
+    private class AgentPanelKeyListener implements KeyEventDispatcher {
+
+        @Override
+        public boolean dispatchKeyEvent(KeyEvent e) {
+            boolean complete = false;
+            switch (e.getKeyCode()) {
+            case KeyEvent.VK_ESCAPE:
+                agentPanel.deselectAll();
+                complete = true;
+                break;
+            case KeyEvent.VK_DELETE:
+                agentPanel.deleteSelected();
+                complete = true;
+                break;
+            case KeyEvent.VK_A:
+                if (e.isControlDown()) {
+                    agentPanel.selectAll();
+                    complete = true;
+                }
+                break;
+            default:
+                break;
+            }
+            return complete;
+        }
+
     }
 
     private void setupMenu() {
@@ -116,12 +144,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
         showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
-        var showToolPaneMenuItem = new JCheckBoxMenuItem("Show Tools",
-                createImageIcon("/icons/tools.png", "an icon of a wrench and screwdriver"));
-        showToolPaneMenuItem.setMnemonic(KeyEvent.VK_T);
-        showToolPaneMenuItem.addActionListener(_ -> toolPanel.setVisible(showToolPaneMenuItem.isSelected()));
-        editMenu.add(showOptionPaneMenuItem);
-        editMenu.add(showToolPaneMenuItem);
+
+        setupModesMenu(editMenu);
+
         var selectAll = new JMenuItem("Select All");
         selectAll.setMnemonic(KeyEvent.VK_S);
         selectAll.addActionListener(_ -> agentPanel.selectAll());
@@ -148,11 +173,75 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         unlockSelected.setMnemonic(KeyEvent.VK_N);
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
         editMenu.add(unlockSelected);
-        var deleteSelected = new JMenuItem("Remove (delete) selected", createImageIcon("/icons/delete.png", "an large capital X"));
+        var deleteSelected = new JMenuItem("Remove (delete) selected",
+                createImageIcon("/icons/delete.png", "an large capital X"));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
         deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
         editMenu.add(deleteSelected);
+        var connectSelected = new JMenuItem("Connect selected",
+                createImageIcon("/icons/connect.png", "two dots with a line between them"));
+        connectSelected.setMnemonic(KeyEvent.VK_C);
+        connectSelected.addActionListener(_ -> agentPanel.connectSelected());
+        editMenu.add(connectSelected);
+        var disconnectSelected = new JMenuItem("Disconnect selected",
+                createImageIcon("/icons/disconnect.png", "two dots with a broken line between them"));
+        disconnectSelected.setMnemonic(KeyEvent.VK_I);
+        disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
+        editMenu.add(disconnectSelected);
         menubar.add(editMenu);
+    }
+
+    private void setupModesMenu(JMenu editMenu) {
+        var modesMenu = new JMenu("Mode");
+        modesMenu.setMnemonic(KeyEvent.VK_M);
+        var selectMode = new JRadioButtonMenuItem("Select Musician(s)",
+                createImageIcon("/icons/select.png", "a hand with the index finger pointing"));
+        selectMode.setMnemonic(KeyEvent.VK_S);
+        selectMode.setName(EditMode.SELECT.name());
+        var addMode = new JRadioButtonMenuItem("Add Musician(s)",
+                createImageIcon("/icons/add.png", "an outline of a person with a plus symbol"));
+        addMode.setMnemonic(KeyEvent.VK_A);
+        addMode.setName(EditMode.ADD.name());
+        var moveMode = new JRadioButtonMenuItem("Move Musician",
+                createImageIcon("/icons/move.png", "a four-way arrow icon"));
+        moveMode.setMnemonic(KeyEvent.VK_M);
+        moveMode.setName(EditMode.MOVE.name());
+        var connectMode = new JRadioButtonMenuItem("Connect/Disconnect two musicians",
+                createImageIcon("/icons/connect.png", "two dots with a line between them"));
+        connectMode.setMnemonic(KeyEvent.VK_C);
+        connectMode.setName(EditMode.CONNECT.name());
+
+        selectMode.setSelected(true);
+
+        var group = new ButtonGroup();
+        group.add(selectMode);
+        modesMenu.add(selectMode);
+        group.add(addMode);
+        modesMenu.add(addMode);
+        group.add(moveMode);
+        modesMenu.add(moveMode);
+        group.add(connectMode);
+        modesMenu.add(connectMode);
+
+        var modeChangeListener = new ModeChangeListener();
+        selectMode.addChangeListener(modeChangeListener);
+        addMode.addChangeListener(modeChangeListener);
+        moveMode.addChangeListener(modeChangeListener);
+        connectMode.addChangeListener(modeChangeListener);
+
+        editMenu.add(modesMenu);
+    }
+
+    private class ModeChangeListener implements ChangeListener {
+
+        @Override
+        public void stateChanged(ChangeEvent e) {
+            if (e.getSource() instanceof JRadioButtonMenuItem jtb && jtb.isSelected()) {
+                var name = jtb.getName();
+                var mode = EditMode.valueOf(name);
+                agentPanel.setEditMode(mode);
+            }
+        }
     }
 
     private void setupHelpMenu(JMenuBar menubar) {
@@ -268,8 +357,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             var resizedImage = image.getScaledInstance(18, 18, Image.SCALE_SMOOTH);
             return new ImageIcon(resizedImage, description);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.atError().withThrowable(e).log("Unable to load image file {}", path);
             return null;
         }
     }
