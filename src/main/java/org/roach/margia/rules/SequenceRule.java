@@ -101,4 +101,14 @@ public class SequenceRule extends AbstractMusicianRule {
         ticksRemainingInNote = 0;
     }
 
+    @Override
+    public Map<String, Object> storableProperties() {
+        return Map.of(RULE_CLASSNAME_PROPERTY, SequenceRule.class.getName());
+    }
+
+    @Override
+    public void restoreFromStorage(Map<String, Object> storableProperties) {
+        // TODO
+    }
+
 }

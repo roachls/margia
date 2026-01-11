@@ -9,6 +9,7 @@ import java.util.prefs.Preferences;
 
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.yaml.snakeyaml.DumperOptions;
@@ -109,8 +110,20 @@ public class Options {
      * @param is input stream to read from
      * @throws IOException if there is an error reading from the stream
      */
+    @SuppressWarnings("unchecked")
     public void load(InputStream is) throws IOException {
-        opts = yaml.load(is);
+        var loadedOpts = yaml.load(is);
+        if (loadedOpts != null) {
+            this.opts.putAll((Map<String, Object>) loadedOpts);
+        }
+        var sendExternalMidi = getOrDefaultAsBoolean("external_midi", false);
+        var tempo = getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, TimingSource.DEFAULT_TEMPO);
+        if (sendExternalMidi) {
+            MidiController.init(MidiController.LOOP_MIDI, tempo);
+        } else {
+            MidiController.init(MidiController.DEFAULT_SYNTH, tempo);
+        }
+        restoreMusicians();
         for (var propEntry : opts.entrySet()) {
             emitter.fireChangeEvent(propEntry.getKey(),
                     new ChangeSource(this, propEntry.getKey(), propEntry.getValue().toString()));
@@ -233,4 +246,13 @@ public class Options {
      * @param filename the current filename
      */
     public void setFilename(Path filename) { this.filename = filename; }
+
+    /**
+     * Initialize the list of musicians
+     */
+    @SuppressWarnings("unchecked")
+    private void restoreMusicians() {
+        var musicianOpts = (Map<String, Object>) opts.get(MusicianList.MUSICIANS_PROPERTY);
+        MusicianList.getInstance().restoreFromStorage(musicianOpts);
+    }
 }

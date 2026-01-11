@@ -1,5 +1,7 @@
 package org.roach.margia.rules;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -10,6 +12,8 @@ import org.roach.margia.actions.*;
  * A state-machine based agent
  */
 public class StateBasedRule extends AbstractMusicianRule {
+    private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
+    private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
     private int sequenceLength;
     private static final String DIRECT_REPEAT = "direct repeat";
     private static final String UP_FOURTH = "up 4th";
@@ -24,29 +28,11 @@ public class StateBasedRule extends AbstractMusicianRule {
     private int tickCountdown;
     private int initialTickDelay;
     private final BlockingQueue<NoteInfo> delayQueue = new LinkedBlockingQueue<>();
-
-    /**
-     * No-arg constructor needed for ServiceLoader
-     */
-    public StateBasedRule() {
-        this(1, 0);
-    }
-
-    /**
-     * @param sequenceLength sequence length
-     * @param tickDelay      number of ticks to delay before repeating a sequence
-     */
-    public StateBasedRule(final int sequenceLength, final int tickDelay) {
-        if (sequenceLength < 1)
-            throw new IllegalArgumentException("Sequence length must be at least 1");
-        if (tickDelay < 0)
-            throw new IllegalArgumentException("Tick delay must be at least 0");
-        this.sequenceLength = sequenceLength;
-        this.sequenceCountdown = sequenceLength + tickDelay;
-        this.initialTickDelay = tickDelay;
-    }
+    private final Map<String, Object> storableParams = new HashMap<>(
+            Map.of(RULE_CLASSNAME_PROPERTY, StateBasedRule.class.getName()));
 
     @Override
+    @SuppressWarnings({ "java:S899", "java:S3776" })
     public void calculateAction(long tick) {
         if (initialTickDelay > 0) {
             initialTickDelay--;
@@ -184,6 +170,16 @@ public class StateBasedRule extends AbstractMusicianRule {
      */
     public int getSequenceLength() { return sequenceLength; }
 
+    /**
+     * @param sequenceLength the sequence length
+     */
+    public void setSequenceLength(int sequenceLength) {
+        if (sequenceLength < 1)
+            throw new IllegalArgumentException("Sequence length must be at least 1");
+        this.sequenceLength = sequenceLength;
+        storableParams.put(SEQUENCE_LENGTH_PROPERTY, sequenceLength);
+    }
+
     @Override
     public String getName() { return "State-based"; }
 
@@ -195,5 +191,33 @@ public class StateBasedRule extends AbstractMusicianRule {
         tickCountdown = 0;
         initialTickDelay = 0;
         delayQueue.clear();
+    }
+
+    /**
+     * @return the initialTickDelay
+     */
+    public int getInitialTickDelay() { return initialTickDelay; }
+
+    /**
+     * @param initialTickDelay the initialTickDelay to set
+     */
+    public void setInitialTickDelay(int initialTickDelay) {
+        if (initialTickDelay < 0)
+            throw new IllegalArgumentException("Tick delay must be at least 0");
+        this.initialTickDelay = initialTickDelay;
+        this.sequenceCountdown = sequenceLength + initialTickDelay;
+        storableParams.put(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
+    }
+
+    @Override
+    public Map<String, Object> storableProperties() {
+        return storableParams;
+    }
+
+    @Override
+    public void restoreFromStorage(Map<String, Object> storableProperties) {
+        this.storableParams.putAll(storableProperties);
+        setInitialTickDelay((int) storableProperties.getOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0));
+        setSequenceLength((int) storableProperties.getOrDefault(SEQUENCE_LENGTH_PROPERTY, 1));
     }
 }

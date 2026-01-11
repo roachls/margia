@@ -2,6 +2,7 @@ package org.roach.margia.timing;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
@@ -18,7 +19,7 @@ public class InternalTimingSource implements TimingSource {
     private final Transport transport;
     private Future<?> clockFuture;
     private volatile int tempo;
-    private volatile Quantity<Time> tickLengthMicros;
+    private AtomicReference<Quantity<Time>> tickLengthMicros;
     private final ScheduledExecutorService clockExecutor;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -35,7 +36,8 @@ public class InternalTimingSource implements TimingSource {
     @Override
     public void setTempo(int tempo) {
         this.tempo = tempo;
-        this.tickLengthMicros = Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND);
+        this.tickLengthMicros = new AtomicReference<>(
+                Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
 
         if (isRunning()) {
             stopClock();
@@ -49,7 +51,7 @@ public class InternalTimingSource implements TimingSource {
     private void startClock() {
         running.set(true);
         clockFuture = clockExecutor.scheduleAtFixedRate(transport::receiveClockPulse, 0,
-                tickLengthMicros.getValue().longValue(), TimeUnit.MICROSECONDS);
+                tickLengthMicros.get().getValue().longValue(), TimeUnit.MICROSECONDS);
     }
 
     @Override

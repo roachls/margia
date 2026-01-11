@@ -1,11 +1,11 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.prefs.BackingStoreException;
 
 import javax.imageio.ImageIO;
@@ -15,7 +15,8 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.*;
+import org.roach.margia.Options;
+import org.roach.margia.Transport;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.AgentPanel.EditMode;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -48,11 +49,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      * @param title     window title
      * @param timing    the {@link TimingSource}
      * @param transport the {@link Transport}
-     * @param musicians the musicians to display
      * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
      *                           true
      */
-    public MargiaWindow(String title, TimingSource timing, Transport transport, List<Musician> musicians)
+    public MargiaWindow(String title, TimingSource timing, Transport transport)
             throws HeadlessException {
         super();
         this.algorithmTitle = title;
@@ -66,7 +66,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
-        agentPanel = new AgentPanel(musicians);
+        agentPanel = new AgentPanel();
         agentPanel.addVetoableChangeListener(optionPanel);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);

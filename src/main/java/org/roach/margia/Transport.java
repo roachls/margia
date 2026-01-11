@@ -6,6 +6,7 @@ import java.util.*;
 
 import org.apache.logging.log4j.*;
 import org.roach.margia.timing.TimingSource;
+import org.roach.margia.ui.MusicianComponent;
 
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every
@@ -32,7 +33,6 @@ public class Transport {
      * Property fired to notify listeners of a reset
      */
     public static final String RESET_PROPERTY = "reset";
-    private final List<Musician> musicians;
     private long tick = 1;
     private final Logger logger = LogManager.getLogger(getClass());
     private final Map<Long, Runnable> tickActions = new HashMap<>();
@@ -44,12 +44,12 @@ public class Transport {
     private final PropertyChangeSupport propertyChangeSupport;
 
     /**
-     * @param musicians the musicians
      * @param tempo     the tempo
      */
-    public Transport(final List<Musician> musicians, int tempo) {
-        this.musicians = musicians;
+    public Transport(int tempo) {
         this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
+        // TODO this should definitely go somewhere else, I don't like having the transport know about the UI
+        MusicianComponent.setTickLengthMillis(this.tickLength);
         this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
 
@@ -105,9 +105,9 @@ public class Transport {
                 tickActions.remove(tick).run();
             }
             // each musician calculate their next action
-            musicians.forEach(m -> m.calculateAction(tick));
+            MusicianList.getInstance().getMusicians().forEach(m -> m.calculateAction(tick));
             // each musician perform the action they just calculated
-            musicians.forEach(m -> m.doAction());
+            MusicianList.getInstance().getMusicians().forEach(m -> m.doAction());
             // controller actually play notes from each musician
             MidiController.getInstance().playNotesThisTick();
         }

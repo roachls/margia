@@ -69,25 +69,18 @@ public class Main {
         }
         var tempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, params.tempo);
 
-        if (params.sendExternalMidi) {
-            MidiController.init(MidiController.LOOP_MIDI, tempo);
-        } else {
-            MidiController.init(MidiController.DEFAULT_SYNTH, tempo);
-        }
-
         var command = jCommander.getParsedCommand();
         Algorithm<?> algorithm = algMap.get(command);
         if (algorithm == null) {
             System.err.println("Unable to obtain algorithm: " + command);
             return;
         }
-        var algParamGeneric = paramMap.get(command);
-        var musicians = algorithm.initMusicians(params, algParamGeneric);
+        var musicians = MusicianList.getInstance().getMusicians();
 
         Key.setRandomSeed(params.randomSeed);
         DieRoller.setSeed(params.randomSeed);
 
-        var transport = new Transport(musicians, params.tempo);
+        var transport = new Transport(params.tempo);
         musicians.forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
         transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
             Key.reset();
@@ -105,7 +98,7 @@ public class Main {
 
         if (params.ui == UiType.SWING) {
             SwingUtilities.invokeLater(() -> {
-                var ui = new MargiaWindow(algorithm.displayName(), timing, transport, musicians);
+                var ui = new MargiaWindow(algorithm.displayName(), timing, transport);
                 ui.setExtendedState(Frame.MAXIMIZED_BOTH);
                 ui.setVisible(true);
             });

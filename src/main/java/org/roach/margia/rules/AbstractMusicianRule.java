@@ -8,11 +8,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.*;
 import org.roach.margia.actions.MusicalAction;
+import org.roach.margia.timing.Storable;
 
 /**
  * Abstract implementation of {@link MusicianRule}
  */
-public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
+public abstract non-sealed class AbstractMusicianRule implements MusicianRule, Storable {
 
     protected Musician musician;
     protected final Logger logger = LogManager.getLogger(getClass());
