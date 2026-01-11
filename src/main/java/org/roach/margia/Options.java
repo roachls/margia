@@ -45,7 +45,7 @@ public class Options {
 
         yaml = new Yaml(dumperOptions);
     }
-
+    
     /**
      * @return the single instance of {@link Options}
      */
@@ -97,6 +97,7 @@ public class Options {
      * @throws IOException if there is an error writing to a file
      */
     public void store(OutputStream os, String comments) throws IOException {
+        opts.put(MusicianList.MUSICIANS_PROPERTY, MusicianList.getInstance().storableProperties());
         try (Writer writer = new OutputStreamWriter(os)) {
             yaml.dump(opts, writer);
         }
@@ -252,7 +253,7 @@ public class Options {
      */
     @SuppressWarnings("unchecked")
     private void restoreMusicians() {
-        var musicianOpts = (Map<String, Object>) opts.get(MusicianList.MUSICIANS_PROPERTY);
+        var musicianOpts =  opts.get(MusicianList.MUSICIANS_PROPERTY);
         MusicianList.getInstance().restoreFromStorage(musicianOpts);
     }
 }

@@ -1,6 +1,5 @@
 package org.roach.margia.rules;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,7 +13,7 @@ import org.roach.margia.actions.*;
 public class StateBasedRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
-    private int sequenceLength;
+    private int sequenceLength = 1;
     private static final String DIRECT_REPEAT = "direct repeat";
     private static final String UP_FOURTH = "up 4th";
     private static final String DOWN_FOURTH = "down 4th";
@@ -28,8 +27,6 @@ public class StateBasedRule extends AbstractMusicianRule {
     private int tickCountdown;
     private int initialTickDelay;
     private final BlockingQueue<NoteInfo> delayQueue = new LinkedBlockingQueue<>();
-    private final Map<String, Object> storableParams = new HashMap<>(
-            Map.of(RULE_CLASSNAME_PROPERTY, StateBasedRule.class.getName()));
 
     @Override
     @SuppressWarnings({ "java:S899", "java:S3776" })
@@ -177,11 +174,10 @@ public class StateBasedRule extends AbstractMusicianRule {
         if (sequenceLength < 1)
             throw new IllegalArgumentException("Sequence length must be at least 1");
         this.sequenceLength = sequenceLength;
-        storableParams.put(SEQUENCE_LENGTH_PROPERTY, sequenceLength);
     }
 
     @Override
-    public String getName() { return "State-based"; }
+    public String getName() { return "statebased"; }
 
     @Override
     public void reset() {
@@ -206,18 +202,32 @@ public class StateBasedRule extends AbstractMusicianRule {
             throw new IllegalArgumentException("Tick delay must be at least 0");
         this.initialTickDelay = initialTickDelay;
         this.sequenceCountdown = sequenceLength + initialTickDelay;
-        storableParams.put(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
     }
 
     @Override
     public Map<String, Object> storableProperties() {
-        return storableParams;
+        // @formatter:off
+        return Map.of(
+                RULE_NAME_PROPERTY, getName(),
+                SEQUENCE_LENGTH_PROPERTY, sequenceLength,
+                INITIAL_TICK_DELAY_PROPERTY, initialTickDelay);
+        // @formatter:on
     }
 
     @Override
-    public void restoreFromStorage(Map<String, Object> storableProperties) {
-        this.storableParams.putAll(storableProperties);
-        setInitialTickDelay((int) storableProperties.getOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0));
-        setSequenceLength((int) storableProperties.getOrDefault(SEQUENCE_LENGTH_PROPERTY, 1));
+    public void restoreFromStorage(Object storableProperties) {
+        @SuppressWarnings("unchecked")
+        var propertyMap = (Map<String, Integer>) storableProperties;
+        setInitialTickDelay(propertyMap.getOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0));
+        setSequenceLength(propertyMap.getOrDefault(SEQUENCE_LENGTH_PROPERTY, 1));
     }
+
+    @Override
+    public StateBasedRule copy() {
+        var copy = new StateBasedRule();
+        copy.setInitialTickDelay(this.initialTickDelay);
+        copy.setSequenceLength(sequenceLength);
+        return copy;
+    }
+
 }

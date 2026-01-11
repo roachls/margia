@@ -1,7 +1,6 @@
 package org.roach.margia;
 
 import java.beans.*;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -10,8 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
-import org.roach.margia.rules.*;
-import org.roach.margia.timing.Storable;
+import org.roach.margia.rules.AbstractMusicianRule;
+import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.ui.PropertyChangeEmitter;
 import org.roach.margia.util.Range;
 
@@ -74,7 +73,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private boolean listening = true;
-    private final Map<String, Object> storableProperties = new HashMap<>();
 
     /**
      * public constructor
@@ -84,9 +82,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
         propertyChange = new PropertyChangeSupport(this);
-        storableProperties.put(MUTED_PROPERTY, false);
-        storableProperties.put(ID_PROPERTY, id);
-        Options.getInstance().put("musicians." + id, storableProperties);
     }
 
     /**
@@ -123,7 +118,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     public void addPeer(Musician peer) {
         if (!peers.contains(peer)) {
             peers.add(peer);
-            storableProperties.put(PEER_IDS_PROPERTY, peerIds());
         }
     }
 
@@ -133,7 +127,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     public boolean removePeer(Musician musician) {
         var successful = peers.remove(musician);
-        storableProperties.putIfAbsent(PEER_IDS_PROPERTY, peerIds());
         return successful;
     }
 
@@ -204,10 +197,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      *              a note to the MIDI controller, but other musicians will still
      *              hear it.
      */
-    public void setMuted(boolean muted) {
-        this.muted = muted;
-        storableProperties.put(MUTED_PROPERTY, this.muted);
-    }
+    public void setMuted(boolean muted) { this.muted = muted; }
 
     /**
      * @return current number of notes in this {@link Musician musician's} queue
@@ -368,7 +358,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             return;
         this.rule = rule;
         this.rule.setMusician(this);
-        storableProperties.put("rule", rule.storableProperties());
     }
 
     /**
@@ -379,10 +368,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     /**
      * @param channel the MIDI channel this musician will send notes to
      */
-    public void setChannel(int channel) {
-        this.channel = Range.check(CHANNEL_PROPERTY, channel, 0, 16);
-        storableProperties.put(CHANNEL_PROPERTY, this.channel);
-    }
+    public void setChannel(int channel) { this.channel = Range.check(CHANNEL_PROPERTY, channel, 0, 16); }
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
@@ -396,34 +382,40 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         }
     }
 
-    @SuppressWarnings({ "unchecked", "hiding" })
+    @SuppressWarnings({ "unchecked" })
     @Override
-    public void restoreFromStorage(Map<String, Object> storableProperties) {
-        this.storableProperties.clear();
-        this.storableProperties.putAll(storableProperties);
-        if (storableProperties.containsKey(ID_PROPERTY))
-            this.id = (int) storableProperties.get(ID_PROPERTY);
-        if (storableProperties.containsKey(MUTED_PROPERTY))
-            this.muted = (boolean) storableProperties.get(MUTED_PROPERTY);
-        if (storableProperties.containsKey("rule")) {
-            try {
-                var ruleParams = (Map<String, Object>) storableProperties.get("rule");
-                var ruleClassName = (String) storableProperties.getOrDefault(MusicianRule.RULE_CLASSNAME_PROPERTY,
-                        RandomRule.class.getName());
-                var ruleClass = (Class<? extends AbstractMusicianRule>) Class.forName(ruleClassName);
-                var restoredRule = ruleClass.getDeclaredConstructor().newInstance();
-                restoredRule.restoreFromStorage(ruleParams);
-                setRule(restoredRule);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException | NoSuchMethodException e) {
-                logger.atError().withThrowable(e).log("Error setting rule for musician {}", this.id);
+    public void restoreFromStorage(Object storableProperties) {
+        var storablePropertyMap = (Map<String, Object>) storableProperties;
+        if (storablePropertyMap.containsKey(ID_PROPERTY))
+            this.id = (int) storablePropertyMap.get(ID_PROPERTY);
+        if (storablePropertyMap.containsKey(MUTED_PROPERTY))
+            this.muted = (boolean) storablePropertyMap.get(MUTED_PROPERTY);
+        if (storablePropertyMap.containsKey("rule")) {
+            var availableRules = ServiceLoader.load(MusicianRule.class);
+            var ruleParams = (Map<String, Object>) storablePropertyMap.get("rule");
+            var ruleName = (String) ruleParams.get(MusicianRule.RULE_NAME_PROPERTY);
+            for (var availableRule : availableRules) {
+                if (availableRule.getName().equals(ruleName)) {
+                    var restoredRule = ((AbstractMusicianRule) availableRule).copy();
+                    restoredRule.restoreFromStorage(ruleParams);
+                    setRule(restoredRule);
+                    break;
+                }
             }
         }
     }
 
     @Override
     public Map<String, Object> storableProperties() {
-        return this.storableProperties;
+        // @formatter:off
+        return Map.of(
+                ID_PROPERTY, id,
+                MUTED_PROPERTY, muted,
+                CHANNEL_PROPERTY, channel,
+                PEER_IDS_PROPERTY, peerIds(),
+                "rule", rule.storableProperties()
+                );
+        // @formatter:on
     }
 
 }

@@ -51,8 +51,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
      *                           true
      */
-    public MargiaWindow(TimingSource timing, Transport transport)
-            throws HeadlessException {
+    public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
         super();
         this.getContentPane().setLayout(new BorderLayout());
         setupMenu();
@@ -301,10 +300,17 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         Options.getInstance().setFilename(newSaveLocation);
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
+            Options.getInstance().setSaveDir(newSaveLocation.getParent());
             optionPanel.updateOptions();
             updateTitle();
+            SwingUtilities.invokeLater(() -> {
+                agentPanel.init();
+                agentPanel.initMusicians();
+            });
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
+        } catch (BackingStoreException e) {
+            LOGGER.atError().log("Error writing save directory to preferences: {}", e.getMessage());
         }
     }
 

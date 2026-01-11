@@ -2,6 +2,7 @@ package org.roach.margia.mains;
 
 import java.awt.Frame;
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.file.Files;
 import java.util.Scanner;
 import java.util.prefs.BackingStoreException;
@@ -28,6 +29,14 @@ public class Main {
      * @param args command-line arguments
      */
     public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
+            
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                System.err.printf("[%s] %s%n", t.getName(), e.getMessage());
+            }
+        });
+        
         var params = new MainParams();
         // @formatter:off
         var jCommanderBuilder = JCommander.newBuilder()

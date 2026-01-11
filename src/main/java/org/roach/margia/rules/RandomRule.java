@@ -40,7 +40,7 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public String getName() { return "Random"; }
+    public String getName() { return "random"; }
 
     @Override
     public void reset() {
@@ -49,12 +49,17 @@ public class RandomRule extends AbstractMusicianRule {
 
     @Override
     public Map<String, Object> storableProperties() {
-        return Map.of(MusicianRule.RULE_CLASSNAME_PROPERTY, RandomRule.class.getName());
+        return Map.of(MusicianRule.RULE_NAME_PROPERTY, getName());
     }
 
     @Override
-    public void restoreFromStorage(Map<String, Object> storableProperties) {
+    public void restoreFromStorage(Object storableProperties) {
         // nothing to do
+    }
+
+    @Override
+    public RandomRule copy() {
+        return new RandomRule();
     }
 
 }

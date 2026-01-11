@@ -50,8 +50,6 @@ public class MidiController {
      * @param tempo tempo
      */
     public static void init(final String busName, final int tempo) {
-        if (INSTANCE != null)
-            throw new IllegalStateException("MidiController may only be initialized once");
         INSTANCE = new MidiController(busName, tempo);
     }
 

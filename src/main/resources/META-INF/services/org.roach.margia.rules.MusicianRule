@@ -1,3 +1,2 @@
 org.roach.margia.rules.RandomRule
-org.roach.margia.rules.SequenceRule
 org.roach.margia.rules.StateBasedRule

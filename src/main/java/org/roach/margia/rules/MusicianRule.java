@@ -1,9 +1,7 @@
 package org.roach.margia.rules;
 
-import java.util.Map;
-
 import org.roach.margia.Musician;
-import org.roach.margia.timing.Storable;
+import org.roach.margia.Storable;
 
 /**
  * A rule for a {@link Musician} to follow when it 'hears' a note
@@ -13,7 +11,7 @@ public sealed interface MusicianRule extends Storable permits AbstractMusicianRu
     /**
      * property for storing rule classname
      */
-    String RULE_CLASSNAME_PROPERTY = "classname";
+    String RULE_NAME_PROPERTY = "name";
 
     /**
      * Calculate action to be taken when doAction is called. This should set

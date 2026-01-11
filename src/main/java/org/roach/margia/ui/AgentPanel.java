@@ -28,7 +28,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 @SuppressWarnings({ "java:S1948" })
 public class AgentPanel extends JPanel implements ActionListener, ChangeListener {
     int numMusicians;
-    private List<MusicianComponent> musicianComponents;
+    private final List<MusicianComponent> musicianComponents = new ArrayList<MusicianComponent>();
     private List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
@@ -74,12 +74,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
      * constructor
      */
     public AgentPanel() {
-        var defTempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, TimingSource.DEFAULT_TEMPO);
-        this.tickLengthMillis = 60000 / (defTempo * 24);
-        this.gravity = Options.getInstance().getOrDefaultAsDouble(GRAVITY_PROPERTY, DEFAULT_GRAVITATIONAL_CONSTANT);
         setLayout(null);
-        this.numMusicians = MusicianList.getInstance().numMusicians();
-        this.musicianComponents = new ArrayList<>();
         Options.getInstance().addChangeListener(GRAVITY_PROPERTY, this);
         Options.getInstance().addChangeListener(EDGE_LENGTH_PROPERTY, this);
         setDoubleBuffered(true);
@@ -87,6 +82,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
         addComponentListener(new Resizer());
+    }
+    
+    void init() {
+        var defTempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, TimingSource.DEFAULT_TEMPO);
+        this.tickLengthMillis = 60000 / (defTempo * 24);
+        this.gravity = Options.getInstance().getOrDefaultAsDouble(GRAVITY_PROPERTY, DEFAULT_GRAVITATIONAL_CONSTANT);
+        this.numMusicians = MusicianList.getInstance().numMusicians();
+        this.musicianComponents.clear();
     }
 
     private class Resizer extends ComponentAdapter {

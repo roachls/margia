@@ -40,4 +40,9 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
         }
         actionsToTake.clear();
     }
+    
+    /**
+     * @return a copy of this rule
+     */
+    public abstract AbstractMusicianRule copy();
 }
