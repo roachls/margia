@@ -46,16 +46,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
 
     /**
-     * @param title     window title
      * @param timing    the {@link TimingSource}
      * @param transport the {@link Transport}
      * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
      *                           true
      */
-    public MargiaWindow(String title, TimingSource timing, Transport transport)
+    public MargiaWindow(TimingSource timing, Transport transport)
             throws HeadlessException {
         super();
-        this.algorithmTitle = title;
         this.getContentPane().setLayout(new BorderLayout());
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);

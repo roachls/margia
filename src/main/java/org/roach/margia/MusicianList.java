@@ -7,6 +7,7 @@ import org.roach.margia.timing.Storable;
 /**
  * A list of musicians that is able to restore itself from a YAML file
  */
+@SuppressWarnings("java:S6548")
 public class MusicianList implements Storable {
     private final List<Musician> musicians = new ArrayList<>();
     private final Map<String, Object> storableProperties = new HashMap<>();
@@ -14,7 +15,7 @@ public class MusicianList implements Storable {
     private static MusicianList instance;
     
     private MusicianList() {
-        Options.getInstance().put("musicians", storableProperties);
+        Options.getInstance().put(MUSICIANS_PROPERTY, storableProperties);
     }
     
     /**
@@ -65,18 +66,30 @@ public class MusicianList implements Storable {
         this.musicians.addAll(map.values());
     }
 
+    /**
+     * @return a list of stored {@link Musician Musicians}
+     */
     public List<Musician> getMusicians() {
         return Collections.unmodifiableList(this.musicians);
     }
     
+    /**
+     * @param musician {@link Musician} to add
+     */
     public void addMusician(Musician musician) {
         musicians.add(musician);
     }
     
+    /**
+     * @param musician {@link Musician} to remove
+     */
     public void removeMusician(Musician musician) {
         musicians.remove(musician);
     }
     
+    /**
+     * @return number of {@link Musician Musicians}
+     */
     public int numMusicians() {
         return musicians.size();
     }

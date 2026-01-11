@@ -1,6 +1,0 @@
-org.roach.margia.mains.MainStateBased
-org.roach.margia.mains.MainStateBasedCircle
-org.roach.margia.mains.MainStateBased64
-org.roach.margia.mains.MainRandom
-org.roach.margia.mains.MainRandomSimple
-org.roach.margia.mains.MainSequence
