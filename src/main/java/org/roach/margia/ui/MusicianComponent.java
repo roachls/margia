@@ -14,6 +14,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.*;
+import org.roach.margia.storage.Options;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.util.Range;
 
@@ -44,17 +45,17 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     /**
      * default radius of musician components
      */
-    static final int DEFAULT_RADIUS = 20;
+    public static final int DEFAULT_RADIUS = 20;
     /**
      * property name of radius spinner
      */
-    static final String RADIUS_PROPERTY = "ui.radius";
-    static final String MASS_PROPERTY = "ui.mass";
+    public static final String RADIUS_PROPERTY = "ui.radius";
+    public static final String MASS_PROPERTY = "ui.mass";
     /**
      * property name of whether to show numbers
      */
-    static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
-    private static boolean showNumbers = Options.getInstance().getOrDefaultAsBoolean(SHOW_NUMBERS_PROPERTY, true);
+    public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
+    private static boolean showNumbers = Options.getInstance().getUiOptions().isShowNumbers();
 
     /**
      * listener for the show numbers property
@@ -75,7 +76,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.setName("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
-        setCircleRadius(Options.getInstance().getOrDefaultAsInt(RADIUS_PROPERTY, DEFAULT_RADIUS));
+        setCircleRadius(Options.getInstance().getUiOptions().getRadius());
     }
 
     @Override

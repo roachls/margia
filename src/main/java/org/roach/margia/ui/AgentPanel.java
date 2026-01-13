@@ -18,6 +18,7 @@ import javax.swing.event.ChangeListener;
 import org.roach.margia.*;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.RandomRule;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
@@ -28,7 +29,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 @SuppressWarnings({ "java:S1948" })
 public class AgentPanel extends JPanel implements ActionListener, ChangeListener {
     int numMusicians;
-    private final List<MusicianComponent> musicianComponents = new ArrayList<MusicianComponent>();
+    private final List<MusicianComponent> musicianComponents = new ArrayList<>();
     private List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
@@ -85,9 +86,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
     
     void init() {
-        var defTempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, TimingSource.DEFAULT_TEMPO);
+        var defTempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLengthMillis = 60000 / (defTempo * 24);
-        this.gravity = Options.getInstance().getOrDefaultAsDouble(GRAVITY_PROPERTY, DEFAULT_GRAVITATIONAL_CONSTANT);
+        this.gravity = Options.getInstance().getUiOptions().getGravity();
         this.numMusicians = MusicianList.getInstance().numMusicians();
         this.musicianComponents.clear();
     }

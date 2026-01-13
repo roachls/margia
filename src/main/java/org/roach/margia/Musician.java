@@ -6,11 +6,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
+import org.roach.margia.storage.Options;
+import org.roach.margia.storage.Options.MusicianOptions;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.ui.PropertyChangeEmitter;
 import org.roach.margia.util.Range;
 
@@ -19,7 +25,7 @@ import org.roach.margia.util.Range;
  * polls its own message queue and responds to any messages it receives in the
  * order they were received.
  */
-public class Musician implements PropertyChangeEmitter, PropertyChangeListener, Storable {
+public class Musician implements PropertyChangeEmitter, PropertyChangeListener, ChangeListener {
     /**
      * property for storing the channel
      */
@@ -79,9 +85,14 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     public Musician() {
         this.id = ID_GENERATOR.getAndIncrement();
+        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).setId(id);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
         propertyChange = new PropertyChangeSupport(this);
+        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                .addChangeListener(MUTED_PROPERTY, this);
+        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                .addChangeListener(CHANNEL_PROPERTY, this);
     }
 
     /**
@@ -118,15 +129,22 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     public void addPeer(Musician peer) {
         if (!peers.contains(peer)) {
             peers.add(peer);
+            var peerOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                    .getPeerIds();
+            if (!peerOpts.contains(peer.getId()))
+                peerOpts.add(peer.getId());
         }
     }
 
     /**
-     * @param musician peer to remove
+     * @param peer peer to remove
      * @return true if peer was removed
      */
-    public boolean removePeer(Musician musician) {
-        var successful = peers.remove(musician);
+    public boolean removePeer(Musician peer) {
+        var successful = peers.remove(peer);
+        var peerOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                .getPeerIds();
+        peerOpts.remove(peer.getId());
         return successful;
     }
 
@@ -197,7 +215,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      *              a note to the MIDI controller, but other musicians will still
      *              hear it.
      */
-    public void setMuted(boolean muted) { this.muted = muted; }
+    public void setMuted(boolean muted) {
+        this.muted = muted;
+        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).setMuted(muted);
+    }
 
     /**
      * @return current number of notes in this {@link Musician musician's} queue
@@ -358,6 +379,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             return;
         this.rule = rule;
         this.rule.setMusician(this);
+        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).getRuleOptions()
+                .setName(rule.getName());
     }
 
     /**
@@ -368,7 +391,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     /**
      * @param channel the MIDI channel this musician will send notes to
      */
-    public void setChannel(int channel) { this.channel = Range.check(CHANNEL_PROPERTY, channel, 0, 16); }
+    public void setChannel(int channel) {
+        this.channel = Range.check(CHANNEL_PROPERTY, channel, 0, 16);
+        Options.getInstance().getMusicians().get(id).setChannel(channel);
+    }
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
@@ -382,40 +408,44 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         }
     }
 
-    @SuppressWarnings({ "unchecked" })
-    @Override
-    public void restoreFromStorage(Object storableProperties) {
-        var storablePropertyMap = (Map<String, Object>) storableProperties;
-        if (storablePropertyMap.containsKey(ID_PROPERTY))
-            this.id = (int) storablePropertyMap.get(ID_PROPERTY);
-        if (storablePropertyMap.containsKey(MUTED_PROPERTY))
-            this.muted = (boolean) storablePropertyMap.get(MUTED_PROPERTY);
-        if (storablePropertyMap.containsKey("rule")) {
-            var availableRules = ServiceLoader.load(MusicianRule.class);
-            var ruleParams = (Map<String, Object>) storablePropertyMap.get("rule");
-            var ruleName = (String) ruleParams.get(MusicianRule.RULE_NAME_PROPERTY);
-            for (var availableRule : availableRules) {
-                if (availableRule.getName().equals(ruleName)) {
-                    var restoredRule = ((AbstractMusicianRule) availableRule).copy();
-                    restoredRule.restoreFromStorage(ruleParams);
-                    setRule(restoredRule);
-                    break;
-                }
+    /**
+     * Restore this musician from saved properties
+     * 
+     * @param props properties loaded from save file
+     */
+    public void restoreFromStorage(MusicianOptions props) {
+        this.id = props.getId();
+        this.channel = props.getChannel();
+        this.muted = props.isMuted();
+        var ruleOpts = props.getRuleOptions();
+        var ruleName = ruleOpts.getName();
+        if (ruleName == null)
+            return;
+        var availableRules = ServiceLoader.load(MusicianRule.class);
+        for (var availableRule : availableRules) {
+            if (ruleName.equals(availableRule.getName())) {
+                var realRule = ((AbstractMusicianRule) availableRule).copy();
+                realRule.restoreFromStorage(ruleOpts);
+                setRule(realRule);
+                break;
             }
         }
     }
 
     @Override
-    public Map<String, Object> storableProperties() {
-        // @formatter:off
-        return Map.of(
-                ID_PROPERTY, id,
-                MUTED_PROPERTY, muted,
-                CHANNEL_PROPERTY, channel,
-                PEER_IDS_PROPERTY, peerIds(),
-                "rule", rule.storableProperties()
-                );
-        // @formatter:on
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource cs) {
+            switch (cs.key()) {
+            case MUTED_PROPERTY:
+                this.muted = (boolean) cs.newValue();
+                break;
+            case CHANNEL_PROPERTY:
+                this.channel = (int) cs.newValue();
+                break;
+            default:
+                break;
+            }
+        }
     }
 
 }

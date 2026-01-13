@@ -2,11 +2,13 @@ package org.roach.margia;
 
 import java.util.*;
 
+import org.roach.margia.storage.Options.MusicianOptions;
+
 /**
  * A list of musicians that is able to restore itself from a YAML file
  */
 @SuppressWarnings("java:S6548")
-public class MusicianList implements Storable {
+public class MusicianList {
     private final List<Musician> musicians = new ArrayList<>();
     static final String MUSICIANS_PROPERTY = "musicians";
     private static MusicianList instance;
@@ -20,30 +22,23 @@ public class MusicianList implements Storable {
         return instance;
     }
 
-    @Override
-    public List<Map<String, Object>> storableProperties() {
-        return this.musicians.stream().map(Musician::storableProperties).toList();
-    }
-
-    @Override
-    public void restoreFromStorage(Object storableProperties) {
-        if (storableProperties == null)
+    /**
+     * Restore all musicians from file
+     * @param musicianOptions properties of all musicians
+     */
+    public void restoreFromStorage(Map<Integer, MusicianOptions> musicianOptions) {
+        if (musicianOptions == null)
             return;
         this.musicians.clear();
-        @SuppressWarnings("unchecked")
-        var propertyList = (List<Map<String, Object>>) storableProperties;
 
         var map = new HashMap<Integer, Musician>();
         var peerIdsMap = new HashMap<Integer, List<Integer>>();
-        for (var params : propertyList) {
-            var id = (int) params.get(Musician.ID_PROPERTY);
+        for (var paramEntry : musicianOptions.entrySet()) {
+            var id = paramEntry.getKey();
             var m = new Musician();
-            m.restoreFromStorage(params);
-            if (params.containsKey(Musician.PEER_IDS_PROPERTY)) {
-                @SuppressWarnings("unchecked")
-                var peerIds = (List<Integer>) params.get(Musician.PEER_IDS_PROPERTY);
-                peerIdsMap.put(id, peerIds);
-            }
+            m.restoreFromStorage(paramEntry.getValue());
+            var peerIds = paramEntry.getValue().getPeerIds();
+            peerIdsMap.put(id, peerIds);
             map.put(id, m);
         }
         for (var peerIdEntry : peerIdsMap.entrySet()) {

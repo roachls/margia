@@ -15,8 +15,8 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.Options;
 import org.roach.margia.Transport;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.AgentPanel.EditMode;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -327,7 +327,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 Options.getInstance()
                         .setFilename(Options.getInstance().getFilename().resolveSibling(filenameStr + ".margia"));
             try (var os = Files.newOutputStream(Options.getInstance().getFilename())) {
-                options.store(os, "MARGIA");
+                options.store(os);
             }
             updateTitle();
         } catch (IOException e1) {

@@ -1,12 +1,11 @@
 package org.roach.margia.rules;
 
 import org.roach.margia.Musician;
-import org.roach.margia.Storable;
 
 /**
  * A rule for a {@link Musician} to follow when it 'hears' a note
  */
-public sealed interface MusicianRule extends Storable permits AbstractMusicianRule {
+public sealed interface MusicianRule permits AbstractMusicianRule {
 
     /**
      * property for storing rule classname
@@ -20,7 +19,7 @@ public sealed interface MusicianRule extends Storable permits AbstractMusicianRu
      * @param tick the tick number
      */
     void calculateAction(long tick);
-    
+
     /**
      * @return the name of this rule
      */
@@ -30,5 +29,5 @@ public sealed interface MusicianRule extends Storable permits AbstractMusicianRu
      * Reset this rule back to its defaults (for rewinds)
      */
     void reset();
-    
+
 }
