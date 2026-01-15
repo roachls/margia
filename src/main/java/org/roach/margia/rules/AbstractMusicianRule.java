@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.*;
 import org.roach.margia.actions.MusicalAction;
-import org.roach.margia.storage.Options.RuleOptions;
+import org.roach.margia.storage.RuleOptions;
 
 /**
  * Abstract implementation of {@link MusicianRule}

@@ -14,8 +14,8 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
+import org.roach.margia.storage.MusicianOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.Options.MusicianOptions;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.ui.PropertyChangeEmitter;
 import org.roach.margia.util.Range;
@@ -63,7 +63,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     public static final String ID_PROPERTY = "id";
     private static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
-    private int id;
+    private final int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
     private int channel;
@@ -81,10 +81,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     private boolean listening = true;
 
     /**
-     * public constructor
+     * private constructor - may only be created with factory methods
      */
-    public Musician() {
-        this.id = ID_GENERATOR.getAndIncrement();
+    private Musician(final int id) {
+        this.id = id;
         Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).setId(id);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
@@ -93,6 +93,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 .addChangeListener(MUTED_PROPERTY, this);
         Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
                 .addChangeListener(CHANNEL_PROPERTY, this);
+    }
+
+    /**
+     * @return a new Musician with a generated ID
+     */
+    public static Musician newInstance() {
+        return new Musician(ID_GENERATOR.getAndIncrement());
     }
 
     /**
@@ -409,27 +416,29 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     }
 
     /**
-     * Restore this musician from saved properties
+     * Create a musician from saved properties
      * 
      * @param props properties loaded from save file
+     * @return a new {@link Musician} with the given properties
      */
-    public void restoreFromStorage(MusicianOptions props) {
-        this.id = props.getId();
-        this.channel = props.getChannel();
-        this.muted = props.isMuted();
+    public static Musician restoreFromStorage(MusicianOptions props) {
+        Musician m = new Musician(props.getId());
+        m.setChannel(props.getChannel());
+        m.setMuted(props.isMuted());
         var ruleOpts = props.getRuleOptions();
         var ruleName = ruleOpts.getName();
-        if (ruleName == null)
-            return;
-        var availableRules = ServiceLoader.load(MusicianRule.class);
-        for (var availableRule : availableRules) {
-            if (ruleName.equals(availableRule.getName())) {
-                var realRule = ((AbstractMusicianRule) availableRule).copy();
-                realRule.restoreFromStorage(ruleOpts);
-                setRule(realRule);
-                break;
+        if (ruleName != null) {
+            var availableRules = ServiceLoader.load(MusicianRule.class);
+            for (var availableRule : availableRules) {
+                if (ruleName.equals(availableRule.getName())) {
+                    var realRule = ((AbstractMusicianRule) availableRule).copy();
+                    realRule.restoreFromStorage(ruleOpts);
+                    m.setRule(realRule);
+                    break;
+                }
             }
         }
+        return m;
     }
 
     @Override

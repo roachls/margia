@@ -9,7 +9,7 @@ import javax.swing.event.ChangeListener;
 import org.roach.margia.NoteInfo;
 import org.roach.margia.actions.*;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.Options.RuleOptions;
+import org.roach.margia.storage.RuleOptions;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**

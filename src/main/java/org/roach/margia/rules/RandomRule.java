@@ -1,7 +1,6 @@
 package org.roach.margia.rules;
 
 import org.roach.margia.actions.*;
-import org.roach.margia.storage.Options.RuleOptions;
 
 /**
  * Random-note generator

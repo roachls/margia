@@ -429,7 +429,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void handleAdd(MouseEvent e) {
-            var musician = new Musician();
+            var musician = Musician.newInstance();
             musician.setRule(new RandomRule());
             musician.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
@@ -649,7 +649,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             return;
         for (var componentToCopy : copiedComponents) {
             var musicianToCopy = componentToCopy.getMusician();
-            var newMusician = new Musician();
+            var newMusician = Musician.newInstance();
             newMusician.setRule((AbstractMusicianRule) musicianToCopy.getRule());
             newMusician.setChannel(musicianToCopy.getChannel());
             newMusician.setKey(musicianToCopy.getKey());

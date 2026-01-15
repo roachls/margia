@@ -2,7 +2,7 @@ package org.roach.margia;
 
 import java.util.*;
 
-import org.roach.margia.storage.Options.MusicianOptions;
+import org.roach.margia.storage.MusicianOptions;
 
 /**
  * A list of musicians that is able to restore itself from a YAML file
@@ -35,8 +35,7 @@ public class MusicianList {
         var peerIdsMap = new HashMap<Integer, List<Integer>>();
         for (var paramEntry : musicianOptions.entrySet()) {
             var id = paramEntry.getKey();
-            var m = new Musician();
-            m.restoreFromStorage(paramEntry.getValue());
+            var m = Musician.restoreFromStorage(paramEntry.getValue());
             var peerIds = paramEntry.getValue().getPeerIds();
             peerIdsMap.put(id, peerIds);
             map.put(id, m);
