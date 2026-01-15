@@ -3,22 +3,24 @@ package org.roach.margia;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.roach.margia.storage.KeyOptions;
+
 /**
  * Represents a musical key along with a range of allowed notes
  */
-@SuppressWarnings({"javadoc", "java:S2386"})
+@SuppressWarnings({ "javadoc", "java:S2386" })
 public interface Key {
     RandomHolder randomHolder = new RandomHolder();
-    
+
     class RandomHolder {
         private Random random = new Random();
         private long seed;
-        
+
         void setRandomSeed(long seed) {
             this.seed = seed;
             random.setSeed(seed);
         }
-        
+
         void reset() {
             this.random = new Random();
             random.setSeed(seed);
@@ -28,6 +30,27 @@ public interface Key {
     static final List<Integer> MAJOR_INTERVALS = List.of(2, 2, 1, 2, 2, 2, 1);
     static final List<Integer> PENTATONIC_INTERVALS = List.of(2, 2, 3, 2, 3);
     static final List<Integer> CHROMATIC_INTERVALS = List.of(1);
+
+    static final String MAJOR_INTERVAL_KEY = "MAJOR_INTERVALS";
+    static final String PENTATONIC_KEY = "PENTATONIC_INTERVALS";
+    static final String CHROMATIC_KEY = "CHROMATIC";
+
+    // @formatter:off
+    static final Map<String, List<Integer>> AVAILABLE_BASIS = Map.of(
+            MAJOR_INTERVAL_KEY, MAJOR_INTERVALS,
+            PENTATONIC_KEY, PENTATONIC_INTERVALS,
+            CHROMATIC_KEY, CHROMATIC_INTERVALS
+    );
+    static final Map<List<Integer>, String> BASIS_MAP = Map.of(
+            MAJOR_INTERVALS, MAJOR_INTERVAL_KEY,
+            PENTATONIC_INTERVALS, PENTATONIC_KEY,
+            CHROMATIC_INTERVALS, CHROMATIC_KEY
+            );
+    // @formatter:on
+
+    static Key fromOptions(KeyOptions opts) {
+        return Key.generateKey(opts.getName(), AVAILABLE_BASIS.get(opts.getBasis()));
+    }
 
     /**
      * @param seed random seed to use
@@ -108,9 +131,10 @@ public interface Key {
 
     Key DRUMPAD = Chromatic.of(Octave.O1, Octave.O1);
 
-    static final Map<String, Key> BUILTIN_KEYS = List.of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor,
-            AbMajor, AMajor, BbMajor, BMajor, CPentatonic, Chromatic, DRUMPAD).stream()
-            .collect(Collectors.toMap(Key::getName, k -> k, (_, k2) -> k2, TreeMap::new));
+    static final Map<String, Key> BUILTIN_KEYS = List
+            .of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor, AbMajor, AMajor, BbMajor, BMajor,
+                    CPentatonic, Chromatic, DRUMPAD)
+            .stream().collect(Collectors.toMap(Key::getName, k -> k, (_, k2) -> k2, TreeMap::new));
 
     List<Integer> notes();
 
@@ -230,7 +254,9 @@ public interface Key {
         return generateKey(name, newNotes);
     }
 
-    String getName();
+    default String getName() {
+       return BASIS_MAP.get(notes());
+    }
 
     static void reset() {
         randomHolder.reset();

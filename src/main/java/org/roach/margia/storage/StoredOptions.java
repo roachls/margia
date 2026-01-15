@@ -1,7 +1,6 @@
 package org.roach.margia.storage;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.roach.margia.Musician;
 
@@ -9,10 +8,10 @@ import org.roach.margia.Musician;
  * All stored properties
  */
 public class StoredOptions {
-    final MusicOptions musicOptions = new MusicOptions();
-    final MidiOptions midiOptions = new MidiOptions();
-    final UiOptions uiOptions = new UiOptions();
-    final Map<Integer, MusicianOptions> musicians = new LinkedHashMap<>();
+    private final MusicOptions musicOptions = new MusicOptions();
+    private final MidiOptions midiOptions = new MidiOptions();
+    private final UiOptions uiOptions = new UiOptions();
+    private final Map<Integer, MusicianOptions> musicians = new LinkedHashMap<>();
 
     /**
      * @return all music-related options

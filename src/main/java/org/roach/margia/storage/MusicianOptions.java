@@ -19,6 +19,7 @@ public class MusicianOptions {
     private boolean muted;
     private int id;
     private final RuleOptions ruleOptions = new RuleOptions();
+    private KeyOptions keyOptions = new KeyOptions();
 
     /**
      * @return the channel
@@ -78,6 +79,18 @@ public class MusicianOptions {
      */
     public void addChangeListener(String key, ChangeListener listener) {
         emitter.addChangeListener(key, listener);
+    }
+
+    /**
+     * @return the keyOptions
+     */
+    public KeyOptions getKeyOptions() { return keyOptions; }
+
+    /**
+     * @param myKeyOpts the {@link KeyOptions} to set
+     */
+    public void setKeyOptions(KeyOptions myKeyOpts) {
+        this.keyOptions = myKeyOpts;
     }
 
 }

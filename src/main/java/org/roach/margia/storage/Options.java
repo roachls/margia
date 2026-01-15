@@ -75,14 +75,15 @@ public class Options {
         StoredOptions loadedOpts;
         try {
             loadedOpts = mapper.readValue(is, StoredOptions.class);
-        } catch (MismatchedInputException _) {
+        } catch (MismatchedInputException e) {
             System.err.println("Parameter file was empty or malformed");
+            e.printStackTrace();
             return;
         }
         if (loadedOpts != null) {
             this.storedOptions = loadedOpts;
         }
-        var sendExternalMidi = storedOptions.getMidiOptions().useExternalMidi;
+        var sendExternalMidi = storedOptions.getMidiOptions().isUseExternalMidi();
         var tempo = storedOptions.getMusicOptions().getTempo();
         if (sendExternalMidi) {
             MidiController.init(MidiController.LOOP_MIDI, tempo);
@@ -105,9 +106,9 @@ public class Options {
      */
     public void addChangeListener(String property, ChangeListener listener) {
         emitter.addChangeListener(property, listener);
-        storedOptions.midiOptions.emitter.addChangeListener(property, listener);
-        storedOptions.uiOptions.emitter.addChangeListener(property, listener);
-        storedOptions.musicOptions.emitter.addChangeListener(property, listener);
+        storedOptions.getMidiOptions().addChangeListener(property, listener);
+        storedOptions.getUiOptions().emitter.addChangeListener(property, listener);
+        storedOptions.getMusicOptions().addChangeListener(property, listener);
     }
 
     /**
@@ -140,7 +141,7 @@ public class Options {
      * Initialize the list of musicians
      */
     private void restoreMusicians() {
-        MusicianList.getInstance().restoreFromStorage(storedOptions.musicians);
+        MusicianList.getInstance().restoreFromStorage(storedOptions.getMusicians());
     }
 
     /**

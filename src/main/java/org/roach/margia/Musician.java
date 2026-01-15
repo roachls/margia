@@ -14,8 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
-import org.roach.margia.storage.MusicianOptions;
-import org.roach.margia.storage.Options;
+import org.roach.margia.storage.*;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.ui.PropertyChangeEmitter;
 import org.roach.margia.util.Range;
@@ -34,6 +33,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      * property for storing the peer IDs
      */
     public static final String PEER_IDS_PROPERTY = "peerIds";
+    /**
+     * property for listening to key changes
+     */
+    public static final String KEY_PROPERTY = "key";
     /**
      * property used for storing the muted field
      */
@@ -85,14 +88,16 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     private Musician(final int id) {
         this.id = id;
-        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).setId(id);
+        var musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        musicianOptions.setId(id);
+        musicianOptions.getKeyOptions().setBasis(Key.CHROMATIC_KEY);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
         propertyChange = new PropertyChangeSupport(this);
-        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
-                .addChangeListener(MUTED_PROPERTY, this);
-        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
-                .addChangeListener(CHANNEL_PROPERTY, this);
+        var myOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        myOptions.addChangeListener(MUTED_PROPERTY, this);
+        myOptions.addChangeListener(CHANNEL_PROPERTY, this);
+        myOptions.addChangeListener(KEY_PROPERTY, this);
     }
 
     /**
@@ -282,6 +287,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.key = key;
         this.rangeLow = key.lowestNote();
         this.rangeHi = key.highestNote();
+        KeyOptions myKeyOpts = new KeyOptions();
+        myKeyOpts.setBasis(Key.BASIS_MAP.get(key.notes()));
+        myKeyOpts.setName(key.getName());
+        Options.getInstance().getMusicians().get(id).setKeyOptions(myKeyOpts);
     }
 
     /**
@@ -386,8 +395,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             return;
         this.rule = rule;
         this.rule.setMusician(this);
-        Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions()).getRuleOptions()
-                .setName(rule.getName());
+        var myOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        myOpts.getRuleOptions().setName(rule.getName());
     }
 
     /**
@@ -450,6 +459,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 break;
             case CHANNEL_PROPERTY:
                 this.channel = (int) cs.newValue();
+                break;
+            case KEY_PROPERTY:
+                var keyOpts = (KeyOptions) cs.newValue();
+                this.key = Key.fromOptions(keyOpts);
                 break;
             default:
                 break;

@@ -1,5 +1,7 @@
 package org.roach.margia.storage;
 
+import javax.swing.event.ChangeListener;
+
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -9,7 +11,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
  */
 public class MusicOptions {
     private int tempo = TimingSource.DEFAULT_TEMPO;
-    final ChangeEmitter emitter = new ChangeEmitter();
+    private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
      * @return the tempo
@@ -27,4 +29,7 @@ public class MusicOptions {
                     new ChangeSource(this, TimingSource.TEMPO_PROPERTY, tempo));
     }
 
+    void addChangeListener(String property, ChangeListener listener) {
+        this.emitter.addChangeListener(property, listener);
+    }
 }
