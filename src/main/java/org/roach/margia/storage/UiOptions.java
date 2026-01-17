@@ -1,5 +1,8 @@
 package org.roach.margia.storage;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.roach.margia.ui.*;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
@@ -13,6 +16,12 @@ public class UiOptions {
     private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
     private int edgeLength = AgentPanel.DEFAULT_EDGE_LENGTH;
     private double mass = 1.0;
+    private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
+
+    /**
+     * @return the musicianComponents
+     */
+    public Map<Integer, MusicianComponentOptions> getMusicianComponents() { return musicianComponents; }
 
     /**
      * @return true if numbers of musicians should be displayed
@@ -85,7 +94,7 @@ public class UiOptions {
     @Override
     public String toString() {
         return "UiOptions [showNumbers=" + showNumbers + ", radius=" + radius + ", gravity=" + gravity + ", edgeLength="
-                + edgeLength + ", mass=" + mass + "]";
+                + edgeLength + ", mass=" + mass + ", musicianComponents=" + musicianComponents + "]";
     }
 
 }
