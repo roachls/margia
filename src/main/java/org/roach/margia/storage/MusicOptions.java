@@ -32,4 +32,9 @@ public class MusicOptions {
     void addChangeListener(String property, ChangeListener listener) {
         this.emitter.addChangeListener(property, listener);
     }
+
+    @Override
+    public String toString() {
+        return "MusicOptions [tempo=" + tempo + "]";
+    }
 }

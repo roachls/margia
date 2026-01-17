@@ -39,4 +39,9 @@ public class RuleOptions {
         this.emitter.addChangeListener(key, listener);
     }
 
+    @Override
+    public String toString() {
+        return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
+    }
+
 }

@@ -88,4 +88,10 @@ public class UiOptions {
      */
     public void setMass(double mass) { this.mass = mass; }
 
+    @Override
+    public String toString() {
+        return "UiOptions [showNumbers=" + showNumbers + ", radius=" + radius + ", gravity=" + gravity + ", edgeLength="
+                + edgeLength + ", mass=" + mass + "]";
+    }
+
 }

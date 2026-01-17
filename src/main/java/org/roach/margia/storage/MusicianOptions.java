@@ -3,23 +3,21 @@ package org.roach.margia.storage;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.event.ChangeListener;
-
+import org.roach.margia.Key;
 import org.roach.margia.Musician;
-import org.roach.margia.ui.ChangeEmitter;
-import org.roach.margia.ui.ChangeEmitter.ChangeSource;
+import org.roach.margia.util.Range;
 
 /**
  * Options for a specific {@link Musician}
  */
 public class MusicianOptions {
-    private final ChangeEmitter emitter = new ChangeEmitter();
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
     private boolean muted;
+    private boolean listening;
     private int id;
     private final RuleOptions ruleOptions = new RuleOptions();
-    private String keyName;
+    private String keyName = Key.Chromatic.getName();
 
     /**
      * @return the channel
@@ -29,13 +27,7 @@ public class MusicianOptions {
     /**
      * @param channel the channel to set
      */
-    public void setChannel(int channel) {
-        var oldChannel = this.channel;
-        this.channel = channel;
-        if (oldChannel != channel)
-            emitter.fireChangeEvent(Musician.CHANNEL_PROPERTY,
-                    new ChangeSource(this, Musician.CHANNEL_PROPERTY, this.channel));
-    }
+    public void setChannel(int channel) { this.channel = Range.check("MIDI channel", channel, 0, 16); }
 
     /**
      * @return the peerIds
@@ -50,13 +42,17 @@ public class MusicianOptions {
     /**
      * @param muted the muted to set
      */
-    public void setMuted(boolean muted) {
-        var oldMuted = this.muted;
-        this.muted = muted;
-        if (oldMuted != muted)
-            emitter.fireChangeEvent(Musician.MUTED_PROPERTY,
-                    new ChangeSource(this, Musician.MUTED_PROPERTY, this.muted));
-    }
+    public void setMuted(boolean muted) { this.muted = muted; }
+
+    /**
+     * @return the listening
+     */
+    public boolean isListening() { return listening; }
+
+    /**
+     * @param listening the listening to set
+     */
+    public void setListening(boolean listening) { this.listening = listening; }
 
     /**
      * @return the id
@@ -74,14 +70,6 @@ public class MusicianOptions {
     public RuleOptions getRuleOptions() { return ruleOptions; }
 
     /**
-     * @param key      key being listened to
-     * @param listener listener
-     */
-    public void addChangeListener(String key, ChangeListener listener) {
-        emitter.addChangeListener(key, listener);
-    }
-
-    /**
      * @return the keyName
      */
     public String getKeyName() { return keyName; }
@@ -89,11 +77,12 @@ public class MusicianOptions {
     /**
      * @param keyName the keyName to set
      */
-    public void setKeyName(String keyName) {
-        var oldKeyName = this.keyName;
-        this.keyName = keyName;
-        if (oldKeyName != null && !oldKeyName.equals(keyName))
-            emitter.fireChangeEvent(Musician.KEY_PROPERTY, new ChangeSource(this, Musician.KEY_PROPERTY, this.keyName));
+    public void setKeyName(String keyName) { this.keyName = keyName; }
+
+    @Override
+    public String toString() {
+        return "MusicianOptions [channel=" + channel + ", peerIds=" + peerIds + ", muted=" + muted + ", id=" + id
+                + ", ruleOptions=" + ruleOptions + ", keyName=" + keyName + "]";
     }
 
 }

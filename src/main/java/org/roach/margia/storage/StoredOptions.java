@@ -33,4 +33,10 @@ public class StoredOptions {
      */
     public Map<Integer, MusicianOptions> getMusicians() { return musicians; }
 
+    @Override
+    public String toString() {
+        return "StoredOptions [musicOptions=" + musicOptions + ", midiOptions=" + midiOptions + ", uiOptions="
+                + uiOptions + ", musicians=" + musicians + "]";
+    }
+
 }

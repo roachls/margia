@@ -24,4 +24,9 @@ public class MidiOptions {
     void addChangeListener(String key, ChangeListener listener) {
         this.emitter.addChangeListener(key, listener);
     }
+
+    @Override
+    public String toString() {
+        return "MidiOptions [useExternalMidi=" + useExternalMidi + "]";
+    }
 }
