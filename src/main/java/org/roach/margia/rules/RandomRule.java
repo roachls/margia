@@ -1,5 +1,8 @@
 package org.roach.margia.rules;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.roach.margia.actions.*;
 
 /**
@@ -49,4 +52,7 @@ public class RandomRule extends AbstractMusicianRule {
     public RandomRule copy() {
         return new RandomRule();
     }
+
+    @Override
+    public List<SettableParamDescription<?>> getSettableParameters() { return Collections.emptyList(); }
 }

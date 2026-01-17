@@ -1,7 +1,6 @@
 package org.roach.margia.rules;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
