@@ -48,6 +48,8 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
 
         var row = 0;
         constraints.gridy = row++;
+        add(createMiscPanel(), constraints);
+        constraints.gridy = row++;
         add(createUiPanel(), constraints);
         constraints.gridy = row++;
         add(createMidiPanel(), constraints);
@@ -55,13 +57,25 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         musPanel = createMusicianPanel();
         add(musPanel, constraints);
 
-
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
         constraints.gridy = row;
         constraints.weighty = 1.0; // Give all extra vertical space to this row
         constraints.fill = GridBagConstraints.BOTH; // Allow the filler to expand
         add(Box.createVerticalGlue(), constraints);
+    }
+
+    private static JPanel createMiscPanel() {
+        var miscPanel = new JPanel();
+        miscPanel.setBorder(
+                BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Miscellaneous options"));
+        miscPanel.setLayout(new GridLayout(0, 2, 3, 5));
+        var randomSeedSpinner = addSpinner(miscPanel, "Random seed", 0d, (double) -Long.MAX_VALUE,
+                (double) Long.MAX_VALUE, 1d, Long.class);
+        randomSeedSpinner.setValue(Options.getInstance().getRandomSeed());
+        randomSeedSpinner.addChangeListener(
+                _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
+        return miscPanel;
     }
 
     private JPanel createUiPanel() {
@@ -97,6 +111,8 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         SpinnerNumberModel model;
         if (type.equals(Integer.class))
             model = new SpinnerNumberModel(defValue.intValue(), min.intValue(), max.intValue(), step.intValue());
+        else if (type.equals(Long.class))
+            model = new SpinnerNumberModel(defValue.longValue(), min.longValue(), max.longValue(), step.longValue());
         else
             model = new SpinnerNumberModel(defValue.doubleValue(), min.doubleValue(), max.doubleValue(),
                     step.doubleValue());

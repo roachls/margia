@@ -165,4 +165,11 @@ public class Options {
      * @return random seed
      */
     public long getRandomSeed() { return storedOptions.getRandomSeed(); }
+
+    /**
+     * @param randomSeed the random seed to set
+     */
+    public void setRandomSeed(long randomSeed) {
+        storedOptions.setRandomSeed(randomSeed);
+    }
 }
