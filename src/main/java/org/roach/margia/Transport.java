@@ -5,6 +5,7 @@ import java.beans.PropertyChangeSupport;
 import java.util.*;
 
 import org.apache.logging.log4j.*;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.MusicianComponent;
 
@@ -44,9 +45,10 @@ public class Transport {
     private final PropertyChangeSupport propertyChangeSupport;
 
     /**
-     * @param tempo     the tempo
+     * no-arg constructor
      */
-    public Transport(int tempo) {
+    public Transport() {
+        var tempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
         // TODO this should definitely go somewhere else, I don't like having the transport know about the UI
         MusicianComponent.setTickLengthMillis(this.tickLength);
@@ -105,9 +107,9 @@ public class Transport {
                 tickActions.remove(tick).run();
             }
             // each musician calculate their next action
-            MusicianList.getInstance().getMusicians().forEach(m -> m.calculateAction(tick));
+            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().calculateAction(tick));
             // each musician perform the action they just calculated
-            MusicianList.getInstance().getMusicians().forEach(m -> m.doAction());
+            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().doAction());
             // controller actually play notes from each musician
             MidiController.getInstance().playNotesThisTick();
         }

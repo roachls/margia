@@ -2,12 +2,14 @@ package org.roach.margia;
 
 import java.util.*;
 
+import org.roach.margia.storage.MusicianOptions;
+
 /**
  * A list of musicians that is able to restore itself from a YAML file
  */
 @SuppressWarnings("java:S6548")
-public class MusicianList implements Storable {
-    private final List<Musician> musicians = new ArrayList<>();
+public class MusicianList {
+    private final Map<Integer, Musician> musicians = new TreeMap<>();
     static final String MUSICIANS_PROPERTY = "musicians";
     private static MusicianList instance;
 
@@ -20,30 +22,23 @@ public class MusicianList implements Storable {
         return instance;
     }
 
-    @Override
-    public List<Map<String, Object>> storableProperties() {
-        return this.musicians.stream().map(Musician::storableProperties).toList();
-    }
-
-    @Override
-    public void restoreFromStorage(Object storableProperties) {
-        if (storableProperties == null)
+    /**
+     * Restore all musicians from file
+     * 
+     * @param musicianOptions properties of all musicians
+     */
+    public void restoreFromStorage(Map<Integer, MusicianOptions> musicianOptions) {
+        if (musicianOptions == null)
             return;
         this.musicians.clear();
-        @SuppressWarnings("unchecked")
-        var propertyList = (List<Map<String, Object>>) storableProperties;
 
         var map = new HashMap<Integer, Musician>();
         var peerIdsMap = new HashMap<Integer, List<Integer>>();
-        for (var params : propertyList) {
-            var id = (int) params.get(Musician.ID_PROPERTY);
-            var m = new Musician();
-            m.restoreFromStorage(params);
-            if (params.containsKey(Musician.PEER_IDS_PROPERTY)) {
-                @SuppressWarnings("unchecked")
-                var peerIds = (List<Integer>) params.get(Musician.PEER_IDS_PROPERTY);
-                peerIdsMap.put(id, peerIds);
-            }
+        for (var paramEntry : musicianOptions.entrySet()) {
+            var id = paramEntry.getKey();
+            var m = Musician.restoreFromStorage(paramEntry.getValue());
+            var peerIds = paramEntry.getValue().getPeerIds();
+            peerIdsMap.put(id, peerIds);
             map.put(id, m);
         }
         for (var peerIdEntry : peerIdsMap.entrySet()) {
@@ -56,26 +51,34 @@ public class MusicianList implements Storable {
                 }
             }
         }
-        this.musicians.addAll(map.values());
+        this.musicians.putAll(map);
     }
 
     /**
      * @return a list of stored {@link Musician Musicians}
      */
-    public List<Musician> getMusicians() { return Collections.unmodifiableList(this.musicians); }
+    public Map<Integer, Musician> getMusicians() { return Collections.unmodifiableMap(this.musicians); }
 
     /**
      * @param musician {@link Musician} to add
      */
     public void addMusician(Musician musician) {
-        musicians.add(musician);
+        musicians.put(musician.getId(), musician);
     }
 
     /**
      * @param musician {@link Musician} to remove
      */
     public void removeMusician(Musician musician) {
-        musicians.remove(musician);
+        musicians.remove(musician.getId());
+    }
+
+    /**
+     * @param id the ID of the {@link Musician} to remove
+     * @return the removed {@link Musician}, or null if no such musician existed
+     */
+    public Musician removeMusician(int id) {
+        return musicians.remove(id);
     }
 
     /**

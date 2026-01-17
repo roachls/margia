@@ -1,7 +1,5 @@
 package org.roach.margia.rules;
 
-import java.util.Map;
-
 import org.roach.margia.actions.*;
 
 /**
@@ -48,18 +46,7 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public Map<String, Object> storableProperties() {
-        return Map.of(MusicianRule.RULE_NAME_PROPERTY, getName());
-    }
-
-    @Override
-    public void restoreFromStorage(Object storableProperties) {
-        // nothing to do
-    }
-
-    @Override
     public RandomRule copy() {
         return new RandomRule();
     }
-
 }

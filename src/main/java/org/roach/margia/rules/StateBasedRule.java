@@ -1,16 +1,21 @@
 package org.roach.margia.rules;
 
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import org.roach.margia.NoteInfo;
 import org.roach.margia.actions.*;
+import org.roach.margia.storage.Options;
+import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * A state-machine based agent
  */
-public class StateBasedRule extends AbstractMusicianRule {
+public class StateBasedRule extends AbstractMusicianRule implements ChangeListener {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
     private int sequenceLength = 1;
@@ -174,6 +179,8 @@ public class StateBasedRule extends AbstractMusicianRule {
         if (sequenceLength < 1)
             throw new IllegalArgumentException("Sequence length must be at least 1");
         this.sequenceLength = sequenceLength;
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
+                .put(SEQUENCE_LENGTH_PROPERTY, this.sequenceLength);
     }
 
     @Override
@@ -202,32 +209,44 @@ public class StateBasedRule extends AbstractMusicianRule {
             throw new IllegalArgumentException("Tick delay must be at least 0");
         this.initialTickDelay = initialTickDelay;
         this.sequenceCountdown = sequenceLength + initialTickDelay;
-    }
-
-    @Override
-    public Map<String, Object> storableProperties() {
-        // @formatter:off
-        return Map.of(
-                RULE_NAME_PROPERTY, getName(),
-                SEQUENCE_LENGTH_PROPERTY, sequenceLength,
-                INITIAL_TICK_DELAY_PROPERTY, initialTickDelay);
-        // @formatter:on
-    }
-
-    @Override
-    public void restoreFromStorage(Object storableProperties) {
-        @SuppressWarnings("unchecked")
-        var propertyMap = (Map<String, Integer>) storableProperties;
-        setInitialTickDelay(propertyMap.getOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0));
-        setSequenceLength(propertyMap.getOrDefault(SEQUENCE_LENGTH_PROPERTY, 1));
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
+                .put(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
     }
 
     @Override
     public StateBasedRule copy() {
         var copy = new StateBasedRule();
-        copy.setInitialTickDelay(this.initialTickDelay);
-        copy.setSequenceLength(sequenceLength);
+        copy.initialTickDelay = this.initialTickDelay;
+        copy.sequenceLength = this.sequenceLength;
         return copy;
     }
 
+    @Override
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        super.restoreFromStorage(ruleOptions);
+        var ruleOpts = ruleOptions.getRuleSpecificOptions();
+        if (ruleOpts.containsKey(INITIAL_TICK_DELAY_PROPERTY))
+            this.initialTickDelay = (int) ruleOpts.get(INITIAL_TICK_DELAY_PROPERTY);
+        if (ruleOpts.containsKey(SEQUENCE_LENGTH_PROPERTY))
+            this.sequenceLength = (int) ruleOpts.get(SEQUENCE_LENGTH_PROPERTY);
+        ruleOptions.addChangeListener(INITIAL_TICK_DELAY_PROPERTY, this);
+        ruleOptions.addChangeListener(SEQUENCE_LENGTH_PROPERTY, this);
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource cs) {
+            switch (cs.key()) {
+            case INITIAL_TICK_DELAY_PROPERTY:
+                this.initialTickDelay = (int) cs.newValue();
+                break;
+            case SEQUENCE_LENGTH_PROPERTY:
+                this.sequenceLength = (int) cs.newValue();
+                break;
+            default:
+                break;
+            }
+        }
+
+    }
 }

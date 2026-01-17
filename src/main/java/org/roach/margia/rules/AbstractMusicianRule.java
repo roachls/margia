@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.*;
 import org.roach.margia.actions.MusicalAction;
+import org.roach.margia.storage.RuleOptions;
 
 /**
  * Abstract implementation of {@link MusicianRule}
@@ -36,13 +37,23 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
             return;
         }
         for (var action : actionsToTake) {
+            logger.atDebug().log("{}: performing action {}", action.getClass().getSimpleName());
             action.perform();
         }
         actionsToTake.clear();
     }
-    
+
     /**
      * @return a copy of this rule
      */
     public abstract AbstractMusicianRule copy();
+
+    /**
+     * Subclasses should override in order to apply specific parameters
+     * 
+     * @param ruleOptions rule options
+     */
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        // nothing here
+    }
 }

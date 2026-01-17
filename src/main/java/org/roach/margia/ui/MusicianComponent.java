@@ -9,13 +9,15 @@ import java.beans.PropertyChangeListener;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.*;
+import org.roach.margia.storage.MusicianComponentOptions;
+import org.roach.margia.storage.Options;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
-import org.roach.margia.util.Range;
 
 /**
  * GUI element that displays an agent as a colored circle
@@ -28,33 +30,26 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private static int tickLengthMillis;
     private Timer timer;
     private boolean selected;
-    private boolean locked;
 
-    /**
-     * size of circle to draw
-     */
-    private int radius = MusicianComponent.DEFAULT_RADIUS;
-    private double mass = 1.0;
-    private final Point2D.Double position = new Point2D.Double();
     private Vector2D velocity = new Vector2D(0, 0);
     private Vector2D force = new Vector2D(0, 0);
     private static final double DAMPING = 0.6; // Damping factor
     private static final double TIMESTEP = 0.8; // Simulation speed/stability
+    private final MusicianComponentOptions options;
 
     /**
      * default radius of musician components
      */
-    static final int DEFAULT_RADIUS = 20;
+    public static final int DEFAULT_RADIUS = 20;
     /**
      * property name of radius spinner
      */
-    static final String RADIUS_PROPERTY = "ui.radius";
-    static final String MASS_PROPERTY = "ui.mass";
+    public static final String RADIUS_PROPERTY = "ui.radius";
     /**
      * property name of whether to show numbers
      */
-    static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
-    private static boolean showNumbers = Options.getInstance().getOrDefaultAsBoolean(SHOW_NUMBERS_PROPERTY, true);
+    public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
+    private static boolean showNumbers = Options.getInstance().getUiOptions().isShowNumbers();
 
     /**
      * listener for the show numbers property
@@ -72,10 +67,12 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     MusicianComponent(Musician musician) {
         this.musician = musician;
+        this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
+                _ -> new MusicianComponentOptions());
         this.setName("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
-        setCircleRadius(Options.getInstance().getOrDefaultAsInt(RADIUS_PROPERTY, DEFAULT_RADIUS));
+        setCircleRadius(Options.getInstance().getUiOptions().getRadius());
     }
 
     @Override
@@ -125,6 +122,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
 
         g2d.setColor(color);
+        var radius = options.getRadius();
         var paint = new RadialGradientPaint(new Point2D.Float(radius + 3f, radius + 3f), radius, FRACTIONS,
                 new Color[] { Color.white, color });
         g2d.setPaint(paint);
@@ -159,7 +157,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.setStroke(SELECTED_STROKE);
             g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
         }
-        if (locked) {
+        if (options.isLocked()) {
             // draw yellow circle border
             var font = g2d.getFont();
             g2d.setFont(LOCK_FONT);
@@ -167,27 +165,32 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.drawString("🔒", 0, getHeight());
             g2d.setFont(font);
         }
+        if (!musician.isListening()) {
+            // TODO draw ear icon
+            g2d.drawString("NL", radius + 5, radius + 5);
+        }
     }
 
     private void updateLocation() {
+        var position = options.getPosition();
         setLocation((int) position.getX(), (int) position.getY());
     }
 
     /**
      * @return radius of displayed circle
      */
-    int getRadius() { return radius; }
+    int getRadius() { return options.getRadius(); }
 
     /**
      * @return diameter of displayed circle
      */
-    int getDiameter() { return radius * 2; }
+    int getDiameter() { return options.getRadius() * 2; }
 
     /**
      * @param circleRadius radius of displayed circle
      */
     void setCircleRadius(int circleRadius) {
-        this.radius = Math.max(0, circleRadius);
+        options.setRadius(Math.max(0, circleRadius));
         var dim = new Dimension(circleRadius * 2, circleRadius * 2);
         setPreferredSize(dim);
         setMinimumSize(dim);
@@ -231,8 +234,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public String toString() {
         return "MusicianComponent [musician=" + musician + ", color=" + color + ", tickLengthMillis=" + tickLengthMillis
-                + ", timer=" + timer + ", radius=" + radius + ", mass=" + mass + ", position=" + position
-                + ", velocity=" + velocity + ", force=" + force + "]";
+                + ", timer=" + timer + ", options=" + options + ", velocity=" + velocity + ", force=" + force + "]";
     }
 
     /**
@@ -244,21 +246,21 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     void setSelected(boolean selected) { this.selected = selected; }
 
-    double getMass() { return mass; }
+    double getMass() { return options.getMass(); }
 
-    Point2D.Double getPosition() { return position; }
+    Point2D.Double getPosition() { return options.getPosition(); }
 
     void setPosition(double x, double y) {
-        if (locked)
+        if (options.isLocked())
             return;
-        position.setLocation(x, y);
+        options.getPosition().setLocation(x, y);
         updateLocation();
     }
 
     Vector2D getVelocity() { return velocity; }
 
     void setVelocity(double x, double y) {
-        if (locked)
+        if (options.isLocked())
             return;
         velocity = new Vector2D(x, y);
     }
@@ -266,13 +268,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     Vector2D getForce() { return force; }
 
     void setForce(double x, double y) {
-        if (locked)
+        if (options.isLocked())
             return;
         force = new Vector2D(x, y);
     }
 
     void setForce(Vector2D force) {
-        if (locked)
+        if (options.isLocked())
             return;
         this.force = force;
     }
@@ -282,13 +284,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     }
 
     Point2D.Double getCenter() {
+        var position = options.getPosition();
         return new Point2D.Double(position.x + getWidth() / 2.0, position.y + getHeight() / 2.0);
     }
 
     void applyForces() {
-        var scaledForceVec = force.divide(mass).multiply(TIMESTEP);
+        var scaledForceVec = force.divide(options.getMass()).multiply(TIMESTEP);
         velocity = velocity.add(scaledForceVec).multiply(DAMPING);
         var scaledVelocity = velocity.multiply(TIMESTEP);
+        var position = options.getPosition();
         position.setLocation(PointMath.movePoint(position, scaledVelocity));
     }
 
@@ -303,20 +307,26 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
          * Note that the position is the upper-left corner of the bounding rectangle,
          * not the center, which is why we multiply radius by 3 for the bounds.
          */
+        var position = options.getPosition();
+        var radius = options.getRadius();
         setPosition(Math.clamp(position.getX(), radius, width - radius * 3.0),
                 Math.clamp(position.getY(), radius, height - radius * 3.0));
 
     }
 
     void toggleLocked() {
-        locked = !locked;
+        options.setLocked(!options.isLocked());
     }
 
-    boolean isLocked() { return locked; }
+    boolean isLocked() { return options.isLocked(); }
 
-    void setLocked(boolean locked) { this.locked = locked; }
+    void setLocked(boolean locked) {
+        options.setLocked(locked);
+    }
 
     static int getTickLengthMillis() { return tickLengthMillis; }
 
-    void setMass(double mass) { this.mass = Range.check("mass", mass, 0.1, 100.0); }
+    void setMass(double mass) {
+        options.setMass(mass);
+    }
 }

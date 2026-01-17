@@ -8,8 +8,8 @@ import java.beans.PropertyChangeListener;
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Options;
 import org.roach.margia.Transport;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 
 /**
@@ -48,10 +48,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         var tempoModel = new SpinnerNumberModel(timing.getTempo(), 1, 400, 1);
         tempo = new JSpinner(tempoModel);
         tempo.setName("tempo");
-        tempo.addChangeListener(_ -> {
-            timing.setTempo((int) tempo.getValue());
-            Options.getInstance().put(TimingSource.TEMPO_PROPERTY, tempo.getValue().toString());
-        });
+        tempo.addChangeListener(_ -> Options.getInstance().getMusicOptions().setTempo((int) tempo.getValue()));
         add(tempo);
 
         var startIconUrl = getClass().getResource("/icons/start.png");
