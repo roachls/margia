@@ -1,5 +1,6 @@
 package org.roach.margia.rules;
 
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -235,18 +236,28 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs) {
-            switch (cs.key()) {
+        if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
+            switch (key) {
             case INITIAL_TICK_DELAY_PROPERTY:
-                this.initialTickDelay = (int) cs.newValue();
+                this.initialTickDelay = (int) newValue;
                 break;
             case SEQUENCE_LENGTH_PROPERTY:
-                this.sequenceLength = (int) cs.newValue();
+                this.sequenceLength = (int) newValue;
                 break;
             default:
                 break;
             }
         }
 
+    }
+
+    @Override
+    public List<SettableParamDescription<?>> getSettableParameters() {
+        return List.of(
+        // @formatter:off
+            new SettableParamDescription<Integer>(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
+            new SettableParamDescription<Integer>(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
+            // @formatter:on
+        );
     }
 }

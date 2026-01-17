@@ -1,5 +1,7 @@
 package org.roach.margia.rules;
 
+import java.util.List;
+
 import org.roach.margia.Musician;
 
 /**
@@ -29,5 +31,23 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
      * Reset this rule back to its defaults (for rewinds)
      */
     void reset();
+
+    /**
+     * @return settable parameter types
+     */
+    public abstract List<SettableParamDescription<?>> getSettableParameters();
+
+    /**
+     * @param <T>          type of property
+     * @param propertyName storable name of property
+     * @param displayName  display name of property
+     * @param type         {@link Class} of property
+     * @param minValue     minimum value (only applicable if numeric type)
+     * @param maxValue     maximum value (only applicable if numeric type)
+     * @param step         step for UI spinners (only applicable if numeric type)
+     */
+    public static record SettableParamDescription<T>(String propertyName, String displayName, Class<T> type,
+            Double minValue, Double maxValue, Double step) {
+    }
 
 }
