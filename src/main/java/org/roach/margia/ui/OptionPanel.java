@@ -50,8 +50,11 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         constraints.gridy = row++;
         add(createUiPanel(), constraints);
         constraints.gridy = row++;
+        add(createMidiPanel(), constraints);
+        constraints.gridy = row++;
         musPanel = createMusicianPanel();
         add(musPanel, constraints);
+
 
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
@@ -146,12 +149,23 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         return panel;
     }
 
+    private static JPanel createMidiPanel() {
+        var midiPanel = new JPanel();
+        midiPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "MIDI options"));
+        midiPanel.setLayout(new GridLayout(0, 1, 3, 5));
+        var external = new JCheckBox("Use External MIDI");
+        external.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
+        external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
+        midiPanel.add(external);
+        return midiPanel;
+    }
+
     void updateOptions() {
         var options = Options.getInstance();
         radius.setValue(options.getUiOptions().getRadius());
         gravity.setValue(options.getUiOptions().getGravity());
         showNumbers.setSelected(options.getUiOptions().isShowNumbers());
-        mass.setValue(options.getUiOptions().getMass());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());
     }
 

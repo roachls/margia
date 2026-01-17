@@ -15,7 +15,6 @@ public class UiOptions {
     private int radius = MusicianComponent.DEFAULT_RADIUS;
     private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
     private int edgeLength = AgentPanel.DEFAULT_EDGE_LENGTH;
-    private double mass = 1.0;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
 
     /**
@@ -81,20 +80,10 @@ public class UiOptions {
                     new ChangeSource(AgentPanel.EDGE_LENGTH_PROPERTY, this.edgeLength));
     }
 
-    /**
-     * @return the mass
-     */
-    public double getMass() { return mass; }
-
-    /**
-     * @param mass the mass to set
-     */
-    public void setMass(double mass) { this.mass = mass; }
-
     @Override
     public String toString() {
         return "UiOptions [showNumbers=" + showNumbers + ", radius=" + radius + ", gravity=" + gravity + ", edgeLength="
-                + edgeLength + ", mass=" + mass + ", musicianComponents=" + musicianComponents + "]";
+                + edgeLength + ", musicianComponents=" + musicianComponents + "]";
     }
 
 }
