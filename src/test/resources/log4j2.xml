@@ -16,7 +16,7 @@
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Root level="warn">
+		<Root level="debug">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>

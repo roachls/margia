@@ -2,71 +2,75 @@ package org.roach.margia;
 
 import static javax.sound.midi.ShortMessage.*;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sound.midi.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.roach.margia.storage.MidiOptions;
+import org.roach.margia.storage.Options;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.util.NamedThreadFactory;
 
 /**
  * Sends MIDI messages to external (or internal) MIDI instruments
  */
-public class MidiController {
+@SuppressWarnings("java:S6548")
+public class MidiController implements ChangeListener {
 
     private static final Logger LOGGER = LogManager.getLogger(MidiController.class);
     /**
      * Default Windows synth
      */
-    public static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
+    private static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
     /**
      * External MIDI synth via loopMIDI
      */
-    public static final String LOOP_MIDI = "loopMIDI Port";
+    private static final String LOOP_MIDI = "loopMIDI Port";
     private MidiDevice outputDevice;
     private Receiver receiver;
     // one executor per MIDI channel
     private final ScheduledExecutorService executor = Executors
             .newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
     private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
-    private final int tempo;
     private final ShortMessage timingPulse;
-    private static MidiController INSTANCE;
-    
+    private static MidiController instance;
+
     /**
      * @return the singleton MIDI controller
      */
     public static MidiController getInstance() {
-        if (INSTANCE == null)
-            throw new NullPointerException("MidiController INSTANCE is null, please call init first");
-        return INSTANCE;
-    }
-    
-    /**
-     * @param busName name of MIDI bus
-     * @param tempo tempo
-     */
-    public static void init(final String busName, final int tempo) {
-        INSTANCE = new MidiController(busName, tempo);
+        if (instance == null)
+            instance = new MidiController();
+        return instance;
     }
 
     /**
      * @param busName name of MIDI bus to send notes on
-     * @param tempo   tempo at which the song will be played
      */
-    private MidiController(final String busName, final int tempo) {
-        Objects.requireNonNull(busName, "bus name cannot be null");
-        this.tempo = tempo;
+    private MidiController() {
         this.timingPulse = new ShortMessage();
         try {
             timingPulse.setMessage(ShortMessage.TIMING_CLOCK);
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("Error sending MIDI timing pulse");
+            LOGGER.atError().withThrowable(e).log("Error setting MIDI timing pulse");
         }
+        Options.getInstance().getMidiOptions().addChangeListener(MidiOptions.EXTERNAL_MIDI_PROPERTY, this);
+    }
+
+    /**
+     * @param external set to {@code true} to send MIDI externally, {@code false} to
+     *                 use built-in OS
+     */
+    public void setMidiDevice(final boolean external) {
         try {
+            String busName = external ? LOOP_MIDI : DEFAULT_SYNTH;
             // Get information about all available MIDI devices
             MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
             MidiDevice selectedDevice = null;
@@ -131,8 +135,9 @@ public class MidiController {
             if (notesToPlayNext.containsKey(i)) {
                 var noteInfo = notesToPlayNext.get(i);
                 // stop note at 95% length
-                var noteLengthInMillis = (int) (Length.getMillisForTempo(noteInfo.length(), tempo).getValue()
-                        .doubleValue() * 0.95);
+                var noteLengthInMillis = (int) (Length
+                        .getMillisForTempo(noteInfo.length(), Options.getInstance().getMusicOptions().getTempo())
+                        .getValue().doubleValue() * 0.95);
                 executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON), 0L, TimeUnit.MILLISECONDS);
                 executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis, TimeUnit.MILLISECONDS);
             }
@@ -223,6 +228,13 @@ public class MidiController {
         } catch (InvalidMidiDataException e) {
             LOGGER.atError().log("Error turning all notes off: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String property, Object newVal)
+                && MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
+            instance.setMidiDevice((boolean) newVal);
     }
 
 }

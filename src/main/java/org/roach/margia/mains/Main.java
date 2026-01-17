@@ -13,7 +13,6 @@ import org.roach.margia.mains.MainParams.UiType;
 import org.roach.margia.random.DieRoller;
 import org.roach.margia.storage.Options;
 import org.roach.margia.timing.InternalTimingSource;
-import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.MargiaWindow;
 
 import com.beust.jcommander.JCommander;
@@ -47,9 +46,6 @@ public class Main {
             jCommander.usage();
             return;
         }
-
-        // TODO fix
-        MidiController.init(MidiController.DEFAULT_SYNTH, TimingSource.DEFAULT_TEMPO);
 
         if (params.file != null) {
             try (var is = Files.newInputStream(params.file)) {

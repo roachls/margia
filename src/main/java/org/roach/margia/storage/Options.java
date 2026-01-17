@@ -83,13 +83,7 @@ public class Options {
         if (loadedOpts != null) {
             this.storedOptions = loadedOpts;
         }
-        var sendExternalMidi = storedOptions.getMidiOptions().isUseExternalMidi();
-        var tempo = storedOptions.getMusicOptions().getTempo();
-        if (sendExternalMidi) {
-            MidiController.init(MidiController.LOOP_MIDI, tempo);
-        } else {
-            MidiController.init(MidiController.DEFAULT_SYNTH, tempo);
-        }
+        MidiController.getInstance().setMidiDevice(storedOptions.getMidiOptions().isUseExternalMidi());
         restoreMusicians();
         MusicianList.getInstance().getMusicians().keySet().stream().max(Integer::compare)
                 .ifPresent(maxId -> Musician.ID_GENERATOR.set(maxId + 1));
