@@ -19,7 +19,7 @@ public class MusicianOptions {
     private boolean muted;
     private int id;
     private final RuleOptions ruleOptions = new RuleOptions();
-    private KeyOptions keyOptions = new KeyOptions();
+    private String keyName;
 
     /**
      * @return the channel
@@ -82,15 +82,18 @@ public class MusicianOptions {
     }
 
     /**
-     * @return the keyOptions
+     * @return the keyName
      */
-    public KeyOptions getKeyOptions() { return keyOptions; }
+    public String getKeyName() { return keyName; }
 
     /**
-     * @param myKeyOpts the {@link KeyOptions} to set
+     * @param keyName the keyName to set
      */
-    public void setKeyOptions(KeyOptions myKeyOpts) {
-        this.keyOptions = myKeyOpts;
+    public void setKeyName(String keyName) {
+        var oldKeyName = this.keyName;
+        this.keyName = keyName;
+        if (oldKeyName != null && !oldKeyName.equals(keyName))
+            emitter.fireChangeEvent(Musician.KEY_PROPERTY, new ChangeSource(this, Musician.KEY_PROPERTY, this.keyName));
     }
 
 }

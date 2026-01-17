@@ -3,8 +3,6 @@ package org.roach.margia;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.roach.margia.storage.KeyOptions;
-
 /**
  * Represents a musical key along with a range of allowed notes
  */
@@ -48,8 +46,8 @@ public interface Key {
             );
     // @formatter:on
 
-    static Key fromOptions(KeyOptions opts) {
-        return Key.generateKey(opts.getName(), AVAILABLE_BASIS.get(opts.getBasis()));
+    static Key fromOptions(String keyName) {
+        return BUILTIN_KEYS.get(keyName);
     }
 
     /**
@@ -69,7 +67,8 @@ public interface Key {
      * @param rangeHi      end range
      * @return a key
      */
-    static Key generateKey(String name, List<Integer> intervals, int startingNote, int rangeHi) {
+    static Key generateKey(final String name, final String basis, final int startingNote, final int rangeHi) {
+        var intervals = AVAILABLE_BASIS.get(basis);
         var n = startingNote;
         var intervalNum = 0;
         var list = new ArrayList<Integer>();
@@ -89,6 +88,9 @@ public interface Key {
             @Override
             public String getName() { return name; }
 
+            @Override
+            public String getBasis() { return basis; }
+
         };
     }
 
@@ -99,20 +101,20 @@ public interface Key {
      *                  and O6 will also include all notes from O3, O4, and O5.
      * @return a key
      */
-    static Key generateKey(String name, List<Integer> intervals, List<Octave> octaves) {
+    static Key generateKey(String name, String basis, List<Octave> octaves) {
         if (octaves == null || octaves.isEmpty()) {
             throw new IllegalArgumentException("octaves list must not be null or empty");
         }
         var low = octaves.stream().map(Octave::getLow).min(Integer::compare).orElse(0);
         var high = octaves.stream().map(Octave::getHigh).max(Integer::compare).orElse(127);
-        return generateKey(name, intervals, low, high);
+        return generateKey(name, basis, low, high);
     }
 
-    static Key generateKey(String name, List<Integer> intervals) {
-        return generateKey(name, intervals, List.of(Octave.O_NEG2, Octave.O7));
+    static Key generateKey(String name, String basis) {
+        return generateKey(name, basis, List.of(Octave.O_NEG2, Octave.O7));
     }
 
-    Key CMajor = generateKey("C Major", MAJOR_INTERVALS, 0, 127);
+    Key CMajor = generateKey("C Major", MAJOR_INTERVAL_KEY, 0, 127);
     Key DbMajor = CMajor.transposeUp("Db Major", 1);
     Key DMajor = CMajor.transposeUp("D Major", 2);
     Key EbMajor = CMajor.transposeUp("Eb Major", 3);
@@ -125,11 +127,11 @@ public interface Key {
     Key BbMajor = CMajor.transposeUp("Bb Major", 10);
     Key BMajor = CMajor.transposeUp("B Major", 11);
 
-    Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_INTERVALS, 0, 127);
+    Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_KEY, 0, 127);
 
-    Key Chromatic = generateKey("Chromatic", CHROMATIC_INTERVALS, 0, 127);
+    Key Chromatic = generateKey("Chromatic", CHROMATIC_KEY, 0, 127);
 
-    Key DRUMPAD = Chromatic.of(Octave.O1, Octave.O1);
+    Key DRUMPAD = generateKey("DRUMPAD", CHROMATIC_KEY, Octave.O1.low, Octave.O1.high);
 
     static final Map<String, Key> BUILTIN_KEYS = List
             .of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor, AbMajor, AMajor, BbMajor, BMajor,
@@ -160,6 +162,9 @@ public interface Key {
 
             @Override
             public String getName() { return name; }
+
+            @Override
+            public String getBasis() { return Key.this.getBasis(); }
         };
     }
 
@@ -250,13 +255,12 @@ public interface Key {
     }
 
     default Key transposeUp(String name, int interval) {
-        var newNotes = this.notes().stream().map(n -> n + interval).filter(n -> n <= 127).toList();
-        return generateKey(name, newNotes);
+        return generateKey(name, this.getBasis(), interval, 127);
     }
 
-    default String getName() {
-       return BASIS_MAP.get(notes());
-    }
+    default String getName() { return BASIS_MAP.get(notes()); }
+
+    String getBasis();
 
     static void reset() {
         randomHolder.reset();

@@ -90,7 +90,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.id = id;
         var musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
         musicianOptions.setId(id);
-        musicianOptions.getKeyOptions().setBasis(Key.CHROMATIC_KEY);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
         propertyChange = new PropertyChangeSupport(this);
@@ -287,10 +286,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.key = key;
         this.rangeLow = key.lowestNote();
         this.rangeHi = key.highestNote();
-        KeyOptions myKeyOpts = new KeyOptions();
-        myKeyOpts.setBasis(Key.BASIS_MAP.get(key.notes()));
-        myKeyOpts.setName(key.getName());
-        Options.getInstance().getMusicians().get(id).setKeyOptions(myKeyOpts);
+        Options.getInstance().getMusicians().get(id).setKeyName(key.getName());
     }
 
     /**
@@ -447,6 +443,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 }
             }
         }
+        if (props.getId() == 6) {
+            System.out.println("");
+        }
+        m.key = Key.fromOptions(props.getKeyName());
         return m;
     }
 
@@ -461,8 +461,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 this.channel = (int) cs.newValue();
                 break;
             case KEY_PROPERTY:
-                var keyOpts = (KeyOptions) cs.newValue();
-                this.key = Key.fromOptions(keyOpts);
+                this.key = Key.fromOptions((String) cs.newValue());
                 break;
             default:
                 break;
