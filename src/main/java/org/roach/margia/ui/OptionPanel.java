@@ -69,8 +69,8 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         radius = addSpinner(uiPanel, MusicianComponent.RADIUS_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getRadius(), 1d, 50d, 1d, Integer.class);
         radius.addChangeListener(_ -> Options.getInstance().getUiOptions().setRadius((int) radius.getValue()));
-        gravity = addSpinner(uiPanel, AgentPanel.GRAVITY_PROPERTY, Options.getInstance().getUiOptions().getGravity(),
-                -20.0, 20.0, 0.1, Double.class);
+        gravity = addSpinner(uiPanel, "Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1,
+                Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
         edgeLength = addSpinner(uiPanel, AgentPanel.EDGE_LENGTH_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
@@ -88,8 +88,8 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         return uiPanel;
     }
 
-    private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max, Double step,
-            Class<? extends Number> type) {
+    private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
+            Double step, Class<? extends Number> type) {
 
         SpinnerNumberModel model;
         if (type.equals(Integer.class))

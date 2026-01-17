@@ -54,13 +54,7 @@ public class UiOptions {
     /**
      * @param gravity the gravity to set
      */
-    public void setGravity(double gravity) {
-        var oldGravity = this.gravity;
-        this.gravity = gravity;
-        if (oldGravity != gravity)
-            emitter.fireChangeEvent(AgentPanel.GRAVITY_PROPERTY,
-                    new ChangeSource(AgentPanel.GRAVITY_PROPERTY, this.gravity));
-    }
+    public void setGravity(double gravity) { this.gravity = gravity; }
 
     /**
      * @return the edgeLength

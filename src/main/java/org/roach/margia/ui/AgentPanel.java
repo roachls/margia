@@ -34,7 +34,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
-    private double gravity;
     private int tickLengthMillis;
     private Point startSelection;
     private Point endSelection;
@@ -61,10 +60,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
      * property name of edge length spinner
      */
     public static final String EDGE_LENGTH_PROPERTY = "ui.edge_length";
-    /**
-     * property name of gravity spinner
-     */
-    public static final String GRAVITY_PROPERTY = "ui.gravitational_Constant";
 
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
@@ -77,7 +72,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
      */
     public AgentPanel() {
         setLayout(null);
-        Options.getInstance().addChangeListener(GRAVITY_PROPERTY, this);
         Options.getInstance().addChangeListener(EDGE_LENGTH_PROPERTY, this);
         setDoubleBuffered(true);
         setBackground(Color.LIGHT_GRAY);
@@ -89,7 +83,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     void init() {
         var defTempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLengthMillis = 60000 / (defTempo * 24);
-        this.gravity = Options.getInstance().getUiOptions().getGravity();
         this.numMusicians = MusicianList.getInstance().numMusicians();
         this.musicianComponents.clear();
     }
@@ -258,6 +251,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (dist == 0.0) // prevent division by zero
                 continue;
 
+            var gravity = Options.getInstance().getUiOptions().getGravity();
             var force = n1.getMass() * gravity / dist;
             var forceVec = vec.multiply(force);
             n1.setForce(n1.getForce().subtract(forceVec));
@@ -501,9 +495,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource cs) {
             switch (cs.key()) {
-            case AgentPanel.GRAVITY_PROPERTY:
-                this.gravity = (double) cs.newValue();
-                break;
             case AgentPanel.EDGE_LENGTH_PROPERTY:
                 var len = (int) cs.newValue();
                 edges.forEach(edge -> edge.idealLength = len);
