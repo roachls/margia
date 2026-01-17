@@ -164,4 +164,9 @@ public class Options {
      *         ID
      */
     public Map<Integer, MusicianOptions> getMusicians() { return storedOptions.getMusicians(); }
+
+    /**
+     * @return random seed
+     */
+    public long getRandomSeed() { return storedOptions.getRandomSeed(); }
 }

@@ -33,6 +33,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener {
         this.transport = transport;
         clockExecutor = Executors.newSingleThreadScheduledExecutor();
         Options.getInstance().getMusicOptions().addChangeListener(TEMPO_PROPERTY, this);
+        updateTempo();
     }
 
     @Override

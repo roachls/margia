@@ -63,9 +63,11 @@ public class Main {
             }
         }
         var musicians = MusicianList.getInstance().getMusicians();
+        
+        var randomSeed = Options.getInstance().getRandomSeed();
 
-        Key.setRandomSeed(params.randomSeed);
-        DieRoller.setSeed(params.randomSeed);
+        Key.setRandomSeed(randomSeed);
+        DieRoller.setSeed(randomSeed);
 
         var transport = new Transport();
         musicians.forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));

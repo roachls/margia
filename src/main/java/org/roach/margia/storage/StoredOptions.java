@@ -12,6 +12,7 @@ public class StoredOptions {
     private final MidiOptions midiOptions = new MidiOptions();
     private final UiOptions uiOptions = new UiOptions();
     private final Map<Integer, MusicianOptions> musicians = new LinkedHashMap<>();
+    private long randomSeed = 101;
 
     /**
      * @return all music-related options
@@ -36,7 +37,17 @@ public class StoredOptions {
     @Override
     public String toString() {
         return "StoredOptions [musicOptions=" + musicOptions + ", midiOptions=" + midiOptions + ", uiOptions="
-                + uiOptions + ", musicians=" + musicians + "]";
+                + uiOptions + ", musicians=" + musicians + ", randomSeed=" + randomSeed + "]";
     }
+
+    /**
+     * @return the randomSeed
+     */
+    public long getRandomSeed() { return randomSeed; }
+
+    /**
+     * @param randomSeed the randomSeed to set
+     */
+    public void setRandomSeed(long randomSeed) { this.randomSeed = randomSeed; }
 
 }
