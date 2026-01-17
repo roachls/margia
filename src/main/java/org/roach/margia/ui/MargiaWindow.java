@@ -304,6 +304,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             optionPanel.updateOptions();
             updateTitle();
             SwingUtilities.invokeLater(() -> {
+                agentPanel.reset();
                 agentPanel.init();
                 agentPanel.initMusicians();
             });

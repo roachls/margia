@@ -15,7 +15,8 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.*;
+import org.roach.margia.Musician;
+import org.roach.margia.MusicianList;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.storage.Options;
@@ -661,5 +662,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         invalidate();
         this.copiedComponents = null;
         deselectAll();
+    }
+    
+    void reset() {
+        this.musicianComponents.forEach(this::remove);
+        this.musicianComponents.clear();
+        this.edges.clear();
+        this.numMusicians = 0;
     }
 }
