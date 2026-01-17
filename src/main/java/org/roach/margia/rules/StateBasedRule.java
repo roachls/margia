@@ -3,14 +3,22 @@ package org.roach.margia.rules;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import org.roach.margia.NoteInfo;
 import org.roach.margia.actions.*;
+import org.roach.margia.storage.Options;
+import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * A state-machine based agent
  */
-public class StateBasedRule extends AbstractMusicianRule {
-    private int sequenceLength;
+public class StateBasedRule extends AbstractMusicianRule implements ChangeListener {
+    private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
+    private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
+    private int sequenceLength = 1;
     private static final String DIRECT_REPEAT = "direct repeat";
     private static final String UP_FOURTH = "up 4th";
     private static final String DOWN_FOURTH = "down 4th";
@@ -25,28 +33,8 @@ public class StateBasedRule extends AbstractMusicianRule {
     private int initialTickDelay;
     private final BlockingQueue<NoteInfo> delayQueue = new LinkedBlockingQueue<>();
 
-    /**
-     * No-arg constructor needed for ServiceLoader
-     */
-    public StateBasedRule() {
-        this(1, 0);
-    }
-
-    /**
-     * @param sequenceLength sequence length
-     * @param tickDelay      number of ticks to delay before repeating a sequence
-     */
-    public StateBasedRule(final int sequenceLength, final int tickDelay) {
-        if (sequenceLength < 1)
-            throw new IllegalArgumentException("Sequence length must be at least 1");
-        if (tickDelay < 0)
-            throw new IllegalArgumentException("Tick delay must be at least 0");
-        this.sequenceLength = sequenceLength;
-        this.sequenceCountdown = sequenceLength + tickDelay;
-        this.initialTickDelay = tickDelay;
-    }
-
     @Override
+    @SuppressWarnings({ "java:S899", "java:S3776" })
     public void calculateAction(long tick) {
         if (initialTickDelay > 0) {
             initialTickDelay--;
@@ -184,8 +172,19 @@ public class StateBasedRule extends AbstractMusicianRule {
      */
     public int getSequenceLength() { return sequenceLength; }
 
+    /**
+     * @param sequenceLength the sequence length
+     */
+    public void setSequenceLength(int sequenceLength) {
+        if (sequenceLength < 1)
+            throw new IllegalArgumentException("Sequence length must be at least 1");
+        this.sequenceLength = sequenceLength;
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
+                .put(SEQUENCE_LENGTH_PROPERTY, this.sequenceLength);
+    }
+
     @Override
-    public String getName() { return "State-based"; }
+    public String getName() { return "statebased"; }
 
     @Override
     public void reset() {
@@ -195,5 +194,59 @@ public class StateBasedRule extends AbstractMusicianRule {
         tickCountdown = 0;
         initialTickDelay = 0;
         delayQueue.clear();
+    }
+
+    /**
+     * @return the initialTickDelay
+     */
+    public int getInitialTickDelay() { return initialTickDelay; }
+
+    /**
+     * @param initialTickDelay the initialTickDelay to set
+     */
+    public void setInitialTickDelay(int initialTickDelay) {
+        if (initialTickDelay < 0)
+            throw new IllegalArgumentException("Tick delay must be at least 0");
+        this.initialTickDelay = initialTickDelay;
+        this.sequenceCountdown = sequenceLength + initialTickDelay;
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
+                .put(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
+    }
+
+    @Override
+    public StateBasedRule copy() {
+        var copy = new StateBasedRule();
+        copy.initialTickDelay = this.initialTickDelay;
+        copy.sequenceLength = this.sequenceLength;
+        return copy;
+    }
+
+    @Override
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        super.restoreFromStorage(ruleOptions);
+        var ruleOpts = ruleOptions.getRuleSpecificOptions();
+        if (ruleOpts.containsKey(INITIAL_TICK_DELAY_PROPERTY))
+            this.initialTickDelay = (int) ruleOpts.get(INITIAL_TICK_DELAY_PROPERTY);
+        if (ruleOpts.containsKey(SEQUENCE_LENGTH_PROPERTY))
+            this.sequenceLength = (int) ruleOpts.get(SEQUENCE_LENGTH_PROPERTY);
+        ruleOptions.addChangeListener(INITIAL_TICK_DELAY_PROPERTY, this);
+        ruleOptions.addChangeListener(SEQUENCE_LENGTH_PROPERTY, this);
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource cs) {
+            switch (cs.key()) {
+            case INITIAL_TICK_DELAY_PROPERTY:
+                this.initialTickDelay = (int) cs.newValue();
+                break;
+            case SEQUENCE_LENGTH_PROPERTY:
+                this.sequenceLength = (int) cs.newValue();
+                break;
+            default:
+                break;
+            }
+        }
+
     }
 }

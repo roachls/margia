@@ -1,11 +1,11 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.prefs.BackingStoreException;
 
 import javax.imageio.ImageIO;
@@ -15,7 +15,8 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.*;
+import org.roach.margia.Transport;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.AgentPanel.EditMode;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -39,23 +40,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             """;
     private OptionPanel optionPanel;
     private AgentPanel agentPanel;
-    private String algorithmTitle;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
 
     /**
-     * @param title     window title
      * @param timing    the {@link TimingSource}
      * @param transport the {@link Transport}
-     * @param musicians the musicians to display
      * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
      *                           true
      */
-    public MargiaWindow(String title, TimingSource timing, Transport transport, List<Musician> musicians)
-            throws HeadlessException {
+    public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
         super();
-        this.algorithmTitle = title;
         this.getContentPane().setLayout(new BorderLayout());
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -66,7 +62,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
-        agentPanel = new AgentPanel(musicians);
+        agentPanel = new AgentPanel();
         agentPanel.addVetoableChangeListener(optionPanel);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
@@ -211,6 +207,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         unlockSelected.setMnemonic(KeyEvent.VK_N);
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
         editMenu.add(unlockSelected);
+        var lockAll = new JMenuItem("Lock all", createImageIcon("/icons/lock.png", "a closed lock"));
+        lockAll.addActionListener(_ -> agentPanel.lockAll());
+        editMenu.add(lockAll);
+        var unlockAll = new JMenuItem("Unlock all", createImageIcon("/icons/unlock.png", "an open lock"));
+        unlockAll.addActionListener(_ -> agentPanel.unlockAll());
+        editMenu.add(unlockAll);
         var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
                 createImageIcon("/icons/delete.png", "an large capital X"));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
@@ -303,10 +305,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         Options.getInstance().setFilename(newSaveLocation);
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
+            Options.getInstance().setSaveDir(newSaveLocation.getParent());
             optionPanel.updateOptions();
             updateTitle();
+            SwingUtilities.invokeLater(() -> {
+                agentPanel.reset();
+                agentPanel.init();
+                agentPanel.initMusicians();
+            });
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
+        } catch (BackingStoreException e) {
+            LOGGER.atError().log("Error writing save directory to preferences: {}", e.getMessage());
         }
     }
 
@@ -323,7 +333,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 Options.getInstance()
                         .setFilename(Options.getInstance().getFilename().resolveSibling(filenameStr + ".margia"));
             try (var os = Files.newOutputStream(Options.getInstance().getFilename())) {
-                options.store(os, "MARGIA");
+                options.store(os);
             }
             updateTitle();
         } catch (IOException e1) {
@@ -376,7 +386,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs && cs.key().equals(Options.DIRTY_PROPERTY)) {
+        if (e.getSource() instanceof ChangeSource(String key, Object value) && key.equals(Options.DIRTY_PROPERTY)
+                && (boolean) value) {
             updateTitle();
         }
     }
@@ -384,8 +395,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private void updateTitle() {
         var pathStr = Options.getInstance().getFilename() == null ? ""
                 : ("- " + Options.getInstance().getFilename().toString());
-        var windowTitle = String.format("MARGIA %s%s%s", algorithmTitle, pathStr,
-                Options.getInstance().isDirty() ? " *" : "");
+        var windowTitle = String.format("MARGIA %s%s", pathStr, Options.getInstance().isDirty() ? " *" : "");
         setTitle(windowTitle);
     }
 

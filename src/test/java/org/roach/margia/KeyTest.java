@@ -24,15 +24,15 @@ class KeyTest {
 
     @Test
     void testGenerateKey() {
-        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12), Key.generateKey("Test", Key.MAJOR_INTERVALS, 0, 12).notes());
+        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12), Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0, 12).notes());
         assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24),
-                Key.generateKey("Test", Key.MAJOR_INTERVALS, 0, 24).notes());
+                Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0, 24).notes());
         assertEquals(0, Octave.O_NEG2.getLow());
         assertEquals(11, Octave.O_NEG2.getHigh());
         assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23),
-                Key.generateKey("Test", Key.MAJOR_INTERVALS, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
+                Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
         assertEquals(List.of(0, 2, 4, 7, 9, 12, 14, 16, 19, 21),
-                Key.generateKey("Test", Key.PENTATONIC_INTERVALS, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
+                Key.generateKey("Test", Key.PENTATONIC_KEY, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
     }
 
     @Test
@@ -44,7 +44,7 @@ class KeyTest {
 
     @Test
     void testRange() {
-        var key = Key.generateKey("Test", Key.MAJOR_INTERVALS, List.of(Octave.O1, Octave.O5));
+        var key = Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, List.of(Octave.O1, Octave.O5));
         for (int i = 0; i < 128; i++) {
             var n = key.noteToRange(i);
             if (i <= 36) {

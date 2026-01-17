@@ -38,11 +38,15 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public String getName() { return "Random"; }
+    public String getName() { return "random"; }
 
     @Override
     public void reset() {
         // nothing to do
     }
 
+    @Override
+    public RandomRule copy() {
+        return new RandomRule();
+    }
 }

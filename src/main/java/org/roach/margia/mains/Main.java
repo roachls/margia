@@ -3,7 +3,7 @@ package org.roach.margia.mains;
 import java.awt.Frame;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Scanner;
 import java.util.prefs.BackingStoreException;
 
 import javax.swing.SwingUtilities;
@@ -11,6 +11,7 @@ import javax.swing.SwingUtilities;
 import org.roach.margia.*;
 import org.roach.margia.mains.MainParams.UiType;
 import org.roach.margia.random.DieRoller;
+import org.roach.margia.storage.Options;
 import org.roach.margia.timing.InternalTimingSource;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.MargiaWindow;
@@ -28,33 +29,27 @@ public class Main {
      * @param args command-line arguments
      */
     public static void main(String[] args) {
-        var algMap = new HashMap<String, Algorithm<?>>();
-        var paramMap = new HashMap<String, MargiaParams>();
-
-        var loader = ServiceLoader.load(Algorithm.class);
-        loader.forEach(c -> algMap.put(c.command(), c));
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            System.err.printf("[%s] %s%n", t.getName(), e.getMessage());
+            e.printStackTrace();
+        });
 
         var params = new MainParams();
         // @formatter:off
         var jCommanderBuilder = JCommander.newBuilder()
                 .addObject(params);
-        for (var algEntry : algMap.entrySet()) {
-            var algParams = algEntry.getValue().createParams();
-            paramMap.put(algEntry.getKey(), algParams);
-                jCommanderBuilder.addCommand(algEntry.getKey(), algParams);
-        }
         var jCommander = jCommanderBuilder.build();
         // @formatter:on
         try {
             jCommander.parse(args);
         } catch (ParameterException e) {
             System.err.println(e.getMessage());
-            if (e.getMessage().startsWith("Expected a command")) {
-                System.err.println("Available commands:" + algMap.keySet());
-            }
             jCommander.usage();
             return;
         }
+
+        // TODO fix
+        MidiController.init(MidiController.DEFAULT_SYNTH, TimingSource.DEFAULT_TEMPO);
 
         if (params.file != null) {
             try (var is = Files.newInputStream(params.file)) {
@@ -62,40 +57,27 @@ public class Main {
                 Options.getInstance().setFilename(params.file);
                 Options.getInstance().setSaveDir(params.file.getParent());
             } catch (IOException e) {
-                System.err.println(e.getMessage());
+                e.printStackTrace();
             } catch (BackingStoreException e) {
                 System.err.println("Error writing save directory to preferences: " + e.getMessage());
             }
         }
-        var tempo = Options.getInstance().getOrDefaultAsInt(TimingSource.TEMPO_PROPERTY, params.tempo);
+        var musicians = MusicianList.getInstance().getMusicians();
 
-        if (params.sendExternalMidi) {
-            MidiController.init(MidiController.LOOP_MIDI, tempo);
-        } else {
-            MidiController.init(MidiController.DEFAULT_SYNTH, tempo);
-        }
+        var randomSeed = Options.getInstance().getRandomSeed();
 
-        var command = jCommander.getParsedCommand();
-        Algorithm<?> algorithm = algMap.get(command);
-        if (algorithm == null) {
-            System.err.println("Unable to obtain algorithm: " + command);
-            return;
-        }
-        var algParamGeneric = paramMap.get(command);
-        var musicians = algorithm.initMusicians(params, algParamGeneric);
+        Key.setRandomSeed(randomSeed);
+        DieRoller.setSeed(randomSeed);
 
-        Key.setRandomSeed(params.randomSeed);
-        DieRoller.setSeed(params.randomSeed);
-
-        var transport = new Transport(musicians, params.tempo);
-        musicians.forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
+        var transport = new Transport();
+        musicians.values().forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
         transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
             Key.reset();
             DieRoller.reset();
         });
-        transport.setControlDawTiming(params.sendExternalMidi);
+        transport.setControlDawTiming(Options.getInstance().getMidiOptions().isUseExternalMidi());
 
-        var timing = new InternalTimingSource(transport, tempo);
+        var timing = new InternalTimingSource(transport);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();
@@ -105,7 +87,7 @@ public class Main {
 
         if (params.ui == UiType.SWING) {
             SwingUtilities.invokeLater(() -> {
-                var ui = new MargiaWindow(algorithm.displayName(), timing, transport, musicians);
+                var ui = new MargiaWindow(timing, transport);
                 ui.setExtendedState(Frame.MAXIMIZED_BOTH);
                 ui.setVisible(true);
             });

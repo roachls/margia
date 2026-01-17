@@ -8,13 +8,18 @@ import org.roach.margia.Musician;
 public sealed interface MusicianRule permits AbstractMusicianRule {
 
     /**
+     * property for storing rule classname
+     */
+    String RULE_NAME_PROPERTY = "name";
+
+    /**
      * Calculate action to be taken when doAction is called. This should set
      * nextNote.
      * 
      * @param tick the tick number
      */
     void calculateAction(long tick);
-    
+
     /**
      * @return the name of this rule
      */
@@ -24,4 +29,5 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
      * Reset this rule back to its defaults (for rewinds)
      */
     void reset();
+
 }

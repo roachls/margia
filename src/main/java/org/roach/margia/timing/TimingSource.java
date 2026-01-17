@@ -24,9 +24,9 @@ public interface TimingSource {
     void stop();
 
     /**
-     * @param tempo the tempo in beats-per-minute
+     * re-read Options to get latest tempo
      */
-    void setTempo(int tempo);
+    void updateTempo();
 
     /**
      * @return the current tempo in beats-per-minute

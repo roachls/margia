@@ -11,6 +11,8 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
+import org.roach.margia.storage.MusicianOptions;
+import org.roach.margia.storage.Options;
 import org.roach.margia.ui.PropertyChangeEmitter;
 import org.roach.margia.util.Range;
 
@@ -20,6 +22,10 @@ import org.roach.margia.util.Range;
  * order they were received.
  */
 public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
+    /**
+     * property for storing the peer IDs
+     */
+    public static final String PEER_IDS_PROPERTY = "peerIds";
     /**
      * the property to fire when the last note changes
      */
@@ -40,10 +46,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * maximum size the queue is allowed to reach before new notes are ignored
      */
     public static final int MAX_QUEUE_SIZE = 12;
+    /**
+     * {@link AtomicInteger} that is used to generate the ID of the next musician
+     */
+    public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
     private final int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
-    private int channel;
     private final List<Musician> peers = new ArrayList<>();
     private AbstractMusicianRule rule;
     private int notesIvePlayed;
@@ -51,25 +60,27 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     private final Logger logger;
     private int rangeLow = 0;
     private int rangeHi = 127;
-    private boolean muted;
-    private Key key = Key.Chromatic;
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
-    private boolean listening = true;
-    private static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+    private MusicianOptions musicianOptions;
 
     /**
-     * @param channel MIDI channel
-     * @param rule    The rule that governs a musician's behavior
+     * private constructor - may only be created with factory methods
      */
-    public Musician(int channel, final AbstractMusicianRule rule) {
-        this.id = ID_GENERATOR.getAndIncrement();
+    private Musician(final int id) {
+        this.id = id;
+        musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        musicianOptions.setId(id);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
-        this.channel = channel;
-        this.rule = rule;
-        this.rule.setMusician(this);
         propertyChange = new PropertyChangeSupport(this);
+    }
+
+    /**
+     * @return a new Musician with a generated ID
+     */
+    public static Musician newInstance() {
+        return new Musician(ID_GENERATOR.getAndIncrement());
     }
 
     /**
@@ -86,12 +97,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void playNote(NoteInfo note) {
         if (note == null || note.noteNum() == Note.REST)
             return;
-        if (muted) {
+        if (musicianOptions.isMuted()) {
             logger.atDebug().log("{} is muted", id);
         } else {
-            var adjustedNote = note.withNote(key.adjustToKeyByOctaves(note.noteNum()));
-            logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, channel);
-            controller.playNote(channel, adjustedNote);
+            var adjustedNote = note
+                    .withNote(Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()).adjustToKeyByOctaves(note.noteNum()));
+            logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, musicianOptions.getChannel());
+            controller.playNote(musicianOptions.getChannel(), adjustedNote);
         }
         propertyChange.firePropertyChange(LAST_NOTE_PROPERTY, myLastNote, note);
         myLastNote = note;
@@ -104,16 +116,26 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @param peer another {@link Musician} with which this one may communicate
      */
     public void addPeer(Musician peer) {
-        if (!peers.contains(peer))
+        if (!peers.contains(peer)) {
             peers.add(peer);
+            var peerOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                    .getPeerIds();
+            if (!peerOpts.contains(peer.getId()))
+                peerOpts.add(peer.getId());
+        }
     }
 
     /**
-     * @param musician peer to remove
+     * @param peer peer to remove
      * @return true if peer was removed
      */
-    public boolean removePeer(Musician musician) {
-        return peers.remove(musician);
+    public boolean removePeer(Musician peer) {
+        var successful = peers.remove(peer);
+        var peerOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
+                .getPeerIds();
+        // must cast to Integer or the overloaded remove-by-index method will be called
+        peerOpts.remove((Integer) peer.getId());
+        return successful;
     }
 
     /**
@@ -139,7 +161,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @param message receive a note and place it on the message queue
      */
     public void receiveMessage(MusicianMessage message) {
-        if (!listening && message instanceof NoteInfo)
+        if (!musicianOptions.isListening() && message instanceof NoteInfo)
             return;
         var offerSuccess = this.messageQueue.offer(message);
         if (offerSuccess) {
@@ -176,14 +198,16 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @return true if this musician is muted
      */
-    public boolean isMuted() { return muted; }
+    public boolean isMuted() { return musicianOptions.isMuted(); }
 
     /**
      * @param muted true to mute this musician. A muted musician won't actually play
      *              a note to the MIDI controller, but other musicians will still
      *              hear it.
      */
-    public void setMuted(boolean muted) { this.muted = muted; }
+    public void setMuted(boolean muted) {
+        musicianOptions.setMuted(muted);
+    }
 
     /**
      * @return current number of notes in this {@link Musician musician's} queue
@@ -208,10 +232,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rangeLow the lowest note that this musician can play
      */
-    public void setRangeLow(int rangeLow) {
-        this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127);
-        this.key = this.key.of(rangeLow, rangeHi);
-    }
+    public void setRangeLow(int rangeLow) { this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127); }
 
     /**
      * @return the highest note that this musician can play
@@ -221,15 +242,12 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rangeHi the lowest note that this musician can play
      */
-    public void setRangeHi(int rangeHi) {
-        this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127);
-        this.key = this.key.of(rangeLow, rangeHi);
-    }
+    public void setRangeHi(int rangeHi) { this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127); }
 
     /**
      * @return the key that this musician plays in
      */
-    public Key getKey() { return key; }
+    public Key getKey() { return Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()); }
 
     /**
      * @param key The key for this musician (default is {@link Key#CPentatonic})
@@ -237,9 +255,9 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void setKey(Key key) {
         if (key == null)
             return;
-        this.key = key;
         this.rangeLow = key.lowestNote();
         this.rangeHi = key.highestNote();
+        musicianOptions.setKeyName(key.getName());
     }
 
     /**
@@ -268,7 +286,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * Rest for one 16th
      */
     public void rest() {
-        controller.playNote(channel, AbstractMusicianRule.REST.apply(1));
+        controller.playNote(musicianOptions.getChannel(), AbstractMusicianRule.REST.apply(1));
     }
 
     /**
@@ -303,7 +321,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      *         relation to this {@link Musician}'s range
      */
     public float noteToRange(int noteNum) {
-        return key.noteToRange(noteNum);
+        return Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()).noteToRange(noteNum);
     }
 
     /**
@@ -317,18 +335,19 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @return true if the musician is listening to notes (may still receive other
      *         types of messages)
      */
-    public boolean isListening() { return listening; }
+    public boolean isListening() { return musicianOptions.isListening(); }
 
     /**
      * @param listening set to false to have musician ignore incoming notes (may
      *                  still receive other types of messages
      */
-    public void setListening(boolean listening) { this.listening = listening; }
+    public void setListening(boolean listening) {
+        musicianOptions.setListening(listening);
+    }
 
     @Override
     public String toString() {
-        return "Musician [id=" + id + ", channel=" + channel + ", rule=" + rule + ", muted=" + muted + ", listening="
-                + listening + "]";
+        return "Musician [id=" + id + ", options=" + musicianOptions;
     }
 
     /**
@@ -344,17 +363,21 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             return;
         this.rule = rule;
         this.rule.setMusician(this);
+        var myOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        myOpts.getRuleOptions().setName(rule.getName());
     }
 
     /**
      * @return the MIDI channel this musician will send notes to
      */
-    public int getChannel() { return this.channel; }
+    public int getChannel() { return musicianOptions.getChannel(); }
 
     /**
      * @param channel the MIDI channel this musician will send notes to
      */
-    public void setChannel(int channel) { this.channel = Range.check("channel", channel, 0, 16); }
+    public void setChannel(int channel) {
+        musicianOptions.setChannel(channel);
+    }
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
@@ -363,9 +386,35 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             myLastNote = null;
             currentTick = 0;
             notesIvePlayed = 0;
-            listening = true;
+            musicianOptions.setListening(true);
             rule.reset();
         }
+    }
+
+    /**
+     * Create a musician from saved properties
+     * 
+     * @param props properties loaded from save file
+     * @return a new {@link Musician} with the given properties
+     */
+    public static Musician restoreFromStorage(MusicianOptions props) {
+        Musician m = new Musician(props.getId());
+        m.setChannel(props.getChannel());
+        m.setMuted(props.isMuted());
+        var ruleOpts = props.getRuleOptions();
+        var ruleName = ruleOpts.getName();
+        if (ruleName != null) {
+            var availableRules = ServiceLoader.load(MusicianRule.class);
+            for (var availableRule : availableRules) {
+                if (ruleName.equals(availableRule.getName())) {
+                    var realRule = ((AbstractMusicianRule) availableRule).copy();
+                    realRule.restoreFromStorage(ruleOpts);
+                    m.setRule(realRule);
+                    break;
+                }
+            }
+        }
+        return m;
     }
 
 }
