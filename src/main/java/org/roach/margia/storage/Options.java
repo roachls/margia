@@ -60,7 +60,7 @@ public class Options {
 
         mapper.writeValue(os, storedOptions);
         this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, "false"));
     }
 
     /**
@@ -92,7 +92,7 @@ public class Options {
         }
         restoreMusicians();
         this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(this, DIRTY_PROPERTY, "false"));
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, "false"));
     }
 
     /**

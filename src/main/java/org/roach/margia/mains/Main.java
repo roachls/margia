@@ -62,14 +62,12 @@ public class Main {
                 System.err.println("Error writing save directory to preferences: " + e.getMessage());
             }
         }
-        var tempo = Options.getInstance().getMusicOptions().getTempo();
-
         var musicians = MusicianList.getInstance().getMusicians();
 
         Key.setRandomSeed(params.randomSeed);
         DieRoller.setSeed(params.randomSeed);
 
-        var transport = new Transport(tempo);
+        var transport = new Transport();
         musicians.forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
         transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
             Key.reset();
@@ -77,7 +75,7 @@ public class Main {
         });
         transport.setControlDawTiming(Options.getInstance().getMidiOptions().isUseExternalMidi());
 
-        var timing = new InternalTimingSource(transport, tempo);
+        var timing = new InternalTimingSource(transport);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();

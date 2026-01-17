@@ -27,7 +27,7 @@ public class UiOptions {
         this.showNumbers = showNumbers;
         if (oldShowNumbers != showNumbers)
             emitter.fireChangeEvent(MusicianComponent.SHOW_NUMBERS_PROPERTY,
-                    new ChangeSource(this, MusicianComponent.SHOW_NUMBERS_PROPERTY, this.showNumbers));
+                    new ChangeSource(MusicianComponent.SHOW_NUMBERS_PROPERTY, this.showNumbers));
     }
 
     /**
@@ -43,7 +43,7 @@ public class UiOptions {
         this.radius = radius;
         if (oldRadius != radius)
             emitter.fireChangeEvent(MusicianComponent.RADIUS_PROPERTY,
-                    new ChangeSource(this, MusicianComponent.RADIUS_PROPERTY, this.radius));
+                    new ChangeSource(MusicianComponent.RADIUS_PROPERTY, this.radius));
     }
 
     /**
@@ -59,7 +59,7 @@ public class UiOptions {
         this.gravity = gravity;
         if (oldGravity != gravity)
             emitter.fireChangeEvent(AgentPanel.GRAVITY_PROPERTY,
-                    new ChangeSource(this, AgentPanel.GRAVITY_PROPERTY, this.gravity));
+                    new ChangeSource(AgentPanel.GRAVITY_PROPERTY, this.gravity));
     }
 
     /**
@@ -75,7 +75,7 @@ public class UiOptions {
         this.edgeLength = edgeLength;
         if (oldEdgeLength != edgeLength)
             emitter.fireChangeEvent(AgentPanel.EDGE_LENGTH_PROPERTY,
-                    new ChangeSource(this, AgentPanel.EDGE_LENGTH_PROPERTY, this.edgeLength));
+                    new ChangeSource(AgentPanel.EDGE_LENGTH_PROPERTY, this.edgeLength));
     }
 
     /**

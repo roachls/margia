@@ -26,10 +26,14 @@ public class MusicOptions {
         this.tempo = tempo;
         if (oldTempo != tempo)
             emitter.fireChangeEvent(TimingSource.TEMPO_PROPERTY,
-                    new ChangeSource(this, TimingSource.TEMPO_PROPERTY, tempo));
+                    new ChangeSource(TimingSource.TEMPO_PROPERTY, tempo));
     }
 
-    void addChangeListener(String property, ChangeListener listener) {
+    /**
+     * @param property name of property
+     * @param listener listener of property
+     */
+    public void addChangeListener(String property, ChangeListener listener) {
         this.emitter.addChangeListener(property, listener);
     }
 

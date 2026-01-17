@@ -37,11 +37,10 @@ public class ChangeEmitter {
     /**
      * A change source
      * 
-     * @param source   source of change
      * @param key      key of property that changed
      * @param newValue new value of property
      */
-    public static record ChangeSource(Object source, String key, Object newValue) {
+    public static record ChangeSource(String key, Object newValue) {
         // nothing
     }
 }

@@ -6,8 +6,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Transport;
+import org.roach.margia.storage.Options;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 import tech.units.indriya.quantity.Quantities;
 import tech.units.indriya.quantity.time.TimeQuantities;
@@ -15,27 +19,25 @@ import tech.units.indriya.quantity.time.TimeQuantities;
 /**
  * Use internal system clock as timing source
  */
-public class InternalTimingSource implements TimingSource {
+public class InternalTimingSource implements TimingSource, ChangeListener {
     private final Transport transport;
     private Future<?> clockFuture;
-    private volatile int tempo;
     private AtomicReference<Quantity<Time>> tickLengthMicros;
     private final ScheduledExecutorService clockExecutor;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     /**
      * @param transport the transport to control
-     * @param tempo     the tempo in bpm
      */
-    public InternalTimingSource(Transport transport, int tempo) {
+    public InternalTimingSource(Transport transport) {
         this.transport = transport;
         clockExecutor = Executors.newSingleThreadScheduledExecutor();
-        setTempo(tempo);
+        Options.getInstance().getMusicOptions().addChangeListener(TEMPO_PROPERTY, this);
     }
 
     @Override
-    public void setTempo(int tempo) {
-        this.tempo = tempo;
+    public void updateTempo() {
+        var tempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLengthMicros = new AtomicReference<>(
                 Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
 
@@ -46,7 +48,7 @@ public class InternalTimingSource implements TimingSource {
     }
 
     @Override
-    public int getTempo() { return tempo; }
+    public int getTempo() { return Options.getInstance().getMusicOptions().getTempo(); }
 
     private void startClock() {
         running.set(true);
@@ -77,5 +79,12 @@ public class InternalTimingSource implements TimingSource {
 
     @Override
     public boolean isRunning() { return running.get(); }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource cs && TEMPO_PROPERTY.equals(cs.key())) {
+            updateTempo();
+        }
+    }
 
 }
