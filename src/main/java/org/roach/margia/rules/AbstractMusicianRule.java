@@ -37,6 +37,7 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
             return;
         }
         for (var action : actionsToTake) {
+            logger.atDebug().log("{}: performing action {}", action.getClass().getSimpleName());
             action.perform();
         }
         actionsToTake.clear();
@@ -50,7 +51,7 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
     /**
      * Subclasses should override in order to apply specific parameters
      * 
-     * @param ruleOpts rule options
+     * @param ruleOptions rule options
      */
     public void restoreFromStorage(RuleOptions ruleOptions) {
         // nothing here

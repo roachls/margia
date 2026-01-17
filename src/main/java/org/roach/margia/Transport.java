@@ -107,9 +107,9 @@ public class Transport {
                 tickActions.remove(tick).run();
             }
             // each musician calculate their next action
-            MusicianList.getInstance().getMusicians().forEach(m -> m.calculateAction(tick));
+            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().calculateAction(tick));
             // each musician perform the action they just calculated
-            MusicianList.getInstance().getMusicians().forEach(m -> m.doAction());
+            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().doAction());
             // controller actually play notes from each musician
             MidiController.getInstance().playNotesThisTick();
         }

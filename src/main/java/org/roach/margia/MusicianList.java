@@ -9,7 +9,7 @@ import org.roach.margia.storage.MusicianOptions;
  */
 @SuppressWarnings("java:S6548")
 public class MusicianList {
-    private final List<Musician> musicians = new ArrayList<>();
+    private final Map<Integer, Musician> musicians = new TreeMap<>();
     static final String MUSICIANS_PROPERTY = "musicians";
     private static MusicianList instance;
 
@@ -24,6 +24,7 @@ public class MusicianList {
 
     /**
      * Restore all musicians from file
+     * 
      * @param musicianOptions properties of all musicians
      */
     public void restoreFromStorage(Map<Integer, MusicianOptions> musicianOptions) {
@@ -50,26 +51,34 @@ public class MusicianList {
                 }
             }
         }
-        this.musicians.addAll(map.values());
+        this.musicians.putAll(map);
     }
 
     /**
      * @return a list of stored {@link Musician Musicians}
      */
-    public List<Musician> getMusicians() { return Collections.unmodifiableList(this.musicians); }
+    public Map<Integer, Musician> getMusicians() { return Collections.unmodifiableMap(this.musicians); }
 
     /**
      * @param musician {@link Musician} to add
      */
     public void addMusician(Musician musician) {
-        musicians.add(musician);
+        musicians.put(musician.getId(), musician);
     }
 
     /**
      * @param musician {@link Musician} to remove
      */
     public void removeMusician(Musician musician) {
-        musicians.remove(musician);
+        musicians.remove(musician.getId());
+    }
+
+    /**
+     * @param id the ID of the {@link Musician} to remove
+     * @return the removed {@link Musician}, or null if no such musician existed
+     */
+    public Musician removeMusician(int id) {
+        return musicians.remove(id);
     }
 
     /**

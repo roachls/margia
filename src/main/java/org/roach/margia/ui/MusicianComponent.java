@@ -165,6 +165,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.drawString("🔒", 0, getHeight());
             g2d.setFont(font);
         }
+        if (!musician.isListening()) {
+            // TODO draw ear icon
+            g2d.drawString("NL", radius + 5, radius + 5);
+        }
     }
 
     private void updateLocation() {

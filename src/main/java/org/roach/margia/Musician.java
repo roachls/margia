@@ -46,7 +46,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * maximum size the queue is allowed to reach before new notes are ignored
      */
     public static final int MAX_QUEUE_SIZE = 12;
-    private static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+    /**
+     * {@link AtomicInteger} that is used to generate the ID of the next musician
+     */
+    public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
     private final int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
@@ -130,7 +133,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
         var successful = peers.remove(peer);
         var peerOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions())
                 .getPeerIds();
-        peerOpts.remove(peer.getId());
+        // must cast to Integer or the overloaded remove-by-index method will be called
+        peerOpts.remove((Integer) peer.getId());
         return successful;
     }
 
@@ -228,9 +232,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rangeLow the lowest note that this musician can play
      */
-    public void setRangeLow(int rangeLow) {
-        this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127);
-    }
+    public void setRangeLow(int rangeLow) { this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127); }
 
     /**
      * @return the highest note that this musician can play
@@ -240,9 +242,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rangeHi the lowest note that this musician can play
      */
-    public void setRangeHi(int rangeHi) {
-        this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127);
-    }
+    public void setRangeHi(int rangeHi) { this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127); }
 
     /**
      * @return the key that this musician plays in
@@ -341,7 +341,9 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @param listening set to false to have musician ignore incoming notes (may
      *                  still receive other types of messages
      */
-    public void setListening(boolean listening) { musicianOptions.setListening(listening); }
+    public void setListening(boolean listening) {
+        musicianOptions.setListening(listening);
+    }
 
     @Override
     public String toString() {
