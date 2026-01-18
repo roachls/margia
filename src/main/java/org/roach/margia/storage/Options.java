@@ -36,7 +36,7 @@ public class Options {
         this.emitter = new ChangeEmitter();
         this.storedOptions = new StoredOptions();
         this.saveDir = Path
-                .of(Persistence.getInstance().getProperty(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
+                .of(Persistence.getInstance().getString(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
     }
 
     /**

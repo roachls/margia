@@ -39,6 +39,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             </html>
             """;
     private OptionPanel optionPanel;
+    private UiOptionsWindow uiOptionsWindow;
     private AgentPanel agentPanel;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
@@ -58,6 +59,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionPanel = new OptionPanel();
+        uiOptionsWindow = new UiOptionsWindow();
         updateTitle();
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
@@ -130,6 +132,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         setupFileMenu(menubar);
         setupEditMenu(menubar);
+        setupViewMenu(menubar);
         setupHelpMenu(menubar);
         this.setJMenuBar(menubar);
     }
@@ -231,6 +234,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         menubar.add(editMenu);
     }
 
+    private void setupViewMenu(JMenuBar menuBar) {
+        var viewMenu = new JMenu("View");
+        viewMenu.setMnemonic(KeyEvent.VK_V);
+
+        var showUiOptions = new JMenuItem("UI Options");
+        showUiOptions.setMnemonic(KeyEvent.VK_U);
+        showUiOptions.addActionListener(_ -> uiOptionsWindow.setVisible(true));
+        viewMenu.add(showUiOptions);
+
+        menuBar.add(viewMenu);
+    }
+
     private void setupModesMenu(JMenu editMenu) {
         var modesMenu = new JMenu("Mode");
         modesMenu.setMnemonic(KeyEvent.VK_M);
@@ -306,7 +321,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
             Options.getInstance().setSaveDir(newSaveLocation.getParent());
-            optionPanel.updateOptions();
+            uiOptionsWindow.updateOptions();
             updateTitle();
             SwingUtilities.invokeLater(() -> {
                 agentPanel.reset();

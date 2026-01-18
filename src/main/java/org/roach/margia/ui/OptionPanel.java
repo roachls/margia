@@ -20,10 +20,6 @@ import org.roach.margia.storage.Options;
  */
 @SuppressWarnings({ "java:S1948" })
 public class OptionPanel extends JPanel implements VetoableChangeListener {
-    private JSpinner radius;
-    private JSpinner gravity;
-    private JSpinner edgeLength;
-    private JCheckBox showNumbers;
     private JComboBox<String> rule;
     private JPanel ruleParamsPanel;
     private final JPanel[] paramComps = new JPanel[5];
@@ -53,8 +49,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         constraints.gridy = row++;
         add(createMiscPanel(), constraints);
         constraints.gridy = row++;
-        add(createUiPanel(), constraints);
-        constraints.gridy = row++;
         add(createMidiPanel(), constraints);
         constraints.gridy = row++;
         musPanel = createMusicianPanel();
@@ -82,33 +76,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         randomSeedSpinner.addChangeListener(
                 _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
         return miscPanel;
-    }
-
-    private JPanel createUiPanel() {
-        var uiPanel = new JPanel();
-        uiPanel.setBorder(
-                BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Graphics options"));
-        uiPanel.setLayout(new GridLayout(0, 2, 3, 5));
-        radius = addSpinner(uiPanel, MusicianComponent.RADIUS_PROPERTY,
-                (double) Options.getInstance().getUiOptions().getRadius(), 1d, 50d, 1d, Integer.class);
-        radius.addChangeListener(_ -> Options.getInstance().getUiOptions().setRadius((int) radius.getValue()));
-        gravity = addSpinner(uiPanel, "Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1,
-                Double.class);
-        gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
-        edgeLength = addSpinner(uiPanel, AgentPanel.EDGE_LENGTH_PROPERTY,
-                (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
-        edgeLength.addChangeListener(
-                _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
-        showNumbers = new JCheckBox();
-        showNumbers.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-        showNumbers
-                .addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showNumbers.isSelected()));
-        var showNumbersLabel = new JLabel(MusicianComponent.SHOW_NUMBERS_PROPERTY);
-        showNumbersLabel.setLabelFor(showNumbers);
-        uiPanel.add(showNumbersLabel);
-        uiPanel.add(showNumbers);
-
-        return uiPanel;
     }
 
     private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
@@ -204,14 +171,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
         midiPanel.add(external);
         return midiPanel;
-    }
-
-    void updateOptions() {
-        var options = Options.getInstance();
-        radius.setValue(options.getUiOptions().getRadius());
-        gravity.setValue(options.getUiOptions().getGravity());
-        showNumbers.setSelected(options.getUiOptions().isShowNumbers());
-        edgeLength.setValue(options.getUiOptions().getEdgeLength());
     }
 
     private ActionListener ruleActionListener;
@@ -321,4 +280,5 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             paramPanel.revalidate();
         }
     }
+
 }
