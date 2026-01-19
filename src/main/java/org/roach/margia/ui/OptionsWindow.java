@@ -14,7 +14,7 @@ class OptionsWindow extends JDialog {
     private JSpinner radius;
     private JSpinner gravity;
     private JSpinner edgeLength;
-    private JCheckBox showNumbers;
+    private JCheckBox showIcons;
 
     OptionsWindow() {
         super((JFrame) null, "Options");
@@ -89,12 +89,11 @@ class OptionsWindow extends JDialog {
         edgeLength.addChangeListener(
                 _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
         var edgeLengthLabel = createLabelFor("Edge length", edgeLength);
-        showNumbers = new JCheckBox();
-        showNumbers.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-        showNumbers
-                .addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showNumbers.isSelected()));
-        var showNumbersLabel = new JLabel(MusicianComponent.SHOW_NUMBERS_PROPERTY);
-        showNumbersLabel.setLabelFor(showNumbers);
+        showIcons = new JCheckBox("Show icons");
+        showIcons.setToolTipText("Show/hide additional information on musicians");
+        showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
+        showIcons
+                .addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
 
         c.gridx = 0;
         c.gridy = 0;
@@ -111,11 +110,8 @@ class OptionsWindow extends JDialog {
         panel.add(edgeLengthLabel, c);
         c.gridx = 1;
         panel.add(edgeLength, c);
-        c.gridx = 0;
         c.gridy = 3;
-        panel.add(showNumbersLabel, c);
-        c.gridx = 1;
-        panel.add(showNumbers, c);
+        panel.add(showIcons, c);
 
         return panel;
     }
@@ -196,7 +192,7 @@ class OptionsWindow extends JDialog {
         var options = Options.getInstance();
         radius.setValue(options.getUiOptions().getRadius());
         gravity.setValue(options.getUiOptions().getGravity());
-        showNumbers.setSelected(options.getUiOptions().isShowNumbers());
+        showIcons.setSelected(options.getUiOptions().isShowNumbers());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());
     }
 }
