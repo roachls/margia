@@ -24,9 +24,10 @@ public class MusicOptions {
     public void setTempo(int tempo) {
         var oldTempo = this.tempo;
         this.tempo = tempo;
-        if (oldTempo != tempo)
-            emitter.fireChangeEvent(TimingSource.TEMPO_PROPERTY,
-                    new ChangeSource(TimingSource.TEMPO_PROPERTY, tempo));
+        if (oldTempo != tempo) {
+            emitter.fireChangeEvent(TimingSource.TEMPO_PROPERTY, new ChangeSource(TimingSource.TEMPO_PROPERTY, tempo));
+            Options.getInstance().setDirty();
+        }
     }
 
     /**

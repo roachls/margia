@@ -42,7 +42,12 @@ public class MusicianOptions {
     /**
      * @param muted the muted to set
      */
-    public void setMuted(boolean muted) { this.muted = muted; }
+    public void setMuted(boolean muted) {
+        var oldMuted = this.muted;
+        this.muted = muted;
+        if (oldMuted != this.muted)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the listening
@@ -52,7 +57,12 @@ public class MusicianOptions {
     /**
      * @param listening the listening to set
      */
-    public void setListening(boolean listening) { this.listening = listening; }
+    public void setListening(boolean listening) {
+        var oldListening = this.listening;
+        this.listening = listening;
+        if (oldListening != this.listening)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the id
@@ -77,7 +87,12 @@ public class MusicianOptions {
     /**
      * @param keyName the keyName to set
      */
-    public void setKeyName(String keyName) { this.keyName = keyName; }
+    public void setKeyName(String keyName) {
+        var oldKeyName = this.keyName;
+        this.keyName = keyName;
+        if (oldKeyName != null && !oldKeyName.equals(this.keyName))
+            Options.getInstance().setDirty();
+    }
 
     @Override
     public String toString() {

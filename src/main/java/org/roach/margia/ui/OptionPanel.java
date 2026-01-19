@@ -191,7 +191,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             var selectedRule = (AbstractMusicianRule) selectedMusician.getMusician().getRule();
             var ruleParams = selectedRule.getSettableParameters();
             var ruleOpts = Options.getInstance().getMusicians().get(selectedMusician.getMusician().getId())
-                    .getRuleOptions().getRuleSpecificOptions();
+                    .getRuleOptions();
             SwingUtilities.invokeLater(() -> {
                 var row = 0;
                 for (var ruleParam : ruleParams) {
@@ -199,9 +199,12 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                     if (Number.class.isAssignableFrom(ruleParam.type())) {
                         @SuppressWarnings("unchecked")
                         var comp = createSpinner(ruleParam.propertyName(),
-                                ((Number) ruleOpts.get(ruleParam.propertyName())).doubleValue(), ruleParam.minValue(),
-                                ruleParam.maxValue(), ruleParam.step(), (Class<? extends Number>) ruleParam.type());
-                        comp.addChangeListener(_ -> ruleOpts.put(ruleParam.propertyName(), comp.getValue()));
+                                ((Number) ruleOpts.getRuleSpecificOptions().get(ruleParam.propertyName()))
+                                        .doubleValue(),
+                                ruleParam.minValue(), ruleParam.maxValue(), ruleParam.step(),
+                                (Class<? extends Number>) ruleParam.type());
+                        comp.addChangeListener(
+                                _ -> ruleOpts.setRuleSpecificOption(ruleParam.propertyName(), comp.getValue()));
                         var label = createLabelFor(ruleParam.displayName(), comp);
                         paramComps[row].add(label);
                         paramComps[row].add(comp);

@@ -94,6 +94,11 @@ public class Options {
      * @return true if any property has changed since the last save/load
      */
     public boolean isDirty() { return dirty; }
+    
+    void setDirty() {
+        this.dirty = true;
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
+    }
 
     /**
      * @param property the property being listened to
