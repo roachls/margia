@@ -20,10 +20,6 @@ import org.roach.margia.storage.Options;
  */
 @SuppressWarnings({ "java:S1948" })
 public class OptionPanel extends JPanel implements VetoableChangeListener {
-    private JSpinner radius;
-    private JSpinner gravity;
-    private JSpinner edgeLength;
-    private JCheckBox showNumbers;
     private JComboBox<String> rule;
     private JPanel ruleParamsPanel;
     private final JPanel[] paramComps = new JPanel[5];
@@ -51,12 +47,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
 
         var row = 0;
         constraints.gridy = row++;
-        add(createMiscPanel(), constraints);
-        constraints.gridy = row++;
-        add(createUiPanel(), constraints);
-        constraints.gridy = row++;
-        add(createMidiPanel(), constraints);
-        constraints.gridy = row++;
         musPanel = createMusicianPanel();
         add(musPanel, constraints);
         constraints.gridy = row++;
@@ -69,46 +59,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         constraints.weighty = 1.0; // Give all extra vertical space to this row
         constraints.fill = GridBagConstraints.BOTH; // Allow the filler to expand
         add(Box.createVerticalGlue(), constraints);
-    }
-
-    private static JPanel createMiscPanel() {
-        var miscPanel = new JPanel();
-        miscPanel.setBorder(
-                BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Miscellaneous options"));
-        miscPanel.setLayout(new GridLayout(0, 2, 3, 5));
-        var randomSeedSpinner = addSpinner(miscPanel, "Random seed", 0d, (double) -Long.MAX_VALUE,
-                (double) Long.MAX_VALUE, 1d, Long.class);
-        randomSeedSpinner.setValue(Options.getInstance().getRandomSeed());
-        randomSeedSpinner.addChangeListener(
-                _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
-        return miscPanel;
-    }
-
-    private JPanel createUiPanel() {
-        var uiPanel = new JPanel();
-        uiPanel.setBorder(
-                BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Graphics options"));
-        uiPanel.setLayout(new GridLayout(0, 2, 3, 5));
-        radius = addSpinner(uiPanel, MusicianComponent.RADIUS_PROPERTY,
-                (double) Options.getInstance().getUiOptions().getRadius(), 1d, 50d, 1d, Integer.class);
-        radius.addChangeListener(_ -> Options.getInstance().getUiOptions().setRadius((int) radius.getValue()));
-        gravity = addSpinner(uiPanel, "Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1,
-                Double.class);
-        gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
-        edgeLength = addSpinner(uiPanel, AgentPanel.EDGE_LENGTH_PROPERTY,
-                (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
-        edgeLength.addChangeListener(
-                _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
-        showNumbers = new JCheckBox();
-        showNumbers.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-        showNumbers
-                .addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showNumbers.isSelected()));
-        var showNumbersLabel = new JLabel(MusicianComponent.SHOW_NUMBERS_PROPERTY);
-        showNumbersLabel.setLabelFor(showNumbers);
-        uiPanel.add(showNumbersLabel);
-        uiPanel.add(showNumbers);
-
-        return uiPanel;
     }
 
     private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
@@ -194,26 +144,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         }
     }
 
-    private static JPanel createMidiPanel() {
-        var midiPanel = new JPanel();
-        midiPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "MIDI options"));
-        midiPanel.setLayout(new GridLayout(0, 1, 3, 5));
-        var external = new JCheckBox("Use External MIDI");
-        external.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
-        external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
-        midiPanel.add(external);
-        return midiPanel;
-    }
-
-    void updateOptions() {
-        var options = Options.getInstance();
-        radius.setValue(options.getUiOptions().getRadius());
-        gravity.setValue(options.getUiOptions().getGravity());
-        showNumbers.setSelected(options.getUiOptions().isShowNumbers());
-        edgeLength.setValue(options.getUiOptions().getEdgeLength());
-    }
-
     private ActionListener ruleActionListener;
     private ActionListener keyActionListener;
     private ChangeListener channelChangeListener;
@@ -225,7 +155,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     @Override
     public void vetoableChange(PropertyChangeEvent evt) {
         if (selectedMusician != null) {
-            selectedMusician.setSelected(false);
+            selectedMusician.setEdited(false);
             selectedMusician = null;
             resetUiAndListeners();
         }
@@ -235,7 +165,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             resetUiAndListeners();
         } else {
             selectedMusician = sel;
-            selectedMusician.setSelected(true);
+            selectedMusician.setEdited(true);
             musicianPanelBorder.setTitle("Musician options (" + sel.getMusician().getId() + ")");
             rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
             ruleActionListener = _ -> selectedMusician.getMusician()
@@ -261,7 +191,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             var selectedRule = (AbstractMusicianRule) selectedMusician.getMusician().getRule();
             var ruleParams = selectedRule.getSettableParameters();
             var ruleOpts = Options.getInstance().getMusicians().get(selectedMusician.getMusician().getId())
-                    .getRuleOptions().getRuleSpecificOptions();
+                    .getRuleOptions();
             SwingUtilities.invokeLater(() -> {
                 var row = 0;
                 for (var ruleParam : ruleParams) {
@@ -269,9 +199,12 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                     if (Number.class.isAssignableFrom(ruleParam.type())) {
                         @SuppressWarnings("unchecked")
                         var comp = createSpinner(ruleParam.propertyName(),
-                                ((Number) ruleOpts.get(ruleParam.propertyName())).doubleValue(), ruleParam.minValue(),
-                                ruleParam.maxValue(), ruleParam.step(), (Class<? extends Number>) ruleParam.type());
-                        comp.addChangeListener(_ -> ruleOpts.put(ruleParam.propertyName(), comp.getValue()));
+                                ((Number) ruleOpts.getRuleSpecificOptions().get(ruleParam.propertyName()))
+                                        .doubleValue(),
+                                ruleParam.minValue(), ruleParam.maxValue(), ruleParam.step(),
+                                (Class<? extends Number>) ruleParam.type());
+                        comp.addChangeListener(
+                                _ -> ruleOpts.setRuleSpecificOption(ruleParam.propertyName(), comp.getValue()));
                         var label = createLabelFor(ruleParam.displayName(), comp);
                         paramComps[row].add(label);
                         paramComps[row].add(comp);
@@ -321,4 +254,5 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             paramPanel.revalidate();
         }
     }
+
 }

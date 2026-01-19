@@ -180,8 +180,8 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         if (sequenceLength < 1)
             throw new IllegalArgumentException("Sequence length must be at least 1");
         this.sequenceLength = sequenceLength;
-        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
-                .put(SEQUENCE_LENGTH_PROPERTY, this.sequenceLength);
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .setRuleSpecificOption(SEQUENCE_LENGTH_PROPERTY, this.sequenceLength);
     }
 
     @Override
@@ -210,8 +210,8 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
             throw new IllegalArgumentException("Tick delay must be at least 0");
         this.initialTickDelay = initialTickDelay;
         this.sequenceCountdown = sequenceLength + initialTickDelay;
-        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions().getRuleSpecificOptions()
-                .put(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .setRuleSpecificOption(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
     }
 
     @Override

@@ -2,14 +2,13 @@ package org.roach.margia.storage;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Map;
 import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
 
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.*;
-import org.roach.margia.ui.*;
+import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +20,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
  */
 @SuppressWarnings({ "java:S3008", "java:S6548" })
 public class Options {
+    private static final String SAVE_DIR_PROPERTY = "saveDir";
     /**
      * Property fired to notify listeners that something has changed
      */
@@ -29,15 +29,14 @@ public class Options {
     private boolean dirty;
     private Path saveDir;
     private Path filename;
-    private Preferences preferences;
     private static Options INSTANCE;
     private StoredOptions storedOptions;
 
     private Options() {
         this.emitter = new ChangeEmitter();
         this.storedOptions = new StoredOptions();
-        preferences = Preferences.userNodeForPackage(getClass());
-        this.saveDir = Path.of(preferences.get("saveDir", System.getProperty("user.home")));
+        this.saveDir = Path
+                .of(Persistence.getInstance().getString(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
     }
 
     /**
@@ -95,6 +94,11 @@ public class Options {
      * @return true if any property has changed since the last save/load
      */
     public boolean isDirty() { return dirty; }
+    
+    void setDirty() {
+        this.dirty = true;
+        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
+    }
 
     /**
      * @param property the property being listened to
@@ -119,8 +123,7 @@ public class Options {
      */
     public void setSaveDir(Path saveDir) throws BackingStoreException {
         this.saveDir = saveDir;
-        preferences.put("saveDir", Options.getInstance().getSaveDir().toString());
-        preferences.flush();
+        Persistence.getInstance().saveProperty(SAVE_DIR_PROPERTY, Options.getInstance().getSaveDir().toString());
     }
 
     /**

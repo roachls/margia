@@ -1,7 +1,6 @@
 package org.roach.margia.storage;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import javax.swing.event.ChangeListener;
 
@@ -24,12 +23,27 @@ public class RuleOptions {
     /**
      * @param name the name to set
      */
-    public void setName(String name) { this.name = name; }
+    public void setName(String name) {
+        var oldName = this.name;
+        this.name = name;
+        if (oldName != null && !oldName.equals(this.name))
+            Options.getInstance().setDirty();
+    }
 
     /**
-     * @return the ruleSpecificOptions
+     * @return an unmodifiable view of the ruleSpecificOptions
      */
-    public Map<String, Object> getRuleSpecificOptions() { return ruleSpecificOptions; }
+    public Map<String, Object> getRuleSpecificOptions() { return Collections.unmodifiableMap(ruleSpecificOptions); }
+
+    /**
+     * @param optionName name of option
+     * @param value      new value
+     */
+    public void setRuleSpecificOption(String optionName, Object value) {
+        var oldValue = this.ruleSpecificOptions.put(optionName, value);
+        if (!Objects.equals(oldValue, value))
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @param key      key being listened to

@@ -11,6 +11,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 public class MidiOptions {
     private boolean useExternalMidi;
     private final ChangeEmitter emitter = new ChangeEmitter();
+
     /**
      * property fired when useExternalMidi changes
      */
@@ -27,9 +28,11 @@ public class MidiOptions {
     public void setUseExternalMidi(boolean useExternalMidi) {
         var oldUseExternalMidi = this.useExternalMidi;
         this.useExternalMidi = useExternalMidi;
-        if (oldUseExternalMidi != this.useExternalMidi)
+        if (oldUseExternalMidi != this.useExternalMidi) {
             emitter.fireChangeEvent(EXTERNAL_MIDI_PROPERTY,
                     new ChangeSource(EXTERNAL_MIDI_PROPERTY, this.useExternalMidi));
+            Options.getInstance().setDirty();
+        }
     }
 
     /**

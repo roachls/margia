@@ -33,9 +33,11 @@ public class UiOptions {
     public void setShowNumbers(boolean showNumbers) {
         var oldShowNumbers = this.showNumbers;
         this.showNumbers = showNumbers;
-        if (oldShowNumbers != showNumbers)
+        if (oldShowNumbers != showNumbers) {
             emitter.fireChangeEvent(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                     new ChangeSource(MusicianComponent.SHOW_NUMBERS_PROPERTY, this.showNumbers));
+            Options.getInstance().setDirty();
+        }
     }
 
     /**
@@ -49,9 +51,11 @@ public class UiOptions {
     public void setRadius(int radius) {
         var oldRadius = this.radius;
         this.radius = radius;
-        if (oldRadius != radius)
+        if (oldRadius != radius) {
             emitter.fireChangeEvent(MusicianComponent.RADIUS_PROPERTY,
                     new ChangeSource(MusicianComponent.RADIUS_PROPERTY, this.radius));
+            Options.getInstance().setDirty();
+        }
     }
 
     /**
@@ -62,7 +66,12 @@ public class UiOptions {
     /**
      * @param gravity the gravity to set
      */
-    public void setGravity(double gravity) { this.gravity = gravity; }
+    public void setGravity(double gravity) {
+        var oldGravity = this.gravity;
+        this.gravity = gravity;
+        if (oldGravity != this.gravity)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the edgeLength
@@ -75,9 +84,11 @@ public class UiOptions {
     public void setEdgeLength(int edgeLength) {
         var oldEdgeLength = this.edgeLength;
         this.edgeLength = edgeLength;
-        if (oldEdgeLength != edgeLength)
+        if (oldEdgeLength != edgeLength) {
             emitter.fireChangeEvent(AgentPanel.EDGE_LENGTH_PROPERTY,
                     new ChangeSource(AgentPanel.EDGE_LENGTH_PROPERTY, this.edgeLength));
+            Options.getInstance().setDirty();
+        }
     }
 
     @Override
