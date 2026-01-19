@@ -30,6 +30,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private static int tickLengthMillis;
     private Timer timer;
     private boolean selected;
+    private boolean edited;
 
     private Vector2D velocity = new Vector2D(0, 0);
     private Vector2D force = new Vector2D(0, 0);
@@ -59,7 +60,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
-    private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 12);
+    private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 15);
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -146,6 +147,17 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.setColor(Color.white); // Fill color
             // draw the text
             g2d.fill(shape);
+
+            // draw icons for locked/listening
+            String status = "";
+            if (options.isLocked())
+                status += "🔒";
+            if (!musician.isListening())
+                status += "🎤\u033D";
+            g2d.setFont(LOCK_FONT);
+            g2d.setColor(Color.yellow);
+            g2d.drawString(status, 0, getHeight());
+            g2d.setFont(font);
         }
         if (musician.isMuted()) {
             // draw a semi-transparent gray oval over the whole thing
@@ -157,17 +169,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.setStroke(SELECTED_STROKE);
             g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
         }
-        if (options.isLocked()) {
-            // draw yellow circle border
-            var font = g2d.getFont();
-            g2d.setFont(LOCK_FONT);
-            g2d.setColor(Color.yellow);
-            g2d.drawString("🔒", 0, getHeight());
-            g2d.setFont(font);
-        }
-        if (!musician.isListening()) {
-            // TODO draw ear icon
-            g2d.drawString("NL", radius + 5, radius + 5);
+        if (edited) {
+            g2d.setColor(Color.blue.brighter());
+            g2d.setStroke(SELECTED_STROKE);
+            g2d.drawOval(0, 0, radius * 2, radius * 2);
         }
     }
 
@@ -200,8 +205,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs && MusicianComponent.RADIUS_PROPERTY.equals(cs.key())) {
-            this.setCircleRadius((int) cs.newValue());
+        if (e.getSource() instanceof
+
+        ChangeSource(String property, Object newVal) && MusicianComponent.RADIUS_PROPERTY.equals(property)) {
+            this.setCircleRadius((int) newVal);
         }
     }
 
@@ -245,6 +252,16 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     boolean isSelected() { return selected; }
 
     void setSelected(boolean selected) { this.selected = selected; }
+
+    /**
+     * @return the edited
+     */
+    public boolean isEdited() { return edited; }
+
+    /**
+     * @param edited the edited to set
+     */
+    public void setEdited(boolean edited) { this.edited = edited; }
 
     double getMass() { return options.getMass(); }
 

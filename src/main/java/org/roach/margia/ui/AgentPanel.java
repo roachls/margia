@@ -320,9 +320,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonReleased(e);
             } else if (e.getButton() == MouseEvent.BUTTON3) {
-                deselectAll();
                 var editingComponent = getComponentAt(e.getPoint());
-                handleMusicianSelection(editingComponent);
+                handleMusicianSelectedForEditing(editingComponent);
             }
         }
 
@@ -408,7 +407,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
-        private void handleMusicianSelection(Component comp) {
+        private void handleMusicianSelectedForEditing(Component comp) {
             try {
                 if (comp instanceof MusicianComponent mc) {
                     fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, mc);

@@ -39,7 +39,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             </html>
             """;
     private OptionPanel optionPanel;
-    private UiOptionsWindow uiOptionsWindow;
+    private OptionsWindow uiOptionsWindow;
     private AgentPanel agentPanel;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
@@ -59,7 +59,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionPanel = new OptionPanel();
-        uiOptionsWindow = new UiOptionsWindow();
+        uiOptionsWindow = new OptionsWindow();
         updateTitle();
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);

@@ -47,10 +47,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
 
         var row = 0;
         constraints.gridy = row++;
-        add(createMiscPanel(), constraints);
-        constraints.gridy = row++;
-        add(createMidiPanel(), constraints);
-        constraints.gridy = row++;
         musPanel = createMusicianPanel();
         add(musPanel, constraints);
         constraints.gridy = row++;
@@ -63,19 +59,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         constraints.weighty = 1.0; // Give all extra vertical space to this row
         constraints.fill = GridBagConstraints.BOTH; // Allow the filler to expand
         add(Box.createVerticalGlue(), constraints);
-    }
-
-    private static JPanel createMiscPanel() {
-        var miscPanel = new JPanel();
-        miscPanel.setBorder(
-                BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "Miscellaneous options"));
-        miscPanel.setLayout(new GridLayout(0, 2, 3, 5));
-        var randomSeedSpinner = addSpinner(miscPanel, "Random seed", 0d, (double) -Long.MAX_VALUE,
-                (double) Long.MAX_VALUE, 1d, Long.class);
-        randomSeedSpinner.setValue(Options.getInstance().getRandomSeed());
-        randomSeedSpinner.addChangeListener(
-                _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
-        return miscPanel;
     }
 
     private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
@@ -161,18 +144,6 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         }
     }
 
-    private static JPanel createMidiPanel() {
-        var midiPanel = new JPanel();
-        midiPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(), "MIDI options"));
-        midiPanel.setLayout(new GridLayout(0, 1, 3, 5));
-        var external = new JCheckBox("Use External MIDI");
-        external.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
-        external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
-        midiPanel.add(external);
-        return midiPanel;
-    }
-
     private ActionListener ruleActionListener;
     private ActionListener keyActionListener;
     private ChangeListener channelChangeListener;
@@ -184,7 +155,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
     @Override
     public void vetoableChange(PropertyChangeEvent evt) {
         if (selectedMusician != null) {
-            selectedMusician.setSelected(false);
+            selectedMusician.setEdited(false);
             selectedMusician = null;
             resetUiAndListeners();
         }
@@ -194,7 +165,7 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
             resetUiAndListeners();
         } else {
             selectedMusician = sel;
-            selectedMusician.setSelected(true);
+            selectedMusician.setEdited(true);
             musicianPanelBorder.setTitle("Musician options (" + sel.getMusician().getId() + ")");
             rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
             ruleActionListener = _ -> selectedMusician.getMusician()
