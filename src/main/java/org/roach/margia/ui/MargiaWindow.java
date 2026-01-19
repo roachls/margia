@@ -26,6 +26,14 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
  */
 @SuppressWarnings({ "java:S1948" })
 public class MargiaWindow extends JFrame implements ChangeListener {
+    private static final int TOOLBAR_ICON_SIZE = 24;
+    private static final int MENU_ICON_SIZE = 18;
+    private static final String UNLOCK_ICON_DESCRIPTION = "an open lock";
+    private static final String LOCK_ICON_DESCRIPTION = "a closed lock";
+    private static final String CONNECT_ICON_DESCRIPTION = "two dots with a line between them";
+    private static final String CONNECT_ICON = "/icons/connect.png";
+    private static final String UNLOCK_ICON = "/icons/unlock.png";
+    private static final String LOCK_ICON = "/icons/lock.png";
     private static final String ABOUT_MESSAGE = """
             <html>
             <h1>MARGIA</h1>
@@ -53,7 +61,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      */
     public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
         super();
-        this.getContentPane().setLayout(new BorderLayout());
+
+        getContentPane().setLayout(new BorderLayout());
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
@@ -65,12 +74,17 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
+        agentPanel.setBounds(0, 0, 1000, 1000);
         agentPanel.addVetoableChangeListener(optionPanel);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
         getContentPane().add(optionPanel, BorderLayout.EAST);
-        pack();
         optionPanel.setVisible(false);
+
+        var palette1 = createToolPalette();
+        add(palette1, BorderLayout.PAGE_START);
+
+        pack();
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
     }
@@ -134,22 +148,22 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         setupEditMenu(menubar);
         setupViewMenu(menubar);
         setupHelpMenu(menubar);
-        this.setJMenuBar(menubar);
+        setJMenuBar(menubar);
     }
 
     private void setupFileMenu(JMenuBar menubar) {
         var fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
-        var openMenuItem = new JMenuItem("Open", createImageIcon("/icons/open.png", "an open folder"));
+        var openMenuItem = new JMenuItem("Open", createImageIcon("/icons/open.png", "an open folder", 18));
         openMenuItem.setMnemonic(KeyEvent.VK_O);
         openMenuItem.addActionListener(_ -> openSettingsFromFile());
 
-        var saveMenuItem = new JMenuItem("Save", createImageIcon("/icons/save.png", "a floppy disk"));
+        var saveMenuItem = new JMenuItem("Save", createImageIcon("/icons/save.png", "a floppy disk", 18));
         saveMenuItem.setMnemonic(KeyEvent.VK_S);
         saveMenuItem.addActionListener(_ -> saveSettingsToFile());
 
         var saveAsMenuItem = new JMenuItem("Save As... (" + CONTROL_TEXT + "+S)",
-                createImageIcon("/icons/save.png", "a floppy disk"));
+                createImageIcon("/icons/save.png", "a floppy disk", 18));
         saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
         saveAsMenuItem.addActionListener(_ -> {
             Options.getInstance().setFilename(null);
@@ -166,18 +180,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var editMenu = new JMenu("Edit");
         editMenu.setMnemonic(KeyEvent.VK_E);
         var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options",
-                createImageIcon("/icons/options.png", "an Options icon"));
+                createImageIcon("/icons/options.png", "an Options icon", 18));
         showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
         showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
         editMenu.add(showOptionPaneMenuItem);
 
         var copyMenuItem = new JMenuItem("Copy (" + CONTROL_TEXT + "+C)",
-                createImageIcon("/icons/copy.png", "two clipboards"));
+                createImageIcon("/icons/copy.png", "two clipboards", 18));
         copyMenuItem.setMnemonic(KeyEvent.VK_C);
         copyMenuItem.addActionListener(_ -> agentPanel.copySelectedComponents());
         editMenu.add(copyMenuItem);
         var pasteMenuItem = new JMenuItem("Paste (" + CONTROL_TEXT + "+V)",
-                createImageIcon("/icons/paste.png", "a clipboard"));
+                createImageIcon("/icons/paste.png", "a clipboard", 18));
         pasteMenuItem.setMnemonic(KeyEvent.VK_P);
         pasteMenuItem.addActionListener(_ -> agentPanel.paste());
         editMenu.add(pasteMenuItem);
@@ -193,45 +207,121 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
         editMenu.add(deselectAll);
         var muteSelected = new JMenuItem("Mute selected",
-                createImageIcon("/icons/mute.png", "a speaker that is muted"));
+                createImageIcon("/icons/mute.png", "a speaker that is muted", 18));
         muteSelected.setMnemonic(KeyEvent.VK_U);
         muteSelected.addActionListener(_ -> agentPanel.muteSelected());
         editMenu.add(muteSelected);
         var unmuteSelected = new JMenuItem("Unmute selected",
-                createImageIcon("/icons/unmute.png", "a speaker that is unmuted"));
+                createImageIcon("/icons/unmute.png", "a speaker that is unmuted", 18));
         unmuteSelected.setMnemonic(KeyEvent.VK_E);
         unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
         editMenu.add(unmuteSelected);
-        var lockSelected = new JMenuItem("Lock selected", createImageIcon("/icons/lock.png", "a closed lock"));
+        var lockSelected = new JMenuItem("Lock selected", createImageIcon(LOCK_ICON, LOCK_ICON_DESCRIPTION, 18));
         lockSelected.setMnemonic(KeyEvent.VK_L);
         lockSelected.addActionListener(_ -> agentPanel.lockSelected());
         editMenu.add(lockSelected);
-        var unlockSelected = new JMenuItem("Unlock selected", createImageIcon("/icons/unlock.png", "an open lock"));
+        var unlockSelected = new JMenuItem("Unlock selected",
+                createImageIcon(UNLOCK_ICON, UNLOCK_ICON_DESCRIPTION, 18));
         unlockSelected.setMnemonic(KeyEvent.VK_N);
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
         editMenu.add(unlockSelected);
-        var lockAll = new JMenuItem("Lock all", createImageIcon("/icons/lock.png", "a closed lock"));
+        var lockAll = new JMenuItem("Lock all", createImageIcon("/icons/lock_all.png", LOCK_ICON_DESCRIPTION, 18));
         lockAll.addActionListener(_ -> agentPanel.lockAll());
         editMenu.add(lockAll);
-        var unlockAll = new JMenuItem("Unlock all", createImageIcon("/icons/unlock.png", "an open lock"));
+        var unlockAll = new JMenuItem("Unlock all",
+                createImageIcon("/icons/unlock_all.png", UNLOCK_ICON_DESCRIPTION, MENU_ICON_SIZE));
         unlockAll.addActionListener(_ -> agentPanel.unlockAll());
         editMenu.add(unlockAll);
         var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
-                createImageIcon("/icons/delete.png", "an large capital X"));
+                createImageIcon("/icons/delete.png", "an large capital X", MENU_ICON_SIZE));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
         deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
         editMenu.add(deleteSelected);
         var connectSelected = new JMenuItem("Connect selected",
-                createImageIcon("/icons/connect.png", "two dots with a line between them"));
+                createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, MENU_ICON_SIZE));
         connectSelected.setMnemonic(KeyEvent.VK_T);
         connectSelected.addActionListener(_ -> agentPanel.connectSelected());
         editMenu.add(connectSelected);
         var disconnectSelected = new JMenuItem("Disconnect selected",
-                createImageIcon("/icons/disconnect.png", "two dots with a broken line between them"));
+                createImageIcon("/icons/disconnect.png", "two dots with a broken line between them", MENU_ICON_SIZE));
         disconnectSelected.setMnemonic(KeyEvent.VK_I);
         disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
         editMenu.add(disconnectSelected);
         menubar.add(editMenu);
+    }
+
+    private JToolBar createToolPalette() {
+        var toolbar = new JToolBar("Palette");
+        toolbar.setFloatable(true);
+        var copyBtn = new JButton(createImageIcon("/icons/copy.png", "two clipboards", TOOLBAR_ICON_SIZE));
+        copyBtn.setToolTipText("Copy selected");
+        copyBtn.setBorder(BorderFactory.createEmptyBorder());
+        copyBtn.addActionListener(_ -> agentPanel.copySelectedComponents());
+
+        var pasteBtn = new JButton(createImageIcon("/icons/paste.png", "a clipboard", TOOLBAR_ICON_SIZE));
+        pasteBtn.setToolTipText("Paste");
+        pasteBtn.setBorder(BorderFactory.createEmptyBorder());
+        pasteBtn.addActionListener(_ -> agentPanel.paste());
+
+//        setupModesMenu(editMenu);
+//
+        var muteSelected = new JButton(
+                createImageIcon("/icons/mute.png", "a speaker that is muted", TOOLBAR_ICON_SIZE));
+        muteSelected.setBorder(BorderFactory.createEmptyBorder());
+        muteSelected.setToolTipText("Mute selected");
+        muteSelected.addActionListener(_ -> agentPanel.muteSelected());
+        var unmuteSelected = new JButton(
+                createImageIcon("/icons/unmute.png", "a speaker that is unmuted", TOOLBAR_ICON_SIZE));
+        unmuteSelected.setBorder(BorderFactory.createEmptyBorder());
+        unmuteSelected.setToolTipText("Unmute selected");
+        unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
+        var lockSelected = new JButton(createImageIcon(LOCK_ICON, LOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
+        lockSelected.setBorder(BorderFactory.createEmptyBorder());
+        lockSelected.setToolTipText("Lock selected");
+        lockSelected.addActionListener(_ -> agentPanel.lockSelected());
+        var unlockSelected = new JButton(createImageIcon(UNLOCK_ICON, UNLOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
+        unlockSelected.setBorder(BorderFactory.createEmptyBorder());
+        unlockSelected.setToolTipText("Unlock selected");
+        unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
+        var lockAll = new JButton(createImageIcon("/icons/lock_all.png", LOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
+        lockAll.setBorder(BorderFactory.createEmptyBorder());
+        lockAll.setToolTipText("Lock all");
+        lockAll.addActionListener(_ -> agentPanel.lockAll());
+        var unlockAll = new JButton(
+                createImageIcon("/icons/unlock_all.png", UNLOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
+        unlockAll.setBorder(BorderFactory.createEmptyBorder());
+        unlockAll.setToolTipText("Unlock all");
+        unlockAll.addActionListener(_ -> agentPanel.unlockAll());
+        var deleteSelected = new JButton(createImageIcon("/icons/delete.png", "an large capital X", TOOLBAR_ICON_SIZE));
+        deleteSelected.setBorder(BorderFactory.createEmptyBorder());
+        deleteSelected.setToolTipText("Delete selected");
+        deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
+        var connectSelected = new JButton(createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
+        connectSelected.setBorder(BorderFactory.createEmptyBorder());
+        connectSelected.setToolTipText("Connect selected");
+        connectSelected.addActionListener(_ -> agentPanel.connectSelected());
+        var disconnectSelected = new JButton(createImageIcon("/icons/disconnect.png",
+                "two dots with a broken line between them", TOOLBAR_ICON_SIZE));
+        disconnectSelected.setBorder(BorderFactory.createEmptyBorder());
+        disconnectSelected.setToolTipText("Disconnect selected");
+        disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
+
+        toolbar.add(copyBtn);
+        toolbar.add(pasteBtn);
+        toolbar.add(deleteSelected);
+        toolbar.addSeparator();
+        toolbar.add(muteSelected);
+        toolbar.add(unmuteSelected);
+        toolbar.addSeparator();
+        toolbar.add(lockSelected);
+        toolbar.add(unlockSelected);
+        toolbar.add(lockAll);
+        toolbar.add(unlockAll);
+        toolbar.addSeparator();
+        toolbar.add(connectSelected);
+        toolbar.add(disconnectSelected);
+        toolbar.add(Box.createHorizontalGlue());
+        return toolbar;
     }
 
     private void setupViewMenu(JMenuBar menuBar) {
@@ -250,19 +340,19 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var modesMenu = new JMenu("Mode");
         modesMenu.setMnemonic(KeyEvent.VK_M);
         var selectMode = new JRadioButtonMenuItem("Select Musician(s)",
-                createImageIcon("/icons/select.png", "a hand with the index finger pointing"));
+                createImageIcon("/icons/select.png", "a hand with the index finger pointing", MENU_ICON_SIZE));
         selectMode.setMnemonic(KeyEvent.VK_S);
         selectMode.setName(EditMode.SELECT.name());
         var addMode = new JRadioButtonMenuItem("Add Musician(s)",
-                createImageIcon("/icons/add.png", "an outline of a person with a plus symbol"));
+                createImageIcon("/icons/add.png", "an outline of a person with a plus symbol", MENU_ICON_SIZE));
         addMode.setMnemonic(KeyEvent.VK_A);
         addMode.setName(EditMode.ADD.name());
         var moveMode = new JRadioButtonMenuItem("Move Musician",
-                createImageIcon("/icons/move.png", "a four-way arrow icon"));
+                createImageIcon("/icons/move.png", "a four-way arrow icon", MENU_ICON_SIZE));
         moveMode.setMnemonic(KeyEvent.VK_V);
         moveMode.setName(EditMode.MOVE.name());
         var connectMode = new JRadioButtonMenuItem("Connect/Disconnect two musicians",
-                createImageIcon("/icons/connect.png", "two dots with a line between them"));
+                createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, MENU_ICON_SIZE));
         connectMode.setMnemonic(KeyEvent.VK_C);
         connectMode.setName(EditMode.CONNECT.name());
 
@@ -301,10 +391,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     private void setupHelpMenu(JMenuBar menubar) {
         var helpMenu = new JMenu("Help");
-        helpMenu.setIcon(createImageIcon("/icons/help.png", "a question mark"));
+        helpMenu.setIcon(createImageIcon("/icons/help.png", "a question mark", MENU_ICON_SIZE));
         helpMenu.setMnemonic('H');
         var aboutMenuItem = new JMenuItem("About",
-                createImageIcon("/icons/about.png", "an circle with the letter i for information"));
+                createImageIcon("/icons/about.png", "an circle with the letter i for information", MENU_ICON_SIZE));
         aboutMenuItem.setMnemonic(KeyEvent.VK_A);
         aboutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, ABOUT_MESSAGE));
         helpMenu.add(aboutMenuItem);
@@ -414,10 +504,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         setTitle(windowTitle);
     }
 
-    private ImageIcon createImageIcon(String path, String description) {
+    private ImageIcon createImageIcon(String path, String description, int scale) {
         try (var resource = getClass().getResourceAsStream(path)) {
             var image = ImageIO.read(resource);
-            var resizedImage = image.getScaledInstance(18, 18, Image.SCALE_SMOOTH);
+            var resizedImage = image.getScaledInstance(scale, scale, Image.SCALE_SMOOTH);
             return new ImageIcon(resizedImage, description);
         } catch (IOException e) {
             LOGGER.atError().withThrowable(e).log("Unable to load image file {}", path);

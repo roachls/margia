@@ -566,7 +566,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             remove(mc);
             Options.getInstance().getMusicians().remove(id);
             Options.getInstance().getUiOptions().getMusicianComponents().remove(id);
-            Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(id));
+            Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(Integer.valueOf(id)));
         }
     }
 
