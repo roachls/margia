@@ -1,7 +1,6 @@
 package org.roach.margia.ui;
 
 import java.awt.FlowLayout;
-import java.awt.Image;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -51,20 +50,10 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         tempo.addChangeListener(_ -> Options.getInstance().getMusicOptions().setTempo((int) tempo.getValue()));
         add(tempo);
 
-        var startIconUrl = getClass().getResource("/icons/start.png");
-        var stopIconUrl = getClass().getResource("/icons/pause.png");
-        var rewindIconUrl = getClass().getResource("/icons/rewind.png");
-
-        if (startIconUrl == null || stopIconUrl == null || rewindIconUrl == null) {
-            throw new IllegalStateException("Error: Icons not found.");
-        }
-
-        var startIconOrig = new ImageIcon(startIconUrl);
-        var pauseIconOrig = new ImageIcon(stopIconUrl);
-        var rewindIconOrig = new ImageIcon(rewindIconUrl);
-        var startIcon = new ImageIcon(startIconOrig.getImage().getScaledInstance(25, 25, Image.SCALE_SMOOTH));
-        var pauseIcon = new ImageIcon(pauseIconOrig.getImage().getScaledInstance(25, 25, Image.SCALE_SMOOTH));
-        var rewindIcon = new ImageIcon(rewindIconOrig.getImage().getScaledInstance(25, 25, Image.SCALE_SMOOTH));
+        var startIcon = Icons.getButtonIcon(Icons.START);
+        var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
+        var pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
+        
         var startBtn = new JButton(startIcon);
         startBtn.addActionListener(_ -> {
             if (timing.isRunning()) {
