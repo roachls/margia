@@ -1,8 +1,7 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -196,8 +195,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         pasteMenuItem.addActionListener(_ -> agentPanel.paste());
         editMenu.add(pasteMenuItem);
 
-        setupModesMenu(editMenu);
-
         var selectAll = new JMenuItem("Select All (" + CONTROL_TEXT + "+A)");
         selectAll.setMnemonic(KeyEvent.VK_S);
         selectAll.addActionListener(_ -> agentPanel.selectAll());
@@ -255,57 +252,53 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.setFloatable(true);
         var copyBtn = new JButton(createImageIcon("/icons/copy.png", "two clipboards", TOOLBAR_ICON_SIZE));
         copyBtn.setToolTipText("Copy selected");
-        copyBtn.setBorder(BorderFactory.createEmptyBorder());
         copyBtn.addActionListener(_ -> agentPanel.copySelectedComponents());
 
         var pasteBtn = new JButton(createImageIcon("/icons/paste.png", "a clipboard", TOOLBAR_ICON_SIZE));
         pasteBtn.setToolTipText("Paste");
-        pasteBtn.setBorder(BorderFactory.createEmptyBorder());
         pasteBtn.addActionListener(_ -> agentPanel.paste());
 
-//        setupModesMenu(editMenu);
-//
         var muteSelected = new JButton(
                 createImageIcon("/icons/mute.png", "a speaker that is muted", TOOLBAR_ICON_SIZE));
-        muteSelected.setBorder(BorderFactory.createEmptyBorder());
         muteSelected.setToolTipText("Mute selected");
         muteSelected.addActionListener(_ -> agentPanel.muteSelected());
         var unmuteSelected = new JButton(
                 createImageIcon("/icons/unmute.png", "a speaker that is unmuted", TOOLBAR_ICON_SIZE));
-        unmuteSelected.setBorder(BorderFactory.createEmptyBorder());
         unmuteSelected.setToolTipText("Unmute selected");
         unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
         var lockSelected = new JButton(createImageIcon(LOCK_ICON, LOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
-        lockSelected.setBorder(BorderFactory.createEmptyBorder());
         lockSelected.setToolTipText("Lock selected");
         lockSelected.addActionListener(_ -> agentPanel.lockSelected());
         var unlockSelected = new JButton(createImageIcon(UNLOCK_ICON, UNLOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
-        unlockSelected.setBorder(BorderFactory.createEmptyBorder());
         unlockSelected.setToolTipText("Unlock selected");
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
         var lockAll = new JButton(createImageIcon("/icons/lock_all.png", LOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
-        lockAll.setBorder(BorderFactory.createEmptyBorder());
         lockAll.setToolTipText("Lock all");
         lockAll.addActionListener(_ -> agentPanel.lockAll());
         var unlockAll = new JButton(
                 createImageIcon("/icons/unlock_all.png", UNLOCK_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
-        unlockAll.setBorder(BorderFactory.createEmptyBorder());
         unlockAll.setToolTipText("Unlock all");
         unlockAll.addActionListener(_ -> agentPanel.unlockAll());
         var deleteSelected = new JButton(createImageIcon("/icons/delete.png", "an large capital X", TOOLBAR_ICON_SIZE));
-        deleteSelected.setBorder(BorderFactory.createEmptyBorder());
         deleteSelected.setToolTipText("Delete selected");
         deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
         var connectSelected = new JButton(createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, TOOLBAR_ICON_SIZE));
-        connectSelected.setBorder(BorderFactory.createEmptyBorder());
         connectSelected.setToolTipText("Connect selected");
         connectSelected.addActionListener(_ -> agentPanel.connectSelected());
         var disconnectSelected = new JButton(createImageIcon("/icons/disconnect.png",
                 "two dots with a broken line between them", TOOLBAR_ICON_SIZE));
-        disconnectSelected.setBorder(BorderFactory.createEmptyBorder());
         disconnectSelected.setToolTipText("Disconnect selected");
         disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
 
+        var selectAll = new JButton(createImageIcon("/icons/select_all.png", "a hand with an 'A'", TOOLBAR_ICON_SIZE));
+        selectAll.addActionListener(_ -> agentPanel.selectAll());
+        var deselectAll = new JButton(createImageIcon("/icons/deselect_all.png",
+                "a hand with an 'A' and a red 'X' through it", TOOLBAR_ICON_SIZE));
+        deselectAll.addActionListener(_ -> agentPanel.deselectAll());
+
+        toolbar.add(selectAll);
+        toolbar.add(deselectAll);
+        toolbar.addSeparator();
         toolbar.add(copyBtn);
         toolbar.add(pasteBtn);
         toolbar.add(deleteSelected);
@@ -320,7 +313,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.addSeparator();
         toolbar.add(connectSelected);
         toolbar.add(disconnectSelected);
-        toolbar.add(Box.createHorizontalGlue());
+        setupModesMenu(toolbar);
         return toolbar;
     }
 
@@ -336,52 +329,48 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         menuBar.add(viewMenu);
     }
 
-    private void setupModesMenu(JMenu editMenu) {
-        var modesMenu = new JMenu("Mode");
-        modesMenu.setMnemonic(KeyEvent.VK_M);
-        var selectMode = new JRadioButtonMenuItem("Select Musician(s)",
+    private void setupModesMenu(JToolBar toolbar) {
+        var selectMode = new JToggleButton(
                 createImageIcon("/icons/select.png", "a hand with the index finger pointing", MENU_ICON_SIZE));
-        selectMode.setMnemonic(KeyEvent.VK_S);
+        selectMode.setToolTipText("Selection mode");
         selectMode.setName(EditMode.SELECT.name());
-        var addMode = new JRadioButtonMenuItem("Add Musician(s)",
+        var addMode = new JToggleButton(
                 createImageIcon("/icons/add.png", "an outline of a person with a plus symbol", MENU_ICON_SIZE));
-        addMode.setMnemonic(KeyEvent.VK_A);
+        addMode.setToolTipText("Add Musician(s)");
         addMode.setName(EditMode.ADD.name());
-        var moveMode = new JRadioButtonMenuItem("Move Musician",
-                createImageIcon("/icons/move.png", "a four-way arrow icon", MENU_ICON_SIZE));
-        moveMode.setMnemonic(KeyEvent.VK_V);
+        var moveMode = new JToggleButton(createImageIcon("/icons/move.png", "a four-way arrow icon", MENU_ICON_SIZE));
+        moveMode.setToolTipText("Move Musician mode");
         moveMode.setName(EditMode.MOVE.name());
-        var connectMode = new JRadioButtonMenuItem("Connect/Disconnect two musicians",
-                createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, MENU_ICON_SIZE));
-        connectMode.setMnemonic(KeyEvent.VK_C);
+        var connectMode = new JToggleButton(createImageIcon(CONNECT_ICON, CONNECT_ICON_DESCRIPTION, MENU_ICON_SIZE));
+        connectMode.setToolTipText("Connect/Disconnect two musicians");
         connectMode.setName(EditMode.CONNECT.name());
 
         selectMode.setSelected(true);
 
+        toolbar.addSeparator();
+        toolbar.add(new JLabel("Mode:"));
         var group = new ButtonGroup();
         group.add(selectMode);
-        modesMenu.add(selectMode);
+        toolbar.add(selectMode);
         group.add(addMode);
-        modesMenu.add(addMode);
+        toolbar.add(addMode);
         group.add(moveMode);
-        modesMenu.add(moveMode);
+        toolbar.add(moveMode);
         group.add(connectMode);
-        modesMenu.add(connectMode);
+        toolbar.add(connectMode);
 
         var modeChangeListener = new ModeChangeListener();
-        selectMode.addChangeListener(modeChangeListener);
-        addMode.addChangeListener(modeChangeListener);
-        moveMode.addChangeListener(modeChangeListener);
-        connectMode.addChangeListener(modeChangeListener);
-
-        editMenu.add(modesMenu);
+        selectMode.addItemListener(modeChangeListener);
+        addMode.addItemListener(modeChangeListener);
+        moveMode.addItemListener(modeChangeListener);
+        connectMode.addItemListener(modeChangeListener);
     }
 
-    private class ModeChangeListener implements ChangeListener {
+    private class ModeChangeListener implements ItemListener {
 
         @Override
-        public void stateChanged(ChangeEvent e) {
-            if (e.getSource() instanceof JRadioButtonMenuItem jtb && jtb.isSelected()) {
+        public void itemStateChanged(ItemEvent e) {
+            if (e.getSource() instanceof JToggleButton jtb && jtb.isSelected()) {
                 var name = jtb.getName();
                 var mode = EditMode.valueOf(name);
                 agentPanel.setEditMode(mode);
