@@ -3,9 +3,8 @@ package org.roach.margia.storage;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.roach.margia.Key;
-import org.roach.margia.Musician;
-import org.roach.margia.util.Range;
+import org.roach.margia.*;
+import org.roach.margia.util.RangeCheck;
 
 /**
  * Options for a specific {@link Musician}
@@ -18,6 +17,7 @@ public class MusicianOptions {
     private int id;
     private final RuleOptions ruleOptions = new RuleOptions();
     private String keyName = Key.Chromatic.getName();
+    private NoteRange range = new NoteRange(0, 127);
 
     /**
      * @return the channel
@@ -27,7 +27,7 @@ public class MusicianOptions {
     /**
      * @param channel the channel to set
      */
-    public void setChannel(int channel) { this.channel = Range.check("MIDI channel", channel, 0, 16); }
+    public void setChannel(int channel) { this.channel = RangeCheck.check("MIDI channel", channel, 0, 16); }
 
     /**
      * @return the peerIds
@@ -93,6 +93,16 @@ public class MusicianOptions {
         if (oldKeyName != null && !oldKeyName.equals(this.keyName))
             Options.getInstance().setDirty();
     }
+    
+    /**
+     * @return the range
+     */
+    public NoteRange getRange() { return range; }
+
+    /**
+     * @param range the range to set
+     */
+    public void setRange(NoteRange range) { this.range = range; }
 
     @Override
     public String toString() {

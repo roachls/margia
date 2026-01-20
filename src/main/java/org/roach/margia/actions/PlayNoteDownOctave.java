@@ -19,7 +19,7 @@ public record PlayNoteDownOctave(Musician musician, NoteInfo note) implements Mu
 
     @Override
     public void perform() {
-        var newNoteNum = musician.getKey().adjustToKeyByOctaves(note.noteNum() - 12);
+        var newNoteNum = musician.getRange().adjustToRangeByOctaves(note.noteNum() - 12);
         musician.playNote(note.withNote(newNoteNum));
     }
 

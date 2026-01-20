@@ -67,12 +67,12 @@ public interface Key {
      * @param rangeHi      end range
      * @return a key
      */
-    static Key generateKey(final String name, final String basis, final int startingNote, final int rangeHi) {
+    static Key generateKey(final String name, final String basis, final int startingNote) {
         var intervals = AVAILABLE_BASIS.get(basis);
         var n = startingNote;
         var intervalNum = 0;
         var list = new ArrayList<Integer>();
-        while (n <= rangeHi) {
+        while (n <= 127) {
             list.add(n);
             n += intervals.get(intervalNum);
             intervalNum++;
@@ -101,20 +101,7 @@ public interface Key {
      *                  and O6 will also include all notes from O3, O4, and O5.
      * @return a key
      */
-    static Key generateKey(String name, String basis, List<Octave> octaves) {
-        if (octaves == null || octaves.isEmpty()) {
-            throw new IllegalArgumentException("octaves list must not be null or empty");
-        }
-        var low = octaves.stream().map(Octave::getLow).min(Integer::compare).orElse(0);
-        var high = octaves.stream().map(Octave::getHigh).max(Integer::compare).orElse(127);
-        return generateKey(name, basis, low, high);
-    }
-
-    static Key generateKey(String name, String basis) {
-        return generateKey(name, basis, List.of(Octave.O_NEG2, Octave.O7));
-    }
-
-    Key CMajor = generateKey("C Major", MAJOR_INTERVAL_KEY, 0, 127);
+    Key CMajor = generateKey("C Major", MAJOR_INTERVAL_KEY, 0);
     Key DbMajor = CMajor.transposeUp("Db Major", 1);
     Key DMajor = CMajor.transposeUp("D Major", 2);
     Key EbMajor = CMajor.transposeUp("Eb Major", 3);
@@ -127,50 +114,16 @@ public interface Key {
     Key BbMajor = CMajor.transposeUp("Bb Major", 10);
     Key BMajor = CMajor.transposeUp("B Major", 11);
 
-    Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_KEY, 0, 127);
+    Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_KEY, 0);
 
-    Key Chromatic = generateKey("Chromatic", CHROMATIC_KEY, 0, 127);
-
-    Key DRUMPAD = generateKey("DRUMPAD", CHROMATIC_KEY, Octave.O1.low, Octave.O1.high);
+    Key Chromatic = generateKey("Chromatic", CHROMATIC_KEY, 0);
 
     static final Map<String, Key> BUILTIN_KEYS = List
             .of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor, AbMajor, AMajor, BbMajor, BMajor,
-                    CPentatonic, Chromatic, DRUMPAD)
+                    CPentatonic, Chromatic)
             .stream().collect(Collectors.toMap(Key::getName, k -> k, (_, k2) -> k2, TreeMap::new));
 
     List<Integer> notes();
-
-    default Key of(int rangeLow, int rangeHi) {
-        var origNotes = this.notes();
-        int indexOfNearestNoteToRangeLow = 0;
-        while (origNotes.get(indexOfNearestNoteToRangeLow) < rangeLow) {
-            indexOfNearestNoteToRangeLow++;
-        }
-        var indexOfNearestNoteToRangeHi = origNotes.size() - 1;
-        while (origNotes.get(indexOfNearestNoteToRangeHi) > rangeHi) {
-            indexOfNearestNoteToRangeHi--;
-        }
-        var indexLow = indexOfNearestNoteToRangeLow;
-        var indexHi = indexOfNearestNoteToRangeHi;
-        var name = this.getName();
-        return new Key() {
-
-            @Override
-            public List<Integer> notes() {
-                return origNotes.subList(indexLow, indexHi + 1);
-            }
-
-            @Override
-            public String getName() { return name; }
-
-            @Override
-            public String getBasis() { return Key.this.getBasis(); }
-        };
-    }
-
-    default Key of(Octave o1, Octave o2) {
-        return of(o1.getLow(), o2.getHigh());
-    }
 
     default int randomNote() {
         var noteNum = randomHolder.random.nextInt(notes().size());
@@ -186,7 +139,7 @@ public interface Key {
      * @return the note the given interval up
      */
     default int up(int start, int interval) {
-        int nStart = adjustToKeyByOctaves(start);
+        int nStart = start;
         var list = this.notes();
         int startIndex = list.indexOf(nStart);
         while (startIndex == -1) {
@@ -195,20 +148,6 @@ public interface Key {
         }
         int endIndex = (startIndex + interval - 1) % list.size();
         return list.get(endIndex);
-    }
-
-    default int adjustToKeyByOctaves(int start) {
-        int nStart = start;
-        if (nStart > highestNote()) {
-            while (nStart > highestNote()) {
-                nStart -= 12;
-            }
-        } else if (nStart < lowestNote()) {
-            while (nStart < lowestNote()) {
-                nStart += 12;
-            }
-        }
-        return nStart;
     }
 
     /**
@@ -220,7 +159,7 @@ public interface Key {
      * @return the note the given interval down
      */
     default int down(int start, int interval) {
-        int nStart = adjustToKeyByOctaves(start);
+        int nStart = start;
         var list = this.notes();
         int startIndex = list.indexOf(nStart);
         while (startIndex == -1) {
@@ -242,20 +181,8 @@ public interface Key {
         return notes().get(notes().size() - 1);
     }
 
-    default int range() {
-        return highestNote() - lowestNote();
-    }
-
-    default float noteToRange(int note) {
-        if (note <= lowestNote())
-            return 0f;
-        if (note >= highestNote())
-            return 1f;
-        return (float) (note - lowestNote()) / range();
-    }
-
     default Key transposeUp(String name, int interval) {
-        return generateKey(name, this.getBasis(), interval, 127);
+        return generateKey(name, this.getBasis(), interval);
     }
 
     default String getName() { return BASIS_MAP.get(notes()); }

@@ -3,12 +3,13 @@ package org.roach.margia.util;
 /**
  * Utility class for range checking
  */
-public class Range {
-    private Range() {
+public class RangeCheck {
+    private RangeCheck() {
         /* no instantiation */ }
 
     /**
      * Check that the given number is within range
+     * 
      * @param <T>    type of value
      * @param name   name of value
      * @param number number being checked

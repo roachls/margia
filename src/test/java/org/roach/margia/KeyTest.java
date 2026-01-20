@@ -24,37 +24,16 @@ class KeyTest {
 
     @Test
     void testGenerateKey() {
-        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12), Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0, 12).notes());
-        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24),
-                Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0, 24).notes());
+        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24, 26, 28, 29, 31, 33, 35, 36, 38, 40,
+                41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84,
+                86, 88, 89, 91, 93, 95, 96, 98, 100, 101, 103, 105, 107, 108, 110, 112, 113, 115, 117, 119, 120, 122,
+                124, 125, 127), Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0).notes());
+        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24, 26, 28, 29, 31, 33, 35, 36, 38, 40,
+                41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84,
+                86, 88, 89, 91, 93, 95, 96, 98, 100, 101, 103, 105, 107, 108, 110, 112, 113, 115, 117, 119, 120, 122,
+                124, 125, 127), Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, 0).notes());
         assertEquals(0, Octave.O_NEG2.getLow());
         assertEquals(11, Octave.O_NEG2.getHigh());
-        assertEquals(List.of(0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23),
-                Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
-        assertEquals(List.of(0, 2, 4, 7, 9, 12, 14, 16, 19, 21),
-                Key.generateKey("Test", Key.PENTATONIC_KEY, List.of(Octave.O_NEG2, Octave.O_NEG1)).notes());
     }
 
-    @Test
-    void testOf() {
-        assertEquals(List.of(21, 23, 24, 26, 28, 29, 31, 33, 35, 36), Key.CMajor.of(21, 36).notes());
-        assertEquals(List.of(36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51),
-                Key.Chromatic.of(36, 51).notes());
-    }
-
-    @Test
-    void testRange() {
-        var key = Key.generateKey("Test", Key.MAJOR_INTERVAL_KEY, List.of(Octave.O1, Octave.O5));
-        for (int i = 0; i < 128; i++) {
-            var n = key.noteToRange(i);
-            if (i <= 36) {
-                assertEquals(0f, n);
-            } else if (i >= 95) {
-                assertEquals(1f, n);
-            } else {
-                assertTrue(0f < n);
-                assertTrue(n < 1f);
-            }
-        }
-    }
 }

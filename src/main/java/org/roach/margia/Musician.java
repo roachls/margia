@@ -14,7 +14,6 @@ import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.storage.MusicianOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.ui.PropertyChangeEmitter;
-import org.roach.margia.util.Range;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -58,8 +57,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     private int notesIvePlayed;
     private NoteInfo myLastNote;
     private final Logger logger;
-    private int rangeLow = 0;
-    private int rangeHi = 127;
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private MusicianOptions musicianOptions;
@@ -100,8 +97,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
         if (musicianOptions.isMuted()) {
             logger.atDebug().log("{} is muted", id);
         } else {
-            var adjustedNote = note
-                    .withNote(Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()).adjustToKeyByOctaves(note.noteNum()));
+            var range = musicianOptions.getRange();
+            var adjustedNote = note.withNote(range.adjustToRangeByOctaves(note.noteNum()));
             logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, musicianOptions.getChannel());
             controller.playNote(musicianOptions.getChannel(), adjustedNote);
         }
@@ -227,22 +224,33 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @return the lowest note that this musician can play
      */
-    public int getRangeLow() { return rangeLow; }
+    public int getRangeLow() { return musicianOptions.getRange().low(); }
 
     /**
      * @param rangeLow the lowest note that this musician can play
      */
-    public void setRangeLow(int rangeLow) { this.rangeLow = Range.check("rangeLow", rangeLow, 0, 127); }
+    public void setRangeLow(int rangeLow) {
+        musicianOptions.setRange(musicianOptions.getRange().withLow(rangeLow));
+    }
 
     /**
      * @return the highest note that this musician can play
      */
-    public int getRangeHi() { return rangeHi; }
+    public int getRangeHi() { return musicianOptions.getRange().high(); }
 
     /**
      * @param rangeHi the lowest note that this musician can play
      */
-    public void setRangeHi(int rangeHi) { this.rangeHi = Range.check("rangeHi", rangeHi, 0, 127); }
+    public void setRangeHi(int rangeHi) {
+        musicianOptions.setRange(musicianOptions.getRange().withHigh(rangeHi));
+    }
+    
+    /**
+     * @return this {@link Musician}'s range
+     */
+    public NoteRange getRange() {
+        return musicianOptions.getRange();
+    }
 
     /**
      * @return the key that this musician plays in
@@ -255,8 +263,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void setKey(Key key) {
         if (key == null)
             return;
-        this.rangeLow = key.lowestNote();
-        this.rangeHi = key.highestNote();
         musicianOptions.setKeyName(key.getName());
     }
 
@@ -313,15 +319,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     @Override
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         propertyChange.addPropertyChangeListener(listener);
-    }
-
-    /**
-     * @param noteNum note to check
-     * @return a number from 0.0 to 1.0, based on where the given noteNum falls in
-     *         relation to this {@link Musician}'s range
-     */
-    public float noteToRange(int noteNum) {
-        return Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()).noteToRange(noteNum);
     }
 
     /**

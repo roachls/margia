@@ -3,7 +3,7 @@ package org.roach.margia.storage;
 import java.awt.geom.Point2D;
 
 import org.roach.margia.ui.MusicianComponent;
-import org.roach.margia.util.Range;
+import org.roach.margia.util.RangeCheck;
 
 /**
  * UI Options for {@link MusicianComponent}s
@@ -37,7 +37,7 @@ public class MusicianComponentOptions {
     /**
      * @param mass the mass to set
      */
-    public void setMass(double mass) { this.mass = Range.check("mass", mass, 0.1, 100.0); }
+    public void setMass(double mass) { this.mass = RangeCheck.check("mass", mass, 0.1, 100.0); }
 
     @Override
     public String toString() {
