@@ -209,6 +209,14 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                         paramComps[row].add(label);
                         paramComps[row].add(comp);
                         row++;
+                    } else if (Boolean.class.equals(ruleParam.type())) {
+                        var comp = new JCheckBox(ruleParam.displayName());
+                        comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptions().get(ruleParam.propertyName()));
+                        comp.addChangeListener(
+                                _ -> ruleOpts.setRuleSpecificOption(ruleParam.propertyName(), comp.isSelected()));
+                        paramComps[row].add(Box.createHorizontalStrut(1));
+                        paramComps[row].add(comp);
+                        row++;
                     }
                 }
                 ruleParamsPanel.revalidate();

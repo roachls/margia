@@ -7,6 +7,8 @@ import java.util.prefs.BackingStoreException;
 
 import javax.swing.event.ChangeListener;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.roach.margia.*;
 import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -21,6 +23,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 @SuppressWarnings({ "java:S3008", "java:S6548" })
 public class Options {
     private static final String SAVE_DIR_PROPERTY = "saveDir";
+    private static final Logger LOGGER = LogManager.getLogger(Options.class);
+
     /**
      * Property fired to notify listeners that something has changed
      */
@@ -35,8 +39,7 @@ public class Options {
     private Options() {
         this.emitter = new ChangeEmitter();
         this.storedOptions = new StoredOptions();
-        this.saveDir = Path
-                .of(Persistence.getInstance().getString(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
+        this.saveDir = Path.of(Persistence.getInstance().getString(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
     }
 
     /**
@@ -75,8 +78,7 @@ public class Options {
         try {
             loadedOpts = mapper.readValue(is, StoredOptions.class);
         } catch (MismatchedInputException e) {
-            System.err.println("Parameter file was empty or malformed");
-            e.printStackTrace();
+            LOGGER.atError().withThrowable(e).log("Parameter file was empty or malformed");
             return;
         }
         if (loadedOpts != null) {
@@ -94,7 +96,7 @@ public class Options {
      * @return true if any property has changed since the last save/load
      */
     public boolean isDirty() { return dirty; }
-    
+
     void setDirty() {
         this.dirty = true;
         emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
