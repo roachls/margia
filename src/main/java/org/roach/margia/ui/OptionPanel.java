@@ -199,8 +199,8 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                     if (Number.class.isAssignableFrom(ruleParam.type())) {
                         @SuppressWarnings("unchecked")
                         var comp = createSpinner(ruleParam.propertyName(),
-                                ((Number) ruleOpts.getRuleSpecificOptions().get(ruleParam.propertyName()))
-                                        .doubleValue(),
+                                ((Number) ruleOpts.getRuleSpecificOptions().getOrDefault(ruleParam.propertyName(),
+                                        ruleParam.minValue())).doubleValue(),
                                 ruleParam.minValue(), ruleParam.maxValue(), ruleParam.step(),
                                 (Class<? extends Number>) ruleParam.type());
                         comp.addChangeListener(

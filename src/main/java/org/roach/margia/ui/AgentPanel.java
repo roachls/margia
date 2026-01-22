@@ -7,6 +7,7 @@ import java.beans.PropertyVetoException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -16,8 +17,7 @@ import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Musician;
 import org.roach.margia.MusicianList;
-import org.roach.margia.rules.AbstractMusicianRule;
-import org.roach.margia.rules.RandomRule;
+import org.roach.margia.rules.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -668,5 +668,69 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.musicianComponents.clear();
         this.edges.clear();
         this.numMusicians = 0;
+    }
+
+    void addCircle(int numToAdd) {
+        if (numToAdd < 3)
+            return;
+        var list = IntStream.range(0, numToAdd).mapToObj(_ -> Musician.newInstance()).toList();
+        list.forEach(m -> {
+            m.setRule(new StateBasedRule());
+            MusicianList.getInstance().addMusician(m);
+        });
+        for (int i = 0; i < list.size() - 1; i++) {
+            list.get(i).addPeer(list.get(i + 1));
+        }
+        list.get(list.size() - 1).addPeer(list.get(0));
+        var components = list.stream().map(this::addMusicianComponent).toList();
+        createEdges(components);
+    }
+
+    private void createEdges(List<MusicianComponent> components) {
+        for (var component : components) {
+            for (var peerId : component.getMusician().peerIds()) {
+                var edge = new Edge(component, musicianComponents.get(peerId),
+                        Options.getInstance().getUiOptions().getEdgeLength());
+                edges.add(edge);
+            }
+        }
+    }
+
+    void addGrid(int numRows, int numCols) {
+        if (numRows <= 0 || numCols <= 0)
+            return;
+        var list = new ArrayList<Musician>();
+        var arr = new Musician[numRows][numCols];
+        for (var y = 0; y < numRows; y++) {
+            for (var x = 0; x < numCols; x++) {
+                arr[y][x] = Musician.newInstance();
+                MusicianList.getInstance().addMusician(arr[y][x]);
+                arr[y][x].setRule(new StateBasedRule());
+                list.add(arr[y][x]);
+            }
+        }
+        // make connections
+        for (var y = 0; y < numRows; y++) {
+            for (var x = 0; x < numCols; x++) {
+                if (y < numRows - 1) {
+                    arr[y][x].addPeer(arr[y + 1][x]);
+                    arr[y + 1][x].addPeer(arr[y][x]);
+                }
+                if (y > 0) {
+                    arr[y][x].addPeer(arr[y - 1][x]);
+                    arr[y - 1][x].addPeer(arr[y][x]);
+                }
+                if (x < numCols - 1) {
+                    arr[y][x].addPeer(arr[y][x + 1]);
+                    arr[y][x + 1].addPeer(arr[y][x]);
+                }
+                if (x > 0) {
+                    arr[y][x].addPeer(arr[y][x - 1]);
+                    arr[y][x - 1].addPeer(arr[y][x]);
+                }
+            }
+        }
+        var components = list.stream().map(this::addMusicianComponent).toList();
+        createEdges(components);
     }
 }

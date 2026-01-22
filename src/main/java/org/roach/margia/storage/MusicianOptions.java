@@ -13,11 +13,11 @@ public class MusicianOptions {
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
     private boolean muted;
-    private boolean listening;
+    private boolean listening = true;
     private int id;
     private final RuleOptions ruleOptions = new RuleOptions();
     private String keyName = Key.Chromatic.getName();
-    private NoteRange range = new NoteRange(0, 127);
+    private NoteRange range = new NoteRange(48, 92);
 
     /**
      * @return the channel

@@ -275,6 +275,19 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var deselectAll = new JButton(getMenuIcon(DESELECT_ALL));
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
 
+        // shapes
+        var addCircle = new JButton("circle");
+        addCircle.addActionListener(_ -> {
+            var numToAdd = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of musicians to add (>= 3)?"));
+            agentPanel.addCircle(numToAdd);
+        });
+        var addGrid = new JButton("grid");
+        addGrid.addActionListener(_ -> {
+            var numRows = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of rows (>= 1)?"));
+            var numCols = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of columns (>= 1)?"));
+            agentPanel.addGrid(numRows, numCols);
+        });
+
         toolbar.add(selectAll);
         toolbar.add(deselectAll);
         toolbar.addSeparator();
@@ -293,6 +306,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.add(connectSelected);
         toolbar.add(disconnectSelected);
         setupModesToolbar(toolbar);
+        toolbar.addSeparator();
+        toolbar.add(addCircle);
+        toolbar.add(addGrid);
         return toolbar;
     }
 
