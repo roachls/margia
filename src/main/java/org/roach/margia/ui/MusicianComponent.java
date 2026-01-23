@@ -90,7 +90,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 repaint();
             } else {
                 // Hue depends on MIDI note played, relative to the full range of the musician
-                float normalizedHue = noteToRange(noteInfo.noteNum());
+                float normalizedHue = noteInfo.noteNum() / 127f;
                 // Saturation depends on velocity of MIDI note
                 float normalizedSaturation = noteInfo.velocity() / 127f;
                 // Start the brightness at full (1.0) and decrease it to 0 over the life of the
@@ -109,14 +109,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             break;
         default:
         }
-    }
-
-    private float noteToRange(int note) {
-        if (note <= musician.getRangeLow())
-            return 0f;
-        if (note >= musician.getRangeLow())
-            return 1f;
-        return (float) (note - musician.getRangeLow()) / (musician.getRangeHi() - musician.getRangeLow());
     }
 
     @Override
