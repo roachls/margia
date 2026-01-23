@@ -132,17 +132,25 @@ public class MidiController implements ChangeListener {
             var ai = new AtomicInteger(i);
             if (chordsToPlayNext.containsKey(i)) {
                 var chordList = chordsToPlayNext.get(i);
+                // schedule all NOTE_ONs immediately
+                executor.schedule(() -> {
+                    for (var chord : chordList) {
+                        for (var noteInfo : chord.getNotes()) {
+                            play(ai.get(), noteInfo, NOTE_ON, chord.getVelocity());
+                        }
+                    }
+                }, 0L, TimeUnit.MILLISECONDS);
+                // schedule all NOTE_OFFs
                 for (var chord : chordList) {
                     // stop note at 95% length
                     var noteLengthInMillis = (int) (Length
                             .getMillisForTempo(chord.getLength(), Options.getInstance().getMusicOptions().getTempo())
                             .getValue().doubleValue() * 0.95);
-                    for (var noteInfo : chord.getNotes()) {
-                        executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON, chord.getVelocity()), 0L,
-                                TimeUnit.MILLISECONDS);
-                        executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF, chord.getVelocity()),
-                                noteLengthInMillis, TimeUnit.MILLISECONDS);
-                    }
+                    executor.schedule(() -> {
+                        for (var noteInfo : chord.getNotes()) {
+                            play(ai.get(), noteInfo, NOTE_OFF, chord.getVelocity());
+                        }
+                    }, noteLengthInMillis, TimeUnit.MILLISECONDS);
                 }
             }
         }
