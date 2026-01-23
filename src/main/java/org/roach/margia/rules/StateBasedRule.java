@@ -7,9 +7,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.*;
+import org.roach.margia.Chord;
+import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
-import org.roach.margia.random.DieRoller;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.RuleOptions;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -74,42 +74,42 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         switch (state) {
         case DIRECT_REPEAT:
             logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayNote(musician, chord));
+            actionsToTake.add(new PlayChord(musician, chord));
             break;
         case UP_FOURTH: {
             if (!Musician.REST.equals(chord)) { // note a rest
-                actionsToTake.add(new PlayNoteUpInterval(musician, chord, 5));
+                actionsToTake.add(new PlayChordUpInterval(musician, chord, 5));
             } else {
-                actionsToTake.add(new PlayNote(musician, chord));
+                actionsToTake.add(new PlayChord(musician, chord));
             }
             break;
         }
         case DOWN_FOURTH: {
             if (!Musician.REST.equals(chord)) { // not a rest
-                actionsToTake.add(new PlayNoteDownInterval(musician, chord, 5));
+                actionsToTake.add(new PlayChordDownInterval(musician, chord, 5));
             } else {
-                actionsToTake.add(new PlayNote(musician, chord));
+                actionsToTake.add(new PlayChord(musician, chord));
             }
             break;
         }
         case HALF_SPEED: {
             logger.atDebug().log("{} ({}): playing note half length {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayNoteHalfLength(musician, chord));
+            actionsToTake.add(new PlayChordHalfLength(musician, chord));
             break;
         }
         case DOUBLE_SPEED: {
             logger.atDebug().log("{} ({}): playing note double length {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayNoteTwiceLength(musician, chord));
+            actionsToTake.add(new PlayChordTwiceLength(musician, chord));
             break;
         }
         case INCREASE_VELOCITY: {
             logger.atDebug().log("{} ({}): playing note with increased velocity {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayNoteUpVelocity(musician, chord, 15));
+            actionsToTake.add(new PlayChordUpVelocity(musician, chord, 15));
             break;
         }
         case DECREASE_VELOCITY: {
             logger.atDebug().log("{} ({}): playing note with decreased velocity {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayNoteDownVelocity(musician, chord, 15));
+            actionsToTake.add(new PlayChordDownVelocity(musician, chord, 15));
             break;
         }
         default:
@@ -119,14 +119,13 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         if (sequenceCountdown <= 0) {
             var newState = switch (state) {
             case DIRECT_REPEAT -> {
-                var rand = DieRoller.rollDice("1d30");
-//                var rand = tick + musician.getId();
-//                if (lastChord != null) {
-//                    for (var lastNote : lastChord.getNotes()) {
-//                        rand += lastNote;
-//                    }
-//                }
-//                rand %= 30;
+                var rand = tick + musician.getId();
+                if (lastChord != null) {
+                    for (var lastNote : lastChord.getNotes()) {
+                        rand += lastNote;
+                    }
+                }
+                rand %= 30;
                 logger.atDebug().log("{}: 'random' number: {}", musician.getId(), rand);
                 if (rand >= 1 && rand <= 3)
                     yield UP_FOURTH;

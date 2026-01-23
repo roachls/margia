@@ -11,7 +11,7 @@ import org.roach.margia.Musician;
  * @param chord    the chord
  * 
  */
-public record SetLastNote(Musician musician, Chord chord) implements MusicalAction {
+public record SetLastChord(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {

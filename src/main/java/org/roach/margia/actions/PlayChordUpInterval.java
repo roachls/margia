@@ -5,13 +5,13 @@ import org.roach.margia.*;
 /**
  * Command to play the given chord up the given interval
  * 
- * @param musician {@link Musician} that will play the note
+ * @param musician {@link Musician} that will play the chord
  * @param chord    chord to transform
  * @param interval interval by which to go up, relative to the scale. An
  *                 interval of 1 means no change. An interval of 2 is a "second"
  *                 away as determined by the key.
  */
-public record PlayNoteUpInterval(Musician musician, Chord chord, int interval) implements MusicalAction {
+public record PlayChordUpInterval(Musician musician, Chord chord, int interval) implements MusicalAction {
 
     @Override
     public void perform() {

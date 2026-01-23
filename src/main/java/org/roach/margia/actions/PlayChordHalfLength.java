@@ -10,11 +10,11 @@ import org.roach.margia.Musician;
  * @param musician the musician
  * @param chord    the chord to play
  */
-public record PlayNoteHalfLength(Musician musician, Chord chord) implements MusicalAction {
+public record PlayChordHalfLength(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.playChord(chord.withLength(Math.min(1, chord.getLength() / 2)));
+        musician.playChord(chord.withLength(Math.max(1, chord.getLength() / 2)));
     }
 
 }

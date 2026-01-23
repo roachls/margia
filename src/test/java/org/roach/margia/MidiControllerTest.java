@@ -1,6 +1,6 @@
 package org.roach.margia;
 
-import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,7 +21,7 @@ class MidiControllerTest {
         controller.setMidiDevice(false);
         for (var note = 48; note < 84; note++) {
             logger.atInfo().log("Playing {}", note);
-            var chord = new Chord(List.of(note, note + 4, note + 7), 1, 70);
+            var chord = new Chord(Set.of(note, note + 4, note + 7), 1, 70);
             controller.playChord(0, chord);
             controller.playChordsThisTick();
             Thread.sleep(250);

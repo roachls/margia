@@ -48,7 +48,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * a rest of 1 tick
      */
-    public static final Chord REST = new Chord(Collections.emptyList(), 1, 0);
+    public static final Chord REST = new Chord(Collections.emptySet(), 1, 0);
     /**
      * {@link AtomicInteger} that is used to generate the ID of the next musician
      */
@@ -105,8 +105,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             } else {
                 var range = musicianOptions.getRange();
                 var adjustedNote = range.adjustToRangeByOctaves(note);
-                logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote,
-                        musicianOptions.getChannel());
+                logger.atDebug().log("{}: playing note {} on channel {}, duration {}", id, adjustedNote,
+                        musicianOptions.getChannel(), chord.getLength());
                 adjustedNotes.add(adjustedNote);
             }
         }
@@ -228,7 +228,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @return the number of notes I've played since the last reset
      */
-    public int getNotesIvePlayed() { return chordsIvePlayed; }
+    public int getChordsIvePlayed() { return chordsIvePlayed; }
 
     /**
      * @return the lowest note that this musician can play
@@ -298,6 +298,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * Rest for one 16th
      */
+    @SuppressWarnings("java:S1845")
     public void rest() {
         playChord(REST);
     }

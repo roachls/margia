@@ -90,7 +90,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 this.color = Color.black;
                 repaint();
             } else {
-                // Hue depends on MIDI note played, relative to the full range of the musician
+                // Hue depends on average MIDI note played (over the who chord), relative to the
+                // full range of the musician
                 float normalizedHue = chord.averageNote() / 127.0f;
                 // Saturation depends on velocity of MIDI note
                 float normalizedSaturation = chord.getVelocity() / 127f;

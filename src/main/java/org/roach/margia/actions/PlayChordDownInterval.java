@@ -11,7 +11,7 @@ import org.roach.margia.*;
  *                 interval of 1 means no change. An interval of 2 is a "second"
  *                 away as determined by the key.
  */
-public record PlayNoteDownInterval(Musician musician, Chord chord, int interval) implements MusicalAction {
+public record PlayChordDownInterval(Musician musician, Chord chord, int interval) implements MusicalAction {
 
     @Override
     public void perform() {

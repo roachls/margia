@@ -210,9 +210,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         // 2. Calculate repulsive forces between ALL pairs of nodes (O(N^2))
         for (var n1 : musicianComponents.values()) {
-            for (var n2 : musicianComponents.values()) {
-                if (n1.equals(n2))
-                    continue;
+            for (var n2 : musicianComponents.values().stream().filter(n -> !n.equals(n1)).toList()) {
                 var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
                 double distance = n1.getPosition().distance(n2.getPosition());
                 if (distance == 0) // prevent division by 0

@@ -14,15 +14,15 @@ public class RandomRule extends AbstractMusicianRule {
 
     @Override
     public void calculateAction(long tick) {
-        if (musician.getNotesIvePlayed() >= 5) {
+        if (musician.getChordsIvePlayed() >= 5) {
             logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
             actionsToTake.add(new RestOneTick(musician));
-            actionsToTake.add(new ResetPlayedNotes(musician));
+            actionsToTake.add(new ResetPlayedChords(musician));
             return;
         }
         if (musician.getQueueSize() == 0) {
             logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomNote(musician, 17, 15));
+            actionsToTake.add(new PlayPseudoRandomChord(musician, 17, 15, "1d3"));
             return;
         }
 

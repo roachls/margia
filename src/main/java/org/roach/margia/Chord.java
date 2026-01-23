@@ -5,71 +5,71 @@ import java.util.stream.Collectors;
 
 import org.roach.margia.messages.MusicianMessage;
 
-public class Chord implements MusicianMessage {
-    private final Set<Integer> notes = new HashSet<>();
-    private final int length;
-    private final int velocity;
+/**
+ * @param notes    notes in the chord
+ * @param length   length to play the chord (in ticks)
+ * @param velocity velocity to play the chord
+ * 
+ */
+public record Chord(Set<Integer> notes, int length, int velocity) implements MusicianMessage {
 
-    public Chord(Collection<Integer> notes, int length, int velocity) {
-        this.length = length;
-        for (var note : notes) {
-            if (note < -1)
-                this.notes.add(-1);
-            else if (note > 127)
-                this.notes.add(127);
-            else
-                this.notes.add(note);
-        }
-        this.notes.addAll(notes);
-        if (velocity < Musician.MIN_VELOCITY)
-            this.velocity = Musician.MIN_VELOCITY;
-        else if (velocity > Musician.MAX_VELOCITY)
-            this.velocity = Musician.MAX_VELOCITY;
-        else
-            this.velocity = velocity;
+    /**
+     * Sanity-checking of notes
+     */
+    public Chord {
+        if (length < 1)
+            length = 1;
+        notes = notes.stream().map(n -> Math.clamp(n, -1, 127)).collect(Collectors.toSet());
+        velocity = Math.clamp(velocity, Musician.MIN_VELOCITY, Musician.MAX_VELOCITY);
     }
 
+    /**
+     * @return the set of notes in the cord
+     */
     public Set<Integer> getNotes() { return Collections.unmodifiableSet(notes); }
 
+    /**
+     * @return duration to play the chord in ticks
+     */
     public int getLength() { return length; }
 
+    /**
+     * @return velocity to play the chord
+     */
     public int getVelocity() { return velocity; }
 
+    /**
+     * @param newLength new duration in ticks
+     * @return a new {@link Chord} that is a copy of this one but with the new
+     *         length
+     */
     public Chord withLength(int newLength) {
         return new Chord(this.notes, newLength, this.velocity);
     }
 
-    public Chord withNotes(List<Integer> newNotes) {
-        return new Chord(newNotes, this.length, this.velocity);
+    /**
+     * @param newNotes new notes
+     * @return a new {@link Chord} with the given notes but the same velocity and
+     *         length
+     */
+    public Chord withNotes(Collection<Integer> newNotes) {
+        return new Chord(newNotes.stream().collect(Collectors.toSet()), this.length, this.velocity);
     }
 
-    @Override
-    public String toString() {
-        return "Chord [notes=" + notes + ", length=" + length + ", velocity=" + velocity + "]";
-    }
-
+    /**
+     * @param newVelocity new velocity
+     * @return a new {@link Chord} that is a copy of this one but with the given
+     *         velocity
+     */
     public Chord withVelocity(int newVelocity) {
         return new Chord(this.notes, this.length, newVelocity);
     }
 
+    /**
+     * @return the average note in this chord (used by the UI)
+     */
     public float averageNote() {
         return notes.stream().map(Double::valueOf).collect(Collectors.averagingDouble(d -> d)).floatValue();
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(length, notes);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        Chord other = (Chord) obj;
-        return length == other.length && Objects.equals(notes, other.notes);
-    }
 }

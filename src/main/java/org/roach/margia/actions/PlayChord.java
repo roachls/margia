@@ -9,7 +9,7 @@ import org.roach.margia.Musician;
  * @param musician the musician
  * @param chord    the chord to play
  */
-public record PlayNote(Musician musician, Chord chord) implements MusicalAction {
+public record PlayChord(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {

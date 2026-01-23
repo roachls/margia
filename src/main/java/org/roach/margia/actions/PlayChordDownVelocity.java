@@ -12,7 +12,7 @@ import org.roach.margia.Musician;
  * @param chord    the chord to play
  * @param diff     the difference in velocity
  */
-public record PlayNoteDownVelocity(Musician musician, Chord chord, int diff) implements MusicalAction {
+public record PlayChordDownVelocity(Musician musician, Chord chord, int diff) implements MusicalAction {
 
     @Override
     public void perform() {
