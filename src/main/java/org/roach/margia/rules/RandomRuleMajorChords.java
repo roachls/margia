@@ -1,16 +1,19 @@
 package org.roach.margia.rules;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.roach.margia.Chord;
 import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
+import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.ui.ChordFlavor;
 
 /**
  * Random-note generator
  */
-public class RandomRule extends AbstractMusicianRule {
+public class RandomRuleMajorChords extends AbstractMusicianRule {
+    private static final String FLAVOR_PROPERTY = "flavor";
+    private ChordFlavor flavor = ChordFlavor.MAJOR;
 
     @Override
     public void calculateAction(long tick) {
@@ -22,7 +25,7 @@ public class RandomRule extends AbstractMusicianRule {
         }
         if (musician.getQueueSize() == 0) {
             logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomChord(musician, 17, 15, 1));
+            actionsToTake.add(new PlayPseudoRandomChordFlavor(musician, 17, 15, flavor));
             return;
         }
 
@@ -42,7 +45,7 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public String getName() { return "random"; }
+    public String getName() { return "randomFlavor"; }
 
     @Override
     public void reset() {
@@ -50,10 +53,25 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public RandomRule copy() {
-        return new RandomRule();
+    public RandomRuleMajorChords copy() {
+        return new RandomRuleMajorChords();
     }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() { return Collections.emptyList(); }
+    public List<SettableParamDescription<?>> getSettableParameters() {
+        return List.of(
+        // @formatter:off
+            new SettableParamDescription<ChordFlavor>(FLAVOR_PROPERTY, "Chord flavor", ChordFlavor.class, 0d, 100d, 1d)
+            // @formatter:on
+        );
+    }
+
+    @Override
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        super.restoreFromStorage(ruleOptions);
+        var ruleOpts = ruleOptions.getRuleSpecificOptions();
+        if (ruleOpts.containsKey(FLAVOR_PROPERTY))
+            this.flavor = ChordFlavor.valueOf(ruleOptions.getRuleSpecificOptions().get(FLAVOR_PROPERTY).toString());
+
+    }
 }

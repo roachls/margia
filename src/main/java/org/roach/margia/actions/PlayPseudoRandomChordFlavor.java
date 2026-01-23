@@ -1,20 +1,20 @@
 package org.roach.margia.actions;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.HashSet;
 
 import org.roach.margia.Chord;
 import org.roach.margia.Musician;
+import org.roach.margia.ui.ChordFlavor;
 
 /**
  * 
  * @param musician The musician
  * @param spread
  * @param num      number below which a random note will be played.
- * @param numNotes number of notes in chord
+ * @param flavor   the flavor of chord to play
  */
-public record PlayPseudoRandomChord(Musician musician, int spread, int num, int numNotes) implements MusicalAction {
+public record PlayPseudoRandomChordFlavor(Musician musician, int spread, int num, ChordFlavor flavor)
+        implements MusicalAction {
 
     @Override
     public void perform() {
@@ -26,9 +26,12 @@ public record PlayPseudoRandomChord(Musician musician, int spread, int num, int 
         }
         rand %= spread;
         if (rand <= num) {
-            Set<Integer> randomNotes = IntStream.range(0, numNotes).map(_ -> musician.getKey().randomNote())
-                    .mapToObj(Integer::valueOf).sorted().distinct().collect(Collectors.toSet());
-            var chord = new Chord(randomNotes, 1, Musician.START_VELOCITY);
+            var rootNote = musician.getKey().randomNote();
+            var set = new HashSet<Integer>();
+            set.add(rootNote);
+            set.add(rootNote + 4);
+            set.add(rootNote + 7);
+            var chord = new Chord(set, 1, Musician.START_VELOCITY);
             musician.getLogger().atDebug().log("{}: playing {}", musician.getId(), chord);
             musician.playChord(chord);
         } else {
