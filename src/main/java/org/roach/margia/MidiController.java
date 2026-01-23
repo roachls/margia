@@ -2,8 +2,7 @@ package org.roach.margia;
 
 import static javax.sound.midi.ShortMessage.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,8 +36,8 @@ public class MidiController implements ChangeListener {
     private Receiver receiver;
     // one executor per MIDI channel
     private final ScheduledExecutorService executor = Executors
-            .newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
-    private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
+            .newScheduledThreadPool(4, new NamedThreadFactory("controller"));
+    private final Map<Integer, List<NoteInfo>> notesToPlayNext = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
 
@@ -123,7 +122,8 @@ public class MidiController implements ChangeListener {
             return;
         }
 
-        notesToPlayNext.put(midiChannel, note);
+        notesToPlayNext.putIfAbsent(midiChannel, new ArrayList<>());
+        notesToPlayNext.get(midiChannel).add(note);
     }
 
     /**
@@ -133,13 +133,20 @@ public class MidiController implements ChangeListener {
         for (var i = 0; i < 16; i++) {
             var ai = new AtomicInteger(i);
             if (notesToPlayNext.containsKey(i)) {
-                var noteInfo = notesToPlayNext.get(i);
-                // stop note at 95% length
-                var noteLengthInMillis = (int) (Length
-                        .getMillisForTempo(noteInfo.length(), Options.getInstance().getMusicOptions().getTempo())
-                        .getValue().doubleValue() * 0.95);
-                executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON), 0L, TimeUnit.MILLISECONDS);
-                executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis, TimeUnit.MILLISECONDS);
+                var noteInfos = notesToPlayNext.get(i);
+                executor.schedule(() -> {
+                    for (var noteInfo : noteInfos) {
+                        // stop note at 95% length
+                        play(ai.get(), noteInfo, NOTE_ON);
+                    }
+                }, 0L, TimeUnit.MILLISECONDS);
+                for (var noteInfo : noteInfos) {
+                    var noteLengthInMillis = (int) (Length
+                            .getMillisForTempo(noteInfo.length(), Options.getInstance().getMusicOptions().getTempo())
+                            .getValue().doubleValue() * 0.95);
+                    executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis,
+                            TimeUnit.MILLISECONDS);
+                }
             }
         }
         notesToPlayNext.clear();
