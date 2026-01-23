@@ -7,8 +7,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.NoteInfo;
+import org.roach.margia.*;
 import org.roach.margia.actions.*;
+import org.roach.margia.random.DieRoller;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.RuleOptions;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -32,7 +33,7 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     private String state = DIRECT_REPEAT;
     private int tickCountdown;
     private int initialTickDelay;
-    private final BlockingQueue<NoteInfo> delayQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Chord> delayQueue = new LinkedBlockingQueue<>();
 
     @Override
     @SuppressWarnings({ "java:S899", "java:S3776" })
@@ -48,67 +49,67 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
             logger.atDebug().log("{}: tickCountdown={}, returning", musician.getId(), tickCountdown);
             return;
         }
-        var message = musician.getNextNoteHeard();
-        if (message != null && message instanceof NoteInfo heardNote) {
-            delayQueue.offer(heardNote);
+        var message = musician.getNextMessageReceived();
+        if (message != null && message instanceof Chord heardChord) {
+            delayQueue.offer(heardChord);
         } else {
-            delayQueue.offer(REST.apply(1));
+            delayQueue.offer(Musician.REST);
         }
 
-        var note = delayQueue.poll();
+        var chord = delayQueue.poll();
         // never play the same note twice
-        var lastNote = musician.getMyLastNote();
-        if (lastNote != null) {
-            while (lastNote.equals(note)) {
-                note = delayQueue.poll();
+        var lastChord = musician.getMyLastChord();
+        if (lastChord != null) {
+            while (lastChord.equals(chord)) {
+                chord = delayQueue.poll();
             }
         }
         sequenceCountdown--;
-        if (note == null) {
+        if (chord == null) {
             logger.atDebug().log("{}: note heard was null, returning", musician.getId());
             return;
         }
-        tickCountdown = note.length();
+        tickCountdown = chord.getLength();
 
         switch (state) {
         case DIRECT_REPEAT:
-            logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, note);
-            actionsToTake.add(new PlayNote(musician, note));
+            logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, chord);
+            actionsToTake.add(new PlayNote(musician, chord));
             break;
         case UP_FOURTH: {
-            if (note.noteNum() != -1) { // note a rest
-                actionsToTake.add(new PlayNoteUpInterval(musician, note, 5));
+            if (!Musician.REST.equals(chord)) { // note a rest
+                actionsToTake.add(new PlayNoteUpInterval(musician, chord, 5));
             } else {
-                actionsToTake.add(new PlayNote(musician, note));
+                actionsToTake.add(new PlayNote(musician, chord));
             }
             break;
         }
         case DOWN_FOURTH: {
-            if (note.noteNum() != -1) { // not a rest
-                actionsToTake.add(new PlayNoteDownInterval(musician, note, 5));
+            if (!Musician.REST.equals(chord)) { // not a rest
+                actionsToTake.add(new PlayNoteDownInterval(musician, chord, 5));
             } else {
-                actionsToTake.add(new PlayNote(musician, note));
+                actionsToTake.add(new PlayNote(musician, chord));
             }
             break;
         }
         case HALF_SPEED: {
-            logger.atDebug().log("{} ({}): playing note half length {}", musician.getId(), state, note);
-            actionsToTake.add(new PlayNoteHalfLength(musician, note));
+            logger.atDebug().log("{} ({}): playing note half length {}", musician.getId(), state, chord);
+            actionsToTake.add(new PlayNoteHalfLength(musician, chord));
             break;
         }
         case DOUBLE_SPEED: {
-            logger.atDebug().log("{} ({}): playing note double length {}", musician.getId(), state, note);
-            actionsToTake.add(new PlayNoteTwiceLength(musician, note));
+            logger.atDebug().log("{} ({}): playing note double length {}", musician.getId(), state, chord);
+            actionsToTake.add(new PlayNoteTwiceLength(musician, chord));
             break;
         }
         case INCREASE_VELOCITY: {
-            logger.atDebug().log("{} ({}): playing note with increased velocity {}", musician.getId(), state, note);
-            actionsToTake.add(new PlayNoteUpVelocity(musician, note, 15));
+            logger.atDebug().log("{} ({}): playing note with increased velocity {}", musician.getId(), state, chord);
+            actionsToTake.add(new PlayNoteUpVelocity(musician, chord, 15));
             break;
         }
         case DECREASE_VELOCITY: {
-            logger.atDebug().log("{} ({}): playing note with decreased velocity {}", musician.getId(), state, note);
-            actionsToTake.add(new PlayNoteDownVelocity(musician, note, 15));
+            logger.atDebug().log("{} ({}): playing note with decreased velocity {}", musician.getId(), state, chord);
+            actionsToTake.add(new PlayNoteDownVelocity(musician, chord, 15));
             break;
         }
         default:
@@ -118,11 +119,14 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         if (sequenceCountdown <= 0) {
             var newState = switch (state) {
             case DIRECT_REPEAT -> {
-                var rand = tick + musician.getId();
-                if (lastNote != null) {
-                    rand += lastNote.noteNum();
-                }
-                rand %= 30;
+                var rand = DieRoller.rollDice("1d30");
+//                var rand = tick + musician.getId();
+//                if (lastChord != null) {
+//                    for (var lastNote : lastChord.getNotes()) {
+//                        rand += lastNote;
+//                    }
+//                }
+//                rand %= 30;
                 logger.atDebug().log("{}: 'random' number: {}", musician.getId(), rand);
                 if (rand >= 1 && rand <= 3)
                     yield UP_FOURTH;

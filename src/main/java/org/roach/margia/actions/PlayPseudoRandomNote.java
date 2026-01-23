@@ -1,7 +1,8 @@
 package org.roach.margia.actions;
 
+import java.util.List;
+
 import org.roach.margia.*;
-import org.roach.margia.rules.AbstractMusicianRule;
 
 /**
  * 
@@ -14,17 +15,19 @@ public record PlayPseudoRandomNote(Musician musician, int spread, int num) imple
     @Override
     public void perform() {
         var rand = musician.getId() + musician.getCurrentTick();
-        if (musician.getMyLastNote() != null) {
-            rand += musician.getMyLastNote().noteNum();
+        if (musician.getMyLastChord() != null) {
+            for (var note : musician.getMyLastChord().getNotes()) {
+                rand += note;
+            }
         }
         rand %= spread;
         if (rand <= num) {
-            var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, 1);
+            var randomNote = musician.getKey().randomNote();
             musician.getLogger().atDebug().log("{}: playing {}", musician.getId(), randomNote);
-            musician.playNote(randomNote);
+            musician.playChord(new Chord(List.of(randomNote), 1, Musician.START_VELOCITY));
         } else {
             musician.getLogger().atDebug().log("{}: playing rest", musician.getId());
-            musician.playNote(AbstractMusicianRule.REST.apply(1));
+            musician.rest();
         }
     }
 

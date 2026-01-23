@@ -1,7 +1,6 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
+import org.roach.margia.*;
 
 /**
  * Command to play the given note down an octave. Note that this is different
@@ -13,14 +12,14 @@ import org.roach.margia.NoteInfo;
  * adjusted back.
  * 
  * @param musician {@link Musician} that will play the note
- * @param note     note to transform
+ * @param chord    chord to transform
  */
-public record PlayNoteDownOctave(Musician musician, NoteInfo note) implements MusicalAction {
+public record PlayNoteDownOctave(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        var newNoteNum = musician.getRange().adjustToRangeByOctaves(note.noteNum() - 12);
-        musician.playNote(note.withNote(newNoteNum));
+        var noteList = chord.getNotes().stream().map(n -> musician.getRange().adjustToRangeByOctaves(n - 12)).toList();
+        musician.playChord(chord.withNotes(noteList));
     }
 
 }

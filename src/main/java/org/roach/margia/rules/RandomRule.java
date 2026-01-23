@@ -3,6 +3,8 @@ package org.roach.margia.rules;
 import java.util.Collections;
 import java.util.List;
 
+import org.roach.margia.Chord;
+import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
 
 /**
@@ -14,27 +16,26 @@ public class RandomRule extends AbstractMusicianRule {
     public void calculateAction(long tick) {
         if (musician.getNotesIvePlayed() >= 5) {
             logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
-            actionsToTake.add(new PlayNote(musician, REST.apply(1)));
+            actionsToTake.add(new RestOneTick(musician));
             actionsToTake.add(new ResetPlayedNotes(musician));
             return;
         }
         if (musician.getQueueSize() == 0) {
             logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomNote(musician, 17, 5));
+            actionsToTake.add(new PlayPseudoRandomNote(musician, 17, 15));
             return;
         }
 
-        var heardNote = musician.getNextNoteHeard();
+        var heardNote = musician.getNextMessageReceived();
         // never play the same note twice
-        var lastNote = musician.getMyLastNote();
+        var lastNote = musician.getMyLastChord();
         if (lastNote != null) {
             while (lastNote.equals(heardNote)) {
-                heardNote = musician.getNextNoteHeard();
+                heardNote = musician.getNextMessageReceived();
             }
         }
-        var note = heardNote; // need a final version for lambdas
-        logger.atDebug().log("{}: heard {}", musician.getId(), note);
-        if (note == null || note.equals(REST.apply(1))) {
+        logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
+        if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
             logger.atDebug().log("{}: heard null or rest, returning");
         }
 

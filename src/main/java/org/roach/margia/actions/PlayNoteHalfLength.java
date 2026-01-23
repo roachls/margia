@@ -1,21 +1,20 @@
 package org.roach.margia.actions;
 
+import org.roach.margia.Chord;
 import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
 
 /**
- * Tell the musician to play the given note, but with half the original length.
+ * Tell the musician to play the given chord, but with half the original length.
  * This will never result in a length less than 1.
  * 
  * @param musician the musician
- * @param note     the note to play
+ * @param chord    the chord to play
  */
-public record PlayNoteHalfLength(Musician musician, NoteInfo note) implements MusicalAction {
+public record PlayNoteHalfLength(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        var newLength = Math.min(note.length() / 2, 1);
-        musician.playNote(note.withLength(newLength));
+        musician.playChord(chord.withLength(Math.min(1, chord.getLength() / 2)));
     }
 
 }

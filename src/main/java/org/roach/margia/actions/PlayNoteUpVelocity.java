@@ -1,7 +1,7 @@
 package org.roach.margia.actions;
 
+import org.roach.margia.Chord;
 import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
 
 /**
  * Tells the {@link Musician} to play the given note, but with <code>diff</code>
@@ -9,14 +9,14 @@ import org.roach.margia.NoteInfo;
  * {@link Musician#MAX_VELOCITY}.
  * 
  * @param musician the musician
- * @param note     the note to play
+ * @param chord    the chord to play
  * @param diff     the difference in velocity
  */
-public record PlayNoteUpVelocity(Musician musician, NoteInfo note, int diff) implements MusicalAction {
+public record PlayNoteUpVelocity(Musician musician, Chord chord, int diff) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.playNote(note.withVelocity(note.velocity() + diff));
+        musician.playChord(chord.withVelocity(chord.getVelocity() + diff));
     }
 
 }

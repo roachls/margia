@@ -1,7 +1,8 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
+import java.util.List;
+
+import org.roach.margia.*;
 import org.roach.margia.random.DieRoller;
 
 /**
@@ -22,9 +23,9 @@ public record PlayRandomNote(Musician musician, String dice, int num) implements
     public void perform() {
         var rand = DieRoller.rollDice(dice);
         if (rand <= num) {
-            var randomNote = new NoteInfo(musician.getKey().randomNote(), Musician.START_VELOCITY, 1);
+            var randomNote = musician.getKey().randomNote();
             musician.getLogger().atDebug().log("{}: playing {}", musician.getId(), randomNote);
-            musician.playNote(randomNote);
+            musician.playChord(new Chord(List.of(randomNote), 1, Musician.START_VELOCITY));
         }
     }
 

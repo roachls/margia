@@ -11,7 +11,7 @@ public record ResetPlayedNotes(Musician musician) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.resetNotesIvePlayed();
+        musician.resetChordsIvePlayed();
     }
 
 }

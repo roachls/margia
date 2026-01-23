@@ -11,7 +11,7 @@ public record RepeatLastNote(Musician musician) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.playNote(musician.getMyLastNote());
+        musician.playChord(musician.getMyLastChord());
     }
 
 }

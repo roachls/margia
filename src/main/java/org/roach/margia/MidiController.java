@@ -38,7 +38,7 @@ public class MidiController implements ChangeListener {
     // one executor per MIDI channel
     private final ScheduledExecutorService executor = Executors
             .newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
-    private final Map<Integer, NoteInfo> notesToPlayNext = new HashMap<>();
+    private final Map<Integer, Chord> chordsToPlayNext = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
 
@@ -110,39 +110,41 @@ public class MidiController implements ChangeListener {
     }
 
     /**
-     * Set the given note to play next on the given MIDI channel
+     * Set the given chord to play next on the given MIDI channel
      * 
      * @param midiChannel MIDI channel to send on
-     * @param note        note to send
+     * @param chord       chord to send
      */
-    public void playNote(int midiChannel, NoteInfo note) {
-        if (note.noteNum() == -1)
-            return;
+    public void playChord(int midiChannel, Chord chord) {
         if (receiver == null) {
             LOGGER.atError().log("MIDI receiver not available");
             return;
         }
 
-        notesToPlayNext.put(midiChannel, note);
+        chordsToPlayNext.put(midiChannel, chord);
     }
 
     /**
      * Actually play notes for this tick to be played
      */
-    public void playNotesThisTick() {
+    public void playChordsThisTick() {
         for (var i = 0; i < 16; i++) {
             var ai = new AtomicInteger(i);
-            if (notesToPlayNext.containsKey(i)) {
-                var noteInfo = notesToPlayNext.get(i);
+            if (chordsToPlayNext.containsKey(i)) {
+                var chord = chordsToPlayNext.get(i);
                 // stop note at 95% length
                 var noteLengthInMillis = (int) (Length
-                        .getMillisForTempo(noteInfo.length(), Options.getInstance().getMusicOptions().getTempo())
+                        .getMillisForTempo(chord.getLength(), Options.getInstance().getMusicOptions().getTempo())
                         .getValue().doubleValue() * 0.95);
-                executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON), 0L, TimeUnit.MILLISECONDS);
-                executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis, TimeUnit.MILLISECONDS);
+                for (var noteInfo : chord.getNotes()) {
+                    executor.schedule(() -> play(ai.get(), noteInfo, NOTE_ON, chord.getVelocity()), 0L,
+                            TimeUnit.MILLISECONDS);
+                    executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF, chord.getVelocity()), noteLengthInMillis,
+                            TimeUnit.MILLISECONDS);
+                }
             }
         }
-        notesToPlayNext.clear();
+        chordsToPlayNext.clear();
     }
 
     /**
@@ -178,16 +180,16 @@ public class MidiController implements ChangeListener {
         }
     }
 
-    private void play(int midiChannel, NoteInfo note, int eventType) {
-        int noteNumber = note.noteNum();
+    private void play(int midiChannel, Integer note, int eventType, int velocity) {
+        if (note == null)
+            return;
         try {
             switch (eventType) {
             case NOTE_ON:
-                receiver.send(new ShortMessage(NOTE_ON, midiChannel, noteNumber, note.velocity()),
-                        System.currentTimeMillis());
+                receiver.send(new ShortMessage(NOTE_ON, midiChannel, note, velocity), System.currentTimeMillis());
                 break;
             case NOTE_OFF:
-                receiver.send(new ShortMessage(NOTE_OFF, midiChannel, noteNumber, 0), System.currentTimeMillis());
+                receiver.send(new ShortMessage(NOTE_OFF, midiChannel, note, 0), System.currentTimeMillis());
 
                 break;
             default:

@@ -1,20 +1,20 @@
 package org.roach.margia.actions;
 
+import org.roach.margia.Chord;
 import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
 
 /**
- * Tells the {@link Musician} that it "heard" the given note, as if a peer
+ * Tells the {@link Musician} that it "heard" the given chord, as if a peer
  * played it
  * 
  * @param musician the {@link Musician}
- * @param note     the note
+ * @param chord    the chord
  */
-public record HearNote(Musician musician, NoteInfo note) implements MusicalAction {
+public record HearNote(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.receiveMessage(note);
+        musician.receiveMessage(chord);
     }
 
 }

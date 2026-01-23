@@ -14,7 +14,8 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.*;
+import org.roach.margia.Chord;
+import org.roach.margia.Musician;
 import org.roach.margia.storage.MusicianComponentOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -81,21 +82,21 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     public void propertyChange(PropertyChangeEvent evt) {
         var brightness = new AtomicReference<Float>(1.0f);
         switch (evt.getPropertyName()) {
-        case Musician.LAST_NOTE_PROPERTY:
-            NoteInfo noteInfo = (NoteInfo) evt.getNewValue();
+        case Musician.LAST_CHORD_PROPERTY:
+            Chord chord = (Chord) evt.getNewValue();
             if (timer != null)
                 timer.stop();
-            if (noteInfo.noteNum() == Note.REST) {
+            if (Musician.REST.equals(chord)) {
                 this.color = Color.black;
                 repaint();
             } else {
                 // Hue depends on MIDI note played, relative to the full range of the musician
-                float normalizedHue = noteToRange(noteInfo.noteNum());
+                float normalizedHue = chord.averageNote() / 127.0f;
                 // Saturation depends on velocity of MIDI note
-                float normalizedSaturation = noteInfo.velocity() / 127f;
+                float normalizedSaturation = chord.getVelocity() / 127f;
                 // Start the brightness at full (1.0) and decrease it to 0 over the life of the
                 // note
-                var noteInfoMillis = tickLengthMillis * noteInfo.length();
+                var noteInfoMillis = tickLengthMillis * chord.getLength();
                 var delayMillis = 1000 / noteInfoMillis;
                 var brightnessOffset = 1.0f / noteInfoMillis;
                 brightness.set(1.0f);
@@ -109,14 +110,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             break;
         default:
         }
-    }
-
-    private float noteToRange(int note) {
-        if (note <= musician.getRangeLow())
-            return 0f;
-        if (note >= musician.getRangeLow())
-            return 1f;
-        return (float) (note - musician.getRangeLow()) / (musician.getRangeHi() - musician.getRangeLow());
     }
 
     @Override

@@ -1,21 +1,21 @@
 package org.roach.margia.actions;
 
+import org.roach.margia.Chord;
 import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
 
 /**
- * Tell the given musician to pretend that the given note is the last note that
- * it played
+ * Tell the given musician to pretend that the given chord is the last chord
+ * that it played
  * 
  * @param musician musician
- * @param note     the note
+ * @param chord    the chord
  * 
  */
-public record SetLastNote(Musician musician, NoteInfo note) implements MusicalAction {
+public record SetLastNote(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        musician.setMyLastNote(note);
+        musician.setMyLastChord(chord);
     }
 
 }

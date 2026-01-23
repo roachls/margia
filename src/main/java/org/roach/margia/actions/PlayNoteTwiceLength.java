@@ -1,21 +1,20 @@
 package org.roach.margia.actions;
 
+import org.roach.margia.Chord;
 import org.roach.margia.Musician;
-import org.roach.margia.NoteInfo;
 
 /**
- * Tell the musician to play the given note, but with twice the original length.
- * There is no upper limit to the length that can be played.
+ * Tell the musician to play the given chord, but with twice the original
+ * length, up to 16 ticks (1 whole note).
  * 
  * @param musician the musician
- * @param note     the note to play
+ * @param chord    the chord to play
  */
-public record PlayNoteTwiceLength(Musician musician, NoteInfo note) implements MusicalAction {
+public record PlayNoteTwiceLength(Musician musician, Chord chord) implements MusicalAction {
 
     @Override
     public void perform() {
-        var newLength = Math.max(note.length() * 2, 16);
-        musician.playNote(note.withLength(newLength));
+        musician.playChord(chord.withLength(Math.max(chord.getLength() * 2, 16)));
     }
 
 }

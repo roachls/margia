@@ -28,7 +28,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * the property to fire when the last note changes
      */
-    public static final String LAST_NOTE_PROPERTY = "lastNote";
+    public static final String LAST_CHORD_PROPERTY = "lastNote";
     /**
      * Minimum velocity a note may be played at
      */
@@ -46,6 +46,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      */
     public static final int MAX_QUEUE_SIZE = 12;
     /**
+     * a rest of 1 tick
+     */
+    public static final Chord REST = new Chord(Collections.emptyList(), 1, 0);
+    /**
      * {@link AtomicInteger} that is used to generate the ID of the next musician
      */
     public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
@@ -54,8 +58,8 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
     private final List<Musician> peers = new ArrayList<>();
     private AbstractMusicianRule rule;
-    private int notesIvePlayed;
-    private NoteInfo myLastNote;
+    private int chordsIvePlayed;
+    private Chord myLastChord;
     private final Logger logger;
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
@@ -84,29 +88,34 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * Repeat the last note that this musician played
      */
     public void repeatLastNote() {
-        if (myLastNote != null)
-            playNote(myLastNote);
+        if (myLastChord != null)
+            playChord(myLastChord);
     }
 
     /**
-     * @param note the note to play
+     * @param chord the {@link Chord} to play
      */
-    public void playNote(NoteInfo note) {
-        if (note == null || note.noteNum() == Note.REST)
-            return;
-        if (musicianOptions.isMuted()) {
-            logger.atDebug().log("{} is muted", id);
-        } else {
-            var range = musicianOptions.getRange();
-            var adjustedNote = note.withNote(range.adjustToRangeByOctaves(note.noteNum()));
-            logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote, musicianOptions.getChannel());
-            controller.playNote(musicianOptions.getChannel(), adjustedNote);
+    public void playChord(Chord chord) {
+        var adjustedNotes = new ArrayList<Integer>();
+        for (var note : chord.getNotes()) {
+            if (note == null || note == Note.REST)
+                return;
+            if (musicianOptions.isMuted()) {
+                logger.atDebug().log("{} is muted", id);
+            } else {
+                var range = musicianOptions.getRange();
+                var adjustedNote = range.adjustToRangeByOctaves(note);
+                logger.atDebug().log("{}: playing note {} on channel {}", id, adjustedNote,
+                        musicianOptions.getChannel());
+                adjustedNotes.add(adjustedNote);
+            }
         }
-        propertyChange.firePropertyChange(LAST_NOTE_PROPERTY, myLastNote, note);
-        myLastNote = note;
-        notesIvePlayed++;
+        controller.playChord(musicianOptions.getChannel(), chord.withNotes(adjustedNotes));
+        propertyChange.firePropertyChange(LAST_CHORD_PROPERTY, myLastChord, chord);
+        myLastChord = chord;
+        chordsIvePlayed++;
         // pass on actual note received, not note played
-        sendMessageToPeers(note);
+        sendMessageToPeers(chord);
     }
 
     /**
@@ -158,12 +167,12 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @param message receive a note and place it on the message queue
      */
     public void receiveMessage(MusicianMessage message) {
-        if (!musicianOptions.isListening() && message instanceof NoteInfo)
+        if (!musicianOptions.isListening() && message instanceof Chord)
             return;
         var offerSuccess = this.messageQueue.offer(message);
         if (offerSuccess) {
-            if (message instanceof NoteInfo heardNote)
-                logger.atDebug().log("{}: heard {}, queue size = {}", id, heardNote, messageQueue.size());
+            if (message instanceof Chord heardChord)
+                logger.atDebug().log("{}: heard {}, queue size = {}", id, heardChord, messageQueue.size());
             else
                 logger.atDebug().log("{}: received message: {}", id, message);
             if (messageQueue.size() > MAX_QUEUE_SIZE) {
@@ -176,15 +185,15 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     }
 
     /**
-     * @param myLastNote the last note that this musician played
+     * @param myLastChord override the last chord that this musician played
      */
-    public void setMyLastNote(NoteInfo myLastNote) { this.myLastNote = myLastNote; }
+    public void setMyLastChord(Chord myLastChord) { this.myLastChord = myLastChord; }
 
     /**
      * reset the number of notes this musician has played
      */
-    public void resetNotesIvePlayed() {
-        this.notesIvePlayed = 0;
+    public void resetChordsIvePlayed() {
+        this.chordsIvePlayed = 0;
     }
 
     /**
@@ -214,12 +223,12 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @return the next note in this musician's queue of heard notes
      */
-    public MusicianMessage getNextNoteHeard() { return messageQueue.poll(); }
+    public MusicianMessage getNextMessageReceived() { return messageQueue.poll(); }
 
     /**
      * @return the number of notes I've played since the last reset
      */
-    public int getNotesIvePlayed() { return notesIvePlayed; }
+    public int getNotesIvePlayed() { return chordsIvePlayed; }
 
     /**
      * @return the lowest note that this musician can play
@@ -244,13 +253,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void setRangeHi(int rangeHi) {
         musicianOptions.setRange(musicianOptions.getRange().withHigh(rangeHi));
     }
-    
+
     /**
      * @return this {@link Musician}'s range
      */
-    public NoteRange getRange() {
-        return musicianOptions.getRange();
-    }
+    public NoteRange getRange() { return musicianOptions.getRange(); }
 
     /**
      * @return the key that this musician plays in
@@ -267,9 +274,9 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     }
 
     /**
-     * @return the last note that this musician played
+     * @return the last chord that this musician played
      */
-    public NoteInfo getMyLastNote() { return myLastNote; }
+    public Chord getMyLastChord() { return myLastChord; }
 
     @Override
     public int hashCode() {
@@ -292,7 +299,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * Rest for one 16th
      */
     public void rest() {
-        controller.playNote(musicianOptions.getChannel(), AbstractMusicianRule.REST.apply(1));
+        playChord(REST);
     }
 
     /**
@@ -380,9 +387,9 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void propertyChange(PropertyChangeEvent evt) {
         if (Transport.RESET_PROPERTY.equals(evt.getPropertyName())) {
             messageQueue.clear();
-            myLastNote = null;
+            myLastChord = null;
             currentTick = 0;
-            notesIvePlayed = 0;
+            chordsIvePlayed = 0;
             musicianOptions.setListening(true);
             rule.reset();
         }

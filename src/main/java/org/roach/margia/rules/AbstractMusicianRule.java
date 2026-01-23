@@ -1,11 +1,11 @@
 package org.roach.margia.rules;
 
-import java.util.*;
-import java.util.function.IntFunction;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.*;
+import org.roach.margia.Musician;
 import org.roach.margia.actions.MusicalAction;
 import org.roach.margia.storage.RuleOptions;
 
@@ -17,10 +17,6 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
     protected Musician musician;
     protected final Logger logger = LogManager.getLogger(getClass());
     protected List<MusicalAction> actionsToTake = new ArrayList<>();
-    /**
-     * Generates a rest of the given length in ticks
-     */
-    public static final IntFunction<NoteInfo> REST = l -> new NoteInfo(Note.REST, 0, l);
 
     /**
      * @param musician the {@link Musician} that this rule applies to
