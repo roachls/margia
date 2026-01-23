@@ -35,8 +35,8 @@ public class MidiController implements ChangeListener {
     private MidiDevice outputDevice;
     private Receiver receiver;
     // one executor per MIDI channel
-    private final ScheduledExecutorService executor = Executors
-            .newSingleThreadScheduledExecutor(new NamedThreadFactory("controller"));
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4,
+            new NamedThreadFactory("controller"));
     private final Map<Integer, List<Chord>> chordsToPlayNext = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
