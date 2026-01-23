@@ -99,7 +99,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
         var adjustedNotes = new ArrayList<Integer>();
         for (var note : chord.getNotes()) {
             if (note == null || note == Note.REST)
-                return;
+                continue;
             if (musicianOptions.isMuted()) {
                 logger.atDebug().log("{} is muted", id);
             } else {

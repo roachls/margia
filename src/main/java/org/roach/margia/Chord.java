@@ -6,11 +6,11 @@ import java.util.stream.Collectors;
 import org.roach.margia.messages.MusicianMessage;
 
 public class Chord implements MusicianMessage {
-    private final List<Integer> notes = new ArrayList<>();
+    private final Set<Integer> notes = new HashSet<>();
     private final int length;
     private final int velocity;
 
-    public Chord(List<Integer> notes, int length, int velocity) {
+    public Chord(Collection<Integer> notes, int length, int velocity) {
         this.length = length;
         for (var note : notes) {
             if (note < -1)
@@ -29,7 +29,7 @@ public class Chord implements MusicianMessage {
             this.velocity = velocity;
     }
 
-    public List<Integer> getNotes() { return Collections.unmodifiableList(notes); }
+    public Set<Integer> getNotes() { return Collections.unmodifiableSet(notes); }
 
     public int getLength() { return length; }
 
