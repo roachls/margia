@@ -111,7 +111,7 @@ public class Transport {
             // each musician perform the action they just calculated
             MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().doAction());
             // controller actually play notes from each musician
-            MidiController.getInstance().playNotesThisTick();
+            MidiController.getInstance().playChordsThisTick();
         }
         if (currentClockPulse % 6 == 0) {
             var oldValue = tick++;

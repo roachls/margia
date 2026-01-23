@@ -1,5 +1,7 @@
 package org.roach.margia;
 
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Disabled;
@@ -14,13 +16,14 @@ class MidiControllerTest {
     @SuppressWarnings({ "java:S2699", "java:S2925" })
     void testPlayNote() throws InterruptedException {
         Options.getInstance().getMusicOptions().setTempo(60);
-        Options.getInstance().getMidiOptions().setUseExternalMidi(true);
+        Options.getInstance().getMidiOptions().setUseExternalMidi(false);
         var controller = MidiController.getInstance();
-        controller.setMidiDevice(true);
-        for (var note : Key.Chromatic.notes()) {
+        controller.setMidiDevice(false);
+        for (var note = 48; note < 84; note++) {
             logger.atInfo().log("Playing {}", note);
-            controller.playNote(0, new NoteInfo(note, 70, 1));
-            controller.playNotesThisTick();
+            var chord = new Chord(Set.of(note, note + 4, note + 7), 1, 70);
+            controller.playChord(0, chord);
+            controller.playChordsThisTick();
             Thread.sleep(250);
         }
         controller.close();

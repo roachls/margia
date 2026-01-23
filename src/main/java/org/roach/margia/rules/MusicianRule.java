@@ -35,6 +35,7 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
     /**
      * @return settable parameter types
      */
+    @SuppressWarnings("java:S1452")
     public abstract List<SettableParamDescription<?>> getSettableParameters();
 
     /**

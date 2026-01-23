@@ -35,9 +35,9 @@ public class MidiController implements ChangeListener {
     private MidiDevice outputDevice;
     private Receiver receiver;
     // one executor per MIDI channel
-    private final ScheduledExecutorService executor = Executors
-            .newScheduledThreadPool(4, new NamedThreadFactory("controller"));
-    private final Map<Integer, List<NoteInfo>> notesToPlayNext = new HashMap<>();
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4,
+            new NamedThreadFactory("controller"));
+    private final Map<Integer, List<Chord>> chordsToPlayNext = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
 
@@ -109,47 +109,52 @@ public class MidiController implements ChangeListener {
     }
 
     /**
-     * Set the given note to play next on the given MIDI channel
+     * Set the given chord to play next on the given MIDI channel
      * 
      * @param midiChannel MIDI channel to send on
-     * @param note        note to send
+     * @param chord       chord to send
      */
-    public void playNote(int midiChannel, NoteInfo note) {
-        if (note.noteNum() == -1)
-            return;
+    public void playChord(int midiChannel, Chord chord) {
         if (receiver == null) {
             LOGGER.atError().log("MIDI receiver not available");
             return;
         }
 
-        notesToPlayNext.putIfAbsent(midiChannel, new ArrayList<>());
-        notesToPlayNext.get(midiChannel).add(note);
+        chordsToPlayNext.putIfAbsent(midiChannel, new ArrayList<>());
+        chordsToPlayNext.get(midiChannel).add(chord);
     }
 
     /**
      * Actually play notes for this tick to be played
      */
-    public void playNotesThisTick() {
+    public void playChordsThisTick() {
         for (var i = 0; i < 16; i++) {
             var ai = new AtomicInteger(i);
-            if (notesToPlayNext.containsKey(i)) {
-                var noteInfos = notesToPlayNext.get(i);
+            if (chordsToPlayNext.containsKey(i)) {
+                var chordList = chordsToPlayNext.get(i);
+                // schedule all NOTE_ONs immediately
                 executor.schedule(() -> {
-                    for (var noteInfo : noteInfos) {
-                        // stop note at 95% length
-                        play(ai.get(), noteInfo, NOTE_ON);
+                    for (var chord : chordList) {
+                        for (var noteInfo : chord.getNotes()) {
+                            play(ai.get(), noteInfo, NOTE_ON, chord.getVelocity());
+                        }
                     }
                 }, 0L, TimeUnit.MILLISECONDS);
-                for (var noteInfo : noteInfos) {
+                // schedule all NOTE_OFFs
+                for (var chord : chordList) {
+                    // stop note at 95% length
                     var noteLengthInMillis = (int) (Length
-                            .getMillisForTempo(noteInfo.length(), Options.getInstance().getMusicOptions().getTempo())
+                            .getMillisForTempo(chord.getLength(), Options.getInstance().getMusicOptions().getTempo())
                             .getValue().doubleValue() * 0.95);
-                    executor.schedule(() -> play(ai.get(), noteInfo, NOTE_OFF), noteLengthInMillis,
-                            TimeUnit.MILLISECONDS);
+                    executor.schedule(() -> {
+                        for (var noteInfo : chord.getNotes()) {
+                            play(ai.get(), noteInfo, NOTE_OFF, chord.getVelocity());
+                        }
+                    }, noteLengthInMillis, TimeUnit.MILLISECONDS);
                 }
             }
         }
-        notesToPlayNext.clear();
+        chordsToPlayNext.clear();
     }
 
     /**
@@ -185,16 +190,16 @@ public class MidiController implements ChangeListener {
         }
     }
 
-    private void play(int midiChannel, NoteInfo note, int eventType) {
-        int noteNumber = note.noteNum();
+    private void play(int midiChannel, Integer note, int eventType, int velocity) {
+        if (note == null)
+            return;
         try {
             switch (eventType) {
             case NOTE_ON:
-                receiver.send(new ShortMessage(NOTE_ON, midiChannel, noteNumber, note.velocity()),
-                        System.currentTimeMillis());
+                receiver.send(new ShortMessage(NOTE_ON, midiChannel, note, velocity), System.currentTimeMillis());
                 break;
             case NOTE_OFF:
-                receiver.send(new ShortMessage(NOTE_OFF, midiChannel, noteNumber, 0), System.currentTimeMillis());
+                receiver.send(new ShortMessage(NOTE_OFF, midiChannel, note, 0), System.currentTimeMillis());
 
                 break;
             default:
