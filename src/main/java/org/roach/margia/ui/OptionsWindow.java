@@ -92,8 +92,7 @@ class OptionsWindow extends JDialog {
         showIcons = new JCheckBox("Show icons");
         showIcons.setToolTipText("Show/hide additional information on musicians");
         showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-        showIcons
-                .addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
+        showIcons.addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
 
         c.gridx = 0;
         c.gridy = 0;
@@ -160,10 +159,16 @@ class OptionsWindow extends JDialog {
         external.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
+        var sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
+        sendMidiTimecode.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
+        sendMidiTimecode.setSelected(Options.getInstance().getMidiOptions().isSendingMidiTimecode());
 
         c.gridx = 0;
         c.gridy = 0;
         midiPanel.add(external, c);
+        c.gridy = 1;
+        midiPanel.add(sendMidiTimecode, c);
         return midiPanel;
     }
 

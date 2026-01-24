@@ -10,6 +10,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
  */
 public class MidiOptions {
     private boolean useExternalMidi;
+    private boolean sendingMidiTimecode;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -36,6 +37,22 @@ public class MidiOptions {
     }
 
     /**
+     * @return the sendingMidiTimecode
+     */
+    public boolean isSendingMidiTimecode() { return sendingMidiTimecode; }
+
+    /**
+     * @param sendingMidiTimecode the sendingMidiTimecode to set
+     */
+    public void setSendingMidiTimecode(boolean sendingMidiTimecode) {
+        var oldControlDawTiming = this.sendingMidiTimecode;
+        this.sendingMidiTimecode = sendingMidiTimecode;
+        if (oldControlDawTiming != this.sendingMidiTimecode) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
      * @param key      name of property being listened for
      * @param listener listener for property
      */
@@ -45,6 +62,6 @@ public class MidiOptions {
 
     @Override
     public String toString() {
-        return "MidiOptions [useExternalMidi=" + useExternalMidi + "]";
+        return "MidiOptions [useExternalMidi=" + useExternalMidi + ", controlDawTiming=" + sendingMidiTimecode + "]";
     }
 }

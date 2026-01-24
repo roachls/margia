@@ -38,7 +38,6 @@ public class Transport {
     private final Logger logger = LogManager.getLogger(getClass());
     private final Map<Long, Runnable> tickActions = new HashMap<>();
     private final int tickLength;
-    private boolean controlDawTiming;
     private int currentClockPulse = 1;
     private int beatNum = 1;
     private int measureNum = 1;
@@ -86,7 +85,7 @@ public class Transport {
      * Start the clock
      */
     public void start() {
-        if (controlDawTiming) {
+        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
             MidiController.getInstance().sendStart();
         }
     }
@@ -96,7 +95,7 @@ public class Transport {
      */
     public void receiveClockPulse() {
         logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
-        if (controlDawTiming) {
+        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
             MidiController.getInstance().sendClockPulse();
         }
         // Once each 16th note (every 6 clock pulses) we kick off musician actions
@@ -135,7 +134,7 @@ public class Transport {
      * Stop the clock
      */
     public void stop() {
-        if (controlDawTiming)
+        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode())
             MidiController.getInstance().sendStop();
     }
 
@@ -148,17 +147,6 @@ public class Transport {
     public void addTickAction(long tickNum, Runnable action) {
         tickActions.put(tickNum, action);
     }
-
-    /**
-     * @return true if set to send MIDI clock pulses
-     */
-    public boolean isControlDawTiming() { return controlDawTiming; }
-
-    /**
-     * @param controlDawTiming set to true to send MIDI clock pulses, 24 each
-     *                         quarter note
-     */
-    public void setControlDawTiming(boolean controlDawTiming) { this.controlDawTiming = controlDawTiming; }
 
     /**
      * Reset measure, beat, current clock pulse, and tick to 1

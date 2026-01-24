@@ -316,8 +316,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
 
-        var showUiOptions = new JMenuItem("UI Options");
-        showUiOptions.setMnemonic(KeyEvent.VK_U);
+        var showUiOptions = new JMenuItem("Options");
+        showUiOptions.setMnemonic(KeyEvent.VK_O);
         showUiOptions.addActionListener(_ -> uiOptionsWindow.setVisible(true));
         viewMenu.add(showUiOptions);
 

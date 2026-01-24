@@ -71,7 +71,6 @@ public class Main {
             Key.reset();
             DieRoller.reset();
         });
-        transport.setControlDawTiming(Options.getInstance().getMidiOptions().isUseExternalMidi());
 
         var timing = new InternalTimingSource(transport);
 

@@ -244,9 +244,10 @@ public class MidiController implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object newVal)
-                && MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
-            instance.setMidiDevice((boolean) newVal);
+        if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
+            if (MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
+                instance.setMidiDevice((boolean) newVal);
+        }
     }
 
 }
