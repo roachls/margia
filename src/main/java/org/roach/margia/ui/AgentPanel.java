@@ -731,4 +731,15 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         var components = list.stream().map(this::addMusicianComponent).toList();
         createEdges(components);
     }
+    
+    void addNMusicians(int n) {
+        if (n < 1)
+            return;
+        var list = new ArrayList<Musician>();
+        for (var i = 0; i < n; i++) {
+            list.add(Musician.newInstance());
+        }
+        var components = list.stream().map(this::addMusicianComponent).toList();
+        createEdges(components);
+    }
 }

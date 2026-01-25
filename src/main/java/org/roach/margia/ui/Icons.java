@@ -21,6 +21,8 @@ public class Icons {
     private static final Map<String, ImageIcon> HUGE_ICONS = new HashMap<>();
     public static final String ABOUT = "about";
     public static final String ADD = "add";
+    public static final String ADD_CIRCLE = "add_circle";
+    public static final String ADD_GRID = "add_grid";
     public static final String CONNECT = "connect";
     public static final String COPY = "copy";
     public static final String DELETE = "delete";
@@ -49,6 +51,8 @@ public class Icons {
     // @formatter:off
             Map.entry(ABOUT, "an circle with the letter i for information"),
             Map.entry(ADD, "an outline of a person with a plus symbol"),
+            Map.entry(ADD_CIRCLE, "eight small circles arranged in a circle and connected by lines"),
+            Map.entry(ADD_GRID, "nine small circles arranged in a three by three grid and connected by lines"),
             Map.entry(CONNECT, "two dots with a line between them"),
             Map.entry(COPY, "a notepad"),
             Map.entry(DELETE, "a large capital X"),
@@ -77,13 +81,13 @@ public class Icons {
     );
 
     static {
-        for (var key : new String[] { ABOUT, ADD, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL, HELP, LOCK_ALL, LOCK,
-                MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT, UNLOCK,
+        for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
+                HELP, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT, UNLOCK,
                 UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }
-        for (var key : new String[] { PAUSE, START, REWIND}) {
+        for (var key : new String[] { PAUSE, START, REWIND }) {
             HUGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), 25));
         }
     }
@@ -99,7 +103,7 @@ public class Icons {
     public static ImageIcon getToolbarIcon(String name) {
         return SMALL_ICONS.get(name);
     }
-    
+
     public static ImageIcon getButtonIcon(String name) {
         return HUGE_ICONS.get(name);
     }

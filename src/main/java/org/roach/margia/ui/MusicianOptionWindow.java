@@ -1,74 +1,93 @@
 package org.roach.margia.ui;
 
 import java.awt.*;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.VetoableChangeListener;
 import java.util.*;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Key;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.storage.Options;
+import org.roach.margia.storage.Persistence;
 
 /**
  * GUI and musical options
  */
 @SuppressWarnings({ "java:S1948" })
-public class OptionPanel extends JPanel implements VetoableChangeListener {
+public class MusicianOptionWindow extends JDialog implements VetoableChangeListener {
+    static final String MUSICIAN_OPTION_WINDOW_NAME = "MusicianOptionPanel";
     private JComboBox<String> rule;
-    private JPanel ruleParamsPanel;
     private final JPanel[] paramComps = new JPanel[5];
     private JComboBox<String> key;
     private JSpinner rangeLow;
     private JSpinner rangeHi;
     private JSpinner channel;
     private JSpinner mass;
-    private TitledBorder musicianPanelBorder;
-    private JPanel musPanel;
+    
+    private JPanel ruleOptsPanel;
     private HashMap<String, MusicianRule> availableRules;
 
     /**
      * constructor
      */
-    public OptionPanel() {
-        this.setLayout(new GridBagLayout());
-        var constraints = new GridBagConstraints();
-        constraints.fill = GridBagConstraints.HORIZONTAL;
-        constraints.weightx = 0.0;
-        constraints.weighty = 0.0;
-        constraints.anchor = GridBagConstraints.NORTH;
-        constraints.insets = new Insets(5, 5, 5, 5);
-        constraints.gridx = 0;
+    MusicianOptionWindow() {
+        super((JFrame) null, "Musician Options");
+        setName(MUSICIAN_OPTION_WINDOW_NAME);
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                if (isVisible()) {
+                    var loc = getLocationOnScreen();
+                    Persistence.getInstance().saveProperty(MUSICIAN_OPTION_WINDOW_NAME + "_x", Integer.toString(loc.x));
+                    Persistence.getInstance().saveProperty(MUSICIAN_OPTION_WINDOW_NAME + "_y", Integer.toString(loc.y));
+                    Persistence.getInstance().saveProperty(MUSICIAN_OPTION_WINDOW_NAME + "_width",
+                            Integer.toString(getBounds().width));
+                    Persistence.getInstance().saveProperty(MUSICIAN_OPTION_WINDOW_NAME + "_height",
+                            Integer.toString(getBounds().height));
+                }
+            }
+        });
 
-        var row = 0;
-        constraints.gridy = row++;
-        musPanel = createMusicianPanel();
-        add(musPanel, constraints);
-        constraints.gridy = row++;
-        createRuleParamPanel();
-        add(ruleParamsPanel, constraints);
+        var x = Persistence.getInstance().getInt(MUSICIAN_OPTION_WINDOW_NAME + "_x", 100);
+        var y = Persistence.getInstance().getInt(MUSICIAN_OPTION_WINDOW_NAME + "_y", 100);
+        var w = Persistence.getInstance().getInt(MUSICIAN_OPTION_WINDOW_NAME + "_width", 100);
+        var h = Persistence.getInstance().getInt(MUSICIAN_OPTION_WINDOW_NAME + "_height", 100);
+        this.setLocation(x, y);
+        this.setSize(w, h);
+        setVisible(Persistence.getInstance().getBoolean(MUSICIAN_OPTION_WINDOW_NAME + "_visible", false));
 
-        // Add a "filler" component to absorb extra vertical space
-        // This pushes all previous components to the top of the container
-        constraints.gridy = row;
-        constraints.weighty = 1.0; // Give all extra vertical space to this row
-        constraints.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-        add(Box.createVerticalGlue(), constraints);
+        createUi();
     }
 
-    private static JSpinner addSpinner(JPanel panel, String propertyName, Double defValue, Double min, Double max,
-            Double step, Class<? extends Number> type) {
+    private void createUi() {
+        JPanel musicianUiPanel;
+        JPanel musicalOptsPanel;
+        var tabPane = new JTabbedPane();
+        setPreferredSize(new Dimension(350, 300));
+        setAlwaysOnTop(true);
+        setLayout(new BorderLayout());
+        add(tabPane, BorderLayout.CENTER);
 
-        var spinner = createSpinner(propertyName, defValue, min, max, step, type);
-        var spinnerLabel = createLabelFor(propertyName, spinner);
-        panel.add(spinnerLabel);
-        panel.add(spinner);
-        return spinner;
+        musicianUiPanel = createMusicianUiPanel();
+        tabPane.addTab("UI Options", musicianUiPanel);
+        musicalOptsPanel = createMusicalOptionsPanel();
+        tabPane.addTab("Musical Options", musicalOptsPanel);
+        ruleOptsPanel = createRuleParamPanel();
+        tabPane.addTab("Rule Options", ruleOptsPanel);
+
+        pack();
+    }
+
+    @Override
+    public void setVisible(boolean b) {
+        super.setVisible(b);
+        Persistence.getInstance().saveProperty(MUSICIAN_OPTION_WINDOW_NAME + "_visible",
+                Boolean.toString(this.isVisible()));
     }
 
     private static JLabel createLabelFor(String propertyName, JSpinner spinner) {
@@ -92,26 +111,38 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         return spinner;
     }
 
-    private JPanel createMusicianPanel() {
+    private JPanel createMusicianUiPanel() {
         var panel = new JPanel();
-        musicianPanelBorder = BorderFactory.createTitledBorder(BorderFactory.createLoweredBevelBorder(),
-                "Musician options");
-        panel.setBorder(musicianPanelBorder);
-        panel.setLayout(new GridLayout(0, 2, 3, 5));
+        panel.setLayout(new GridBagLayout());
+        var c = new GridBagConstraints();
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 0.0;
+        c.weighty = 0.0;
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.insets = new Insets(5, 5, 5, 5);
+        
+        mass = createSpinner("Mass", 1d, 0.1d, 100d, 0.1d, Double.class);
+        var massLabel = createLabelFor("Mass", mass);
+        var row = 0;
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(massLabel, c);
+        c.gridx = 1;
+        panel.add(mass, c);
 
-        availableRules = new HashMap<>();
-        var ruleNames = new ArrayList<String>();
-        ServiceLoader.load(MusicianRule.class).forEach(r -> {
-            availableRules.put(r.getName(), r);
-            ruleNames.add(r.getName());
-        });
-        var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
-        ruleModel.setSelectedItem("");
-        rule = new JComboBox<>(ruleModel);
-        var ruleLabel = new JLabel("Rule");
-        ruleLabel.setLabelFor(rule);
-        panel.add(ruleLabel);
-        panel.add(rule);
+        // Add a "filler" component to absorb extra vertical space
+        // This pushes all previous components to the top of the container
+        c.gridy = row++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        panel.add(Box.createVerticalGlue(), c);
+
+        return panel;
+    }
+
+    private JPanel createMusicalOptionsPanel() {
+        var panel = new JPanel();
+        panel.setLayout(new GridLayout(0, 2, 3, 5));
 
         var keyList = new ArrayList<String>();
         keyList.add("");
@@ -124,24 +155,94 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         panel.add(keyLabel);
         panel.add(key);
 
-        rangeLow = addSpinner(panel, "Low note", 0d, 0d, 127d, 1d, Integer.class);
-        rangeHi = addSpinner(panel, "High note", 127d, 0d, 127d, 1d, Integer.class);
-        channel = addSpinner(panel, "MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
-        mass = addSpinner(panel, "Mass", 1d, 0.1d, 100d, 0.1d, Double.class);
+        rangeLow = createSpinner("Low note", 0d, 0d, 127d, 1d, Integer.class);
+        var rangeLowLabel = createLabelFor("Low note", rangeLow);
+        rangeHi = createSpinner("High note", 127d, 0d, 127d, 1d, Integer.class);
+        var rangeHiLabel = createLabelFor("High note", rangeHi);
+        channel = createSpinner("MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
+        var channelLabel = createLabelFor("MIDI Channel", channel);
 
+        var c = new GridBagConstraints();
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 0.0;
+        c.weighty = 0.0;
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.insets = new Insets(5, 5, 5, 5);
+        
+        var row = 0;
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(rangeLowLabel, c);
+        c.gridx = 1;
+        panel.add(rangeLow, c);
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(rangeHiLabel, c);
+        c.gridx = 1;
+        panel.add(rangeHi, c);
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(channelLabel, c);
+        c.gridx = 1;
+        panel.add(channel, c);
+        
+        // Add a "filler" component to absorb extra vertical space
+        // This pushes all previous components to the top of the container
+        c.gridy = row++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        panel.add(Box.createVerticalGlue(), c);
         return panel;
     }
 
-    private void createRuleParamPanel() {
+    private JPanel createRuleParamPanel() {
         // add JPanel for rule params
-        ruleParamsPanel = new JPanel();
+        var panel = new JPanel();
         var ruleParamsBorder = BorderFactory.createTitledBorder("Rule-specific params");
-        ruleParamsPanel.setBorder(ruleParamsBorder);
-        ruleParamsPanel.setLayout(new GridLayout(5, 2, 3, 5));
+        panel.setBorder(ruleParamsBorder);
+        panel.setLayout(new GridBagLayout());
+        availableRules = new HashMap<>();
+        var ruleNames = new ArrayList<String>();
+        ServiceLoader.load(MusicianRule.class).forEach(r -> {
+            availableRules.put(r.getName(), r);
+            ruleNames.add(r.getName());
+        });
+        var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
+        ruleModel.setSelectedItem("");
+        rule = new JComboBox<>(ruleModel);
+        var ruleLabel = new JLabel("Rule");
+        ruleLabel.setLabelFor(rule);
+        
+        var c = new GridBagConstraints();
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 0.0;
+        c.weighty = 0.0;
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.insets = new Insets(5, 5, 5, 5);
+        
+        var row = 0;
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(ruleLabel, c);
+        c.gridx = 1;
+        panel.add(rule, c);
+
+        c.gridx = 0;
+        c.gridy = row++;
+        c.gridwidth = 2;
         for (var i = 0; i < 5; i++) {
             paramComps[i] = new JPanel(new GridLayout(1, 2, 3, 5));
-            ruleParamsPanel.add(paramComps[i]);
+            panel.add(paramComps[i], c);
+            c.gridy = row++;
         }
+        // Add a "filler" component to absorb extra vertical space
+        // This pushes all previous components to the top of the container
+        c.gridx = 0;
+        c.gridy = row++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        panel.add(Box.createVerticalGlue(), c);
+        return panel;
     }
 
     private ActionListener ruleActionListener;
@@ -161,12 +262,12 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
         }
         var sel = (MusicianComponent) evt.getNewValue();
         if (sel == null) {
-            musicianPanelBorder.setTitle("Musician options");
+            setTitle("Musician options");
             resetUiAndListeners();
         } else {
             selectedMusician = sel;
             selectedMusician.setEdited(true);
-            musicianPanelBorder.setTitle("Musician options (" + sel.getMusician().getId() + ")");
+            setTitle("Musician options (" + sel.getMusician().getId() + ")");
             rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
             ruleActionListener = _ -> selectedMusician.getMusician()
                     .setRule((AbstractMusicianRule) availableRules.get(rule.getSelectedItem()));
@@ -219,11 +320,10 @@ public class OptionPanel extends JPanel implements VetoableChangeListener {
                         row++;
                     }
                 }
-                ruleParamsPanel.revalidate();
-                ruleParamsPanel.repaint();
+                ruleOptsPanel.revalidate();
+                ruleOptsPanel.repaint();
             });
         }
-        musPanel.repaint();
     }
 
     private void resetUiAndListeners() {
