@@ -29,6 +29,7 @@ public class Icons {
     public static final String DESELECT_ALL = "deselect_all";
     public static final String DISCONNECT = "disconnect";
     public static final String HELP = "help";
+    public static final String KEYBOARD = "keyboard";
     public static final String LOCK_ALL = "lock_all";
     public static final String LOCK = "lock";
     public static final String MOVE = "move";
@@ -62,6 +63,7 @@ public class Icons {
             Map.entry(HELP, "a question mark"),
             Map.entry(LOCK_ALL, "a closed lock with an 'A'"),
             Map.entry(LOCK, "a closed lock"),
+            Map.entry(KEYBOARD, "a keyboard"),
             Map.entry(MOVE, "a four-way arrow icon"),
             Map.entry(MUTE_ALL, "a speaker that is muted with a small 'A'"),
             Map.entry(MUTE, "a speaker that is muted"),
@@ -84,7 +86,7 @@ public class Icons {
 
     static {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
-                HELP, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT,
+                HELP, KEYBOARD, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT,
                 SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
