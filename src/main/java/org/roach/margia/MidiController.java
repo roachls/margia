@@ -64,12 +64,11 @@ public class MidiController implements ChangeListener {
     }
 
     /**
-     * @param external set to {@code true} to send MIDI externally, {@code false} to
-     *                 use built-in OS
+     * Load/reload midi device from {@link Options#getMidiOptions()}
      */
-    public void setMidiDevice(final boolean external) {
+    public void loadMidiDevice() {
         try {
-            String busName = external ? LOOP_MIDI : DEFAULT_SYNTH;
+            String busName = Options.getInstance().getMidiOptions().isUseExternalMidi() ? LOOP_MIDI : DEFAULT_SYNTH;
             // Get information about all available MIDI devices
             MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
             MidiDevice selectedDevice = null;
@@ -244,9 +243,9 @@ public class MidiController implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
+        if (e.getSource() instanceof ChangeSource(String property, Object _)) {
             if (MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
-                instance.setMidiDevice((boolean) newVal);
+                instance.loadMidiDevice(); // value of property doesn't matter
         }
     }
 

@@ -18,7 +18,7 @@ class MidiControllerTest {
         Options.getInstance().getMusicOptions().setTempo(60);
         Options.getInstance().getMidiOptions().setUseExternalMidi(false);
         var controller = MidiController.getInstance();
-        controller.setMidiDevice(false);
+        controller.loadMidiDevice();
         for (var note = 48; note < 84; note++) {
             logger.atInfo().log("Playing {}", note);
             var chord = new Chord(Set.of(note, note + 4, note + 7), 1, 70);
