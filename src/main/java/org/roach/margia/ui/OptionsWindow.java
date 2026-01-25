@@ -48,7 +48,6 @@ class OptionsWindow extends JDialog {
         var tabPane = new JTabbedPane();
         setPreferredSize(new Dimension(350, 300));
         setAlwaysOnTop(true);
-        setName(OPTIONS_WINDOW_NAME);
         setLayout(new BorderLayout());
 
         add(tabPane, BorderLayout.CENTER);

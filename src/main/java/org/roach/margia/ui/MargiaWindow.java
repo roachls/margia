@@ -38,8 +38,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <a href="https://github.com/roachls/margia">https://github.com/roachls/margia</a>
             </html>
             """;
-    private OptionPanel optionPanel;
-    private OptionsWindow uiOptionsWindow;
+    private MusicianOptionWindow musicianOptionsWindow;
+    private OptionsWindow optionsWindow;
     private AgentPanel agentPanel;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
@@ -59,19 +59,17 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        optionPanel = new OptionPanel();
-        uiOptionsWindow = new OptionsWindow();
+        musicianOptionsWindow = new MusicianOptionWindow();
+        optionsWindow = new OptionsWindow();
         updateTitle();
         Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
         agentPanel.setBounds(0, 0, 1000, 1000);
-        agentPanel.addVetoableChangeListener(optionPanel);
+        agentPanel.addVetoableChangeListener(musicianOptionsWindow);
         transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
-        getContentPane().add(optionPanel, BorderLayout.EAST);
-        optionPanel.setVisible(false);
 
         var palette1 = createToolPalette();
         add(palette1, BorderLayout.PAGE_START);
@@ -138,7 +136,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         setupFileMenu(menubar);
         setupEditMenu(menubar);
-        setupViewMenu(menubar);
         setupHelpMenu(menubar);
         setJMenuBar(menubar);
     }
@@ -170,10 +167,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private void setupEditMenu(JMenuBar menubar) {
         var editMenu = new JMenu("Edit");
         editMenu.setMnemonic(KeyEvent.VK_E);
-        var showOptionPaneMenuItem = new JCheckBoxMenuItem("Show Options", getToolbarIcon(OPTIONS));
-        showOptionPaneMenuItem.setMnemonic(KeyEvent.VK_O);
-        showOptionPaneMenuItem.addActionListener(_ -> optionPanel.setVisible(showOptionPaneMenuItem.isSelected()));
-        editMenu.add(showOptionPaneMenuItem);
 
         var copyMenuItem = new JMenuItem("Copy (" + CONTROL_TEXT + "+C)", getToolbarIcon(COPY));
         copyMenuItem.setMnemonic(KeyEvent.VK_C);
@@ -276,16 +269,61 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
 
         // shapes
-        var addCircle = new JButton("circle");
+        var addCircle = new JButton(getToolbarIcon(ADD_CIRCLE));
         addCircle.addActionListener(_ -> {
-            var numToAdd = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of musicians to add (>= 3)?"));
-            agentPanel.addCircle(numToAdd);
+            var panel = new JPanel(new GridLayout(1, 2));
+            panel.add(new JLabel("Number to add"));
+            var spinner = new JSpinner(new SpinnerNumberModel(3, 3, 1000, 1));
+            panel.add(spinner);
+            var result = JOptionPane.showConfirmDialog(null, panel, "Add Circle params", JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            if (result == JOptionPane.OK_OPTION) {
+                var numToAdd = (int) spinner.getValue();
+                agentPanel.addCircle(numToAdd);
+            }
         });
-        var addGrid = new JButton("grid");
+        var addGrid = new JButton(getToolbarIcon(ADD_GRID));
         addGrid.addActionListener(_ -> {
-            var numRows = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of rows (>= 1)?"));
-            var numCols = Integer.parseInt(JOptionPane.showInputDialog(this, "Number of columns (>= 1)?"));
-            agentPanel.addGrid(numRows, numCols);
+            var panel = new JPanel(new GridLayout(2, 2));
+            panel.add(new JLabel("Rows"));
+            var rowSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+            panel.add(rowSpinner);
+            panel.add(new JLabel("Columns"));
+            var colSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+            panel.add(colSpinner);
+            var result = JOptionPane.showConfirmDialog(null, panel, "Add Grid params", JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            if (result == JOptionPane.OK_OPTION) {
+                agentPanel.addGrid((int) rowSpinner.getValue(), (int) colSpinner.getValue());
+            }
+        });
+
+        var showUiOptions = new JToggleButton("Options");
+        showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
+        optionsWindow.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                showUiOptions.setSelected(false);
+            }
+            
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+                showUiOptions.setSelected(false);
+            }
+        });
+        
+        var showMusicianOptions = new JToggleButton("Musician");
+        showMusicianOptions.addActionListener(_ -> musicianOptionsWindow.setVisible(true));
+        musicianOptionsWindow.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                showMusicianOptions.setSelected(false);
+            }
+            
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+                showMusicianOptions.setSelected(false);
+            }
         });
 
         toolbar.add(selectAll);
@@ -309,19 +347,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.addSeparator();
         toolbar.add(addCircle);
         toolbar.add(addGrid);
+        toolbar.addSeparator();
+        toolbar.add(new JLabel("Show: "));
+        toolbar.add(showUiOptions);
+        toolbar.add(showMusicianOptions);
         return toolbar;
-    }
-
-    private void setupViewMenu(JMenuBar menuBar) {
-        var viewMenu = new JMenu("View");
-        viewMenu.setMnemonic(KeyEvent.VK_V);
-
-        var showUiOptions = new JMenuItem("Options");
-        showUiOptions.setMnemonic(KeyEvent.VK_O);
-        showUiOptions.addActionListener(_ -> uiOptionsWindow.setVisible(true));
-        viewMenu.add(showUiOptions);
-
-        menuBar.add(viewMenu);
     }
 
     private void setupModesToolbar(JToolBar toolbar) {
@@ -392,7 +422,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
             Options.getInstance().setSaveDir(newSaveLocation.getParent());
-            uiOptionsWindow.updateOptions();
+            optionsWindow.updateOptions();
             updateTitle();
             SwingUtilities.invokeLater(() -> {
                 agentPanel.reset();
