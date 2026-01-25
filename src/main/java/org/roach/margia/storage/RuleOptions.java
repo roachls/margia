@@ -74,4 +74,14 @@ public class RuleOptions {
         return copy;
     }
 
+    /**
+     * Copies these {@link RuleOptions} into the {@code target}
+     * @param target target {@link RuleOptions}
+     */
+    public void copyInto(RuleOptions target) {
+        target.setName(this.name);
+        target.ruleSpecificOptions.clear();
+        target.ruleSpecificOptions.putAll(ruleSpecificOptions);
+    }
+
 }

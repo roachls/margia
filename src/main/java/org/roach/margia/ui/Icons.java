@@ -40,8 +40,9 @@ public class Icons {
     public static final String PAUSE = "pause";
     public static final String REWIND = "rewind";
     public static final String SAVE = "save";
-    public static final String SELECT_ALL = "select_all";
     public static final String SELECT = "select";
+    public static final String SELECT_ALL = "select_all";
+    public static final String SELECT_CONNECTED = "select_connected";
     public static final String START = "start";
     public static final String UNLOCK_ALL = "unlock_all";
     public static final String UNLOCK = "unlock";
@@ -70,8 +71,9 @@ public class Icons {
             Map.entry(PAUSE, ""),
             Map.entry(REWIND, ""),
             Map.entry(SAVE, "a floppy disk"),
-            Map.entry(SELECT_ALL, "a pointing hand with an 'A'"),
             Map.entry(SELECT, "a pointing hand"),
+            Map.entry(SELECT_ALL, "a pointing hand with an 'A'"),
+            Map.entry(SELECT_CONNECTED, "a bunch of circles, some connected, some not, with connected circles in red"),
             Map.entry(START, ""),
             Map.entry(UNLOCK, "an open lock"),
             Map.entry(UNLOCK_ALL, "an open lock with an 'A'"),
@@ -82,8 +84,8 @@ public class Icons {
 
     static {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
-                HELP, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT, UNLOCK,
-                UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
+                HELP, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT,
+                SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }

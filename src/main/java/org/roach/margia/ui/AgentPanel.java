@@ -19,8 +19,7 @@ import org.roach.margia.Musician;
 import org.roach.margia.MusicianList;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
-import org.roach.margia.storage.MusicianOptions;
-import org.roach.margia.storage.Options;
+import org.roach.margia.storage.*;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
@@ -47,6 +46,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private Point dragStart;
     private Point dragEnd;
     private List<MusicianComponent> copiedComponents;
+    private MusicianComponentOptions copiedComponentOptions;
+    private MusicianOptions copiedMusicianOptions;
     private static final Random RANDOM = new SecureRandom();
 
     /**
@@ -650,6 +651,34 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     void copySelectedComponents() {
         this.copiedComponents = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
     }
+    
+    void copySelectedComponentOptions() {
+        var firstSelected = musicianComponents.values().stream().filter(MusicianComponent::isSelected).findAny();
+        firstSelected.ifPresent(c -> {
+            this.copiedComponentOptions = c.getOptions();
+            this.copiedMusicianOptions = c.getMusician().getOptions();
+        });
+    }
+
+    void selectConnected() {
+        var selected = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
+        var seen = new HashSet<Integer>();
+        selected.forEach(s -> seen.add(s.getMusician().getId()));
+        for (var comp : selected) {
+            _selectConnected(seen, comp);
+        }
+    }
+
+    @SuppressWarnings("java:S100")
+    private void _selectConnected(HashSet<Integer> seen, MusicianComponent comp) {
+        var peerIds = comp.getMusician().peerIds().stream().filter(pi -> !seen.contains(pi)).toList();
+        for (var peerId : peerIds) {
+            seen.add(peerId);
+            var peer = musicianComponents.get(peerId);
+            peer.setSelected(true);
+            _selectConnected(seen, peer);
+        }
+    }
 
     void paste() {
         if (this.copiedComponents == null)
@@ -666,6 +695,16 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         invalidate();
         this.copiedComponents = null;
         deselectAll();
+    }
+    
+    void pasteSettings() {
+        if (this.copiedComponentOptions == null || this.copiedMusicianOptions == null)
+            return;
+        var selectedComponents = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
+        for (var comp : selectedComponents) {
+            copiedComponentOptions.copyInto(comp.getOptions());
+            copiedMusicianOptions.copyInto(comp.getMusician().getOptions());
+        }
     }
 
     void reset() {

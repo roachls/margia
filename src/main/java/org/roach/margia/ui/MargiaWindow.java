@@ -44,6 +44,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
+    private static final String SHIFT_TEXT = InputEvent.getModifiersExText(InputEvent.SHIFT_DOWN_MASK);
 
     /**
      * @param timing    the {@link TimingSource}
@@ -101,14 +102,24 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 break;
             case KeyEvent.VK_C:
                 if (e.isControlDown()) {
-                    agentPanel.copySelectedComponents();
-                    complete = true;
+                    if (e.isShiftDown()) {
+                        agentPanel.copySelectedComponentOptions();
+                        complete = true;
+                    } else {
+                        agentPanel.copySelectedComponents();
+                        complete = true;
+                    }
                 }
                 break;
             case KeyEvent.VK_V:
                 if (e.isControlDown()) {
-                    agentPanel.paste();
-                    complete = true;
+                    if (e.isShiftDown()) {
+                        agentPanel.pasteSettings();
+                        complete = true;
+                    } else {
+                        agentPanel.paste();
+                        complete = true;
+                    }
                 }
                 break;
             case KeyEvent.VK_S:
@@ -176,6 +187,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         pasteMenuItem.setMnemonic(KeyEvent.VK_P);
         pasteMenuItem.addActionListener(_ -> agentPanel.paste());
         editMenu.add(pasteMenuItem);
+        var copyParamsMenuItem = new JMenuItem("Copy settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+C)",
+                getToolbarIcon(COPY));
+        copyParamsMenuItem.addActionListener(_ -> agentPanel.copySelectedComponentOptions());
+        editMenu.add(copyParamsMenuItem);
+        var pasteParamsMenuItem = new JMenuItem("Paste settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+V)",
+                getToolbarIcon(PASTE));
+        pasteParamsMenuItem.addActionListener(_ -> agentPanel.pasteSettings());
+        editMenu.add(pasteParamsMenuItem);
 
         var selectAll = new JMenuItem("Select All (" + CONTROL_TEXT + "+A)", getToolbarIcon(SELECT_ALL));
         selectAll.setMnemonic(KeyEvent.VK_S);
@@ -186,6 +205,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         deselectAll.setMnemonic(KeyEvent.VK_D);
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
         editMenu.add(deselectAll);
+        var deselectConnected = new JMenuItem("Select connected", getMenuIcon(SELECT_CONNECTED));
+        deselectConnected.setMnemonic(KeyEvent.VK_D);
+        deselectConnected.addActionListener(_ -> agentPanel.selectConnected());
+        editMenu.add(deselectConnected);
         var muteSelected = new JMenuItem("Mute selected", getToolbarIcon(MUTE));
         muteSelected.setMnemonic(KeyEvent.VK_U);
         muteSelected.addActionListener(_ -> agentPanel.muteSelected());
@@ -267,6 +290,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         selectAll.addActionListener(_ -> agentPanel.selectAll());
         var deselectAll = new JButton(getMenuIcon(DESELECT_ALL));
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
+        var selectConnected = new JButton(getMenuIcon(SELECT_CONNECTED));
+        selectConnected.addActionListener(_ -> agentPanel.selectConnected());
 
         var showUiOptions = new JToggleButton("Options");
         showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
@@ -313,6 +338,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.addSeparator();
         toolbar.add(connectSelected);
         toolbar.add(disconnectSelected);
+        toolbar.add(selectConnected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
         toolbar.addSeparator();

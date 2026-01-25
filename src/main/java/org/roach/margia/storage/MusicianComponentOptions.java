@@ -103,10 +103,19 @@ public class MusicianComponentOptions {
     MusicianComponentOptions copy() {
         var copy = new MusicianComponentOptions();
         copy.locked = locked;
-        copy.position.setLocation(position);
         copy.mass = mass;
         copy.radius = radius;
 
         return copy;
+    }
+
+    /**
+     * @param options copies the settings of this {@link MusicianComponentOptions}
+     *                into the given one
+     */
+    public void copyInto(MusicianComponentOptions options) {
+        options.setLocked(this.locked);
+        options.setRadius(this.radius);
+        options.setMass(this.mass);
     }
 }

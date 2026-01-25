@@ -135,4 +135,19 @@ public class MusicianOptions {
         return copy;
     }
 
+    /**
+     * copies the settings (except ID and peerIds) of this {@link MusicianOptions}
+     * into {@code target}
+     * 
+     * @param target target options
+     */
+    public void copyInto(MusicianOptions target) {
+        target.setChannel(this.channel);
+        target.setKeyName(this.keyName);
+        target.setListening(this.listening);
+        target.setMuted(this.muted);
+        target.setRange(this.range.copy());
+        this.ruleOptions.copyInto(target.ruleOptions);
+    }
+
 }
