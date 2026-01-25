@@ -12,8 +12,7 @@ import javax.swing.event.ChangeListener;
 import org.roach.margia.Key;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
-import org.roach.margia.storage.Options;
-import org.roach.margia.storage.Persistence;
+import org.roach.margia.storage.*;
 
 /**
  * GUI and musical options
@@ -28,7 +27,8 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private JSpinner rangeHi;
     private JSpinner channel;
     private JSpinner mass;
-    
+    private JSpinner radius;
+
     private JPanel ruleOptsPanel;
     private HashMap<String, MusicianRule> availableRules;
 
@@ -120,7 +120,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
-        
+
         mass = createSpinner("Mass", 1d, 0.1d, 100d, 0.1d, Double.class);
         var massLabel = createLabelFor("Mass", mass);
         var row = 0;
@@ -129,6 +129,15 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         panel.add(massLabel, c);
         c.gridx = 1;
         panel.add(mass, c);
+
+        radius = createSpinner(MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS, 1d, 50d,
+                1d, Integer.class);
+        var radiusLabel = createLabelFor("Radius", radius);
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(radiusLabel, c);
+        c.gridx = 1;
+        panel.add(radius, c);
 
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
@@ -168,7 +177,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
-        
+
         var row = 0;
         c.gridx = 0;
         c.gridy = row++;
@@ -185,7 +194,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         panel.add(channelLabel, c);
         c.gridx = 1;
         panel.add(channel, c);
-        
+
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
         c.gridy = row++;
@@ -212,14 +221,14 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         rule = new JComboBox<>(ruleModel);
         var ruleLabel = new JLabel("Rule");
         ruleLabel.setLabelFor(rule);
-        
+
         var c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 0.0;
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
-        
+
         var row = 0;
         c.gridx = 0;
         c.gridy = row++;
@@ -252,6 +261,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private ChangeListener rangeHiChangeListener;
     private MusicianComponent selectedMusician;
     private ChangeListener massChangeListener;
+    private ChangeListener radiusChangeListener;
 
     @Override
     public void vetoableChange(PropertyChangeEvent evt) {
@@ -267,26 +277,31 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         } else {
             selectedMusician = sel;
             selectedMusician.setEdited(true);
-            setTitle("Musician options (" + sel.getMusician().getId() + ")");
-            rule.setSelectedItem(selectedMusician.getMusician().getRule().getName());
-            ruleActionListener = _ -> selectedMusician.getMusician()
-                    .setRule((AbstractMusicianRule) availableRules.get(rule.getSelectedItem()));
+            var id = selectedMusician.getMusician().getId();
+            setTitle(String.format("Musician options (%d)", id));
+            var compOpts = selectedMusician.getOptions();
+            var musOpts = selectedMusician.getMusician().getOptions();
+            rule.setSelectedItem(musOpts.getRuleOptions().getName());
+            ruleActionListener = _ -> musOpts.getRuleOptions().setName((String) rule.getSelectedItem());
             rule.addActionListener(ruleActionListener);
             key.setSelectedItem(selectedMusician.getMusician().getKey().getName());
-            keyActionListener = _ -> selectedMusician.getMusician().setKey(Key.BUILTIN_KEYS.get(key.getSelectedItem()));
+            keyActionListener = _ -> musOpts.setKeyName((String) key.getSelectedItem());
             key.addActionListener(keyActionListener);
-            rangeLow.setValue(selectedMusician.getMusician().getRangeLow());
-            rangeLowChangeListener = _ -> selectedMusician.getMusician().setRangeLow((int) rangeLow.getValue());
+            rangeLow.setValue(musOpts.getRange().low());
+            rangeLowChangeListener = _ -> musOpts.setRange(musOpts.getRange().withLow((int) rangeLow.getValue()));
             rangeLow.addChangeListener(rangeLowChangeListener);
-            rangeHi.setValue(selectedMusician.getMusician().getRangeHi());
-            rangeHiChangeListener = _ -> selectedMusician.getMusician().setRangeHi((int) rangeHi.getValue());
+            rangeHi.setValue(musOpts.getRange().high());
+            rangeHiChangeListener = _ -> musOpts.setRange(musOpts.getRange().withHigh((int) rangeHi.getValue()));
             rangeHi.addChangeListener(rangeHiChangeListener);
-            channel.setValue(selectedMusician.getMusician().getChannel());
-            channelChangeListener = _ -> selectedMusician.getMusician().setChannel((int) channel.getValue());
+            channel.setValue(musOpts.getChannel());
+            channelChangeListener = _ -> musOpts.setChannel((int) channel.getValue());
             channel.addChangeListener(channelChangeListener);
-            mass.setValue(selectedMusician.getMass());
-            massChangeListener = _ -> selectedMusician.setMass((double) mass.getValue());
+            mass.setValue(compOpts.getMass());
+            massChangeListener = _ -> compOpts.setMass((double) mass.getValue());
             mass.addChangeListener(massChangeListener);
+            radius.setValue(compOpts.getRadius());
+            radiusChangeListener = _ -> compOpts.setRadius((int) radius.getValue());
+            radius.addChangeListener(radiusChangeListener);
 
             // populate rulesPanel
             var selectedRule = (AbstractMusicianRule) selectedMusician.getMusician().getRule();
@@ -356,7 +371,12 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             mass.removeChangeListener(massChangeListener);
             massChangeListener = null;
         }
-        mass.setValue(1.0);
+        mass.setValue(MusicianComponent.DEFAULT_MASS);
+        if (radiusChangeListener != null) {
+            radius.removeChangeListener(radiusChangeListener);
+            radiusChangeListener = null;
+        }
+        radius.setValue(MusicianComponent.DEFAULT_RADIUS);
         for (var paramPanel : paramComps) {
             paramPanel.removeAll();
             paramPanel.revalidate();

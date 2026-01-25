@@ -11,7 +11,6 @@ import org.roach.margia.storage.Persistence;
 
 class OptionsWindow extends JDialog {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
-    private JSpinner radius;
     private JSpinner gravity;
     private JSpinner edgeLength;
     private JCheckBox showIcons;
@@ -75,10 +74,6 @@ class OptionsWindow extends JDialog {
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        radius = createSpinner(MusicianComponent.RADIUS_PROPERTY,
-                (double) Options.getInstance().getUiOptions().getRadius(), 1d, 50d, 1d, Integer.class);
-        radius.addChangeListener(_ -> Options.getInstance().getUiOptions().setRadius((int) radius.getValue()));
-        var radiusLabel = createLabelFor("Radius", radius);
         gravity = createSpinner("Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1,
                 Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
@@ -93,22 +88,18 @@ class OptionsWindow extends JDialog {
         showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
         showIcons.addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
 
+        var row = 0;
         c.gridx = 0;
-        c.gridy = 0;
-        panel.add(radiusLabel, c);
-        c.gridx = 1;
-        panel.add(radius, c);
-        c.gridx = 0;
-        c.gridy = 1;
+        c.gridy = row++;
         panel.add(gravityLabel, c);
         c.gridx = 1;
         panel.add(gravity, c);
         c.gridx = 0;
-        c.gridy = 2;
+        c.gridy = row++;
         panel.add(edgeLengthLabel, c);
         c.gridx = 1;
         panel.add(edgeLength, c);
-        c.gridy = 3;
+        c.gridy = row++;
         panel.add(showIcons, c);
 
         return panel;
@@ -194,7 +185,6 @@ class OptionsWindow extends JDialog {
 
     void updateOptions() {
         var options = Options.getInstance();
-        radius.setValue(options.getUiOptions().getRadius());
         gravity.setValue(options.getUiOptions().getGravity());
         showIcons.setSelected(options.getUiOptions().isShowNumbers());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());

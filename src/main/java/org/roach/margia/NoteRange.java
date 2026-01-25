@@ -87,4 +87,11 @@ public record NoteRange(int low, int high) {
     }
 
     public static final NoteRange DRUMPAD = new NoteRange(Octave.O1);
+
+    /**
+     * @return a new {@link NoteRange} instance that is a copy of this one
+     */
+    public NoteRange copy() {
+        return new NoteRange(low, high);
+    }
 }

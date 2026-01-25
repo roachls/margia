@@ -4,8 +4,10 @@ import java.util.*;
 
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.Musician;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.ui.ChangeEmitter;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * Options related to a {@link MusicianRule}
@@ -26,8 +28,12 @@ public class RuleOptions {
     public void setName(String name) {
         var oldName = this.name;
         this.name = name;
-        if (oldName != null && !oldName.equals(this.name))
+        if (oldName != null && !oldName.equals(this.name)) {
+            emitter.fireChangeEvent(Musician.RULE_NAME_PROPERTY,
+                    new ChangeSource(Musician.RULE_NAME_PROPERTY, this.name));
             Options.getInstance().setDirty();
+            this.ruleSpecificOptions.clear();
+        }
     }
 
     /**
@@ -56,6 +62,26 @@ public class RuleOptions {
     @Override
     public String toString() {
         return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
+    }
+
+    /**
+     * @return a new {@link RuleOptions} instance that is a copy of this one
+     */
+    public RuleOptions copy() {
+        var copy = new RuleOptions();
+        copy.name = name;
+        copy.ruleSpecificOptions.putAll(ruleSpecificOptions);
+        return copy;
+    }
+
+    /**
+     * Copies these {@link RuleOptions} into the {@code target}
+     * @param target target {@link RuleOptions}
+     */
+    public void copyInto(RuleOptions target) {
+        target.setName(this.name);
+        target.ruleSpecificOptions.clear();
+        target.ruleSpecificOptions.putAll(ruleSpecificOptions);
     }
 
 }

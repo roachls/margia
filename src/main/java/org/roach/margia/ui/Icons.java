@@ -29,6 +29,7 @@ public class Icons {
     public static final String DESELECT_ALL = "deselect_all";
     public static final String DISCONNECT = "disconnect";
     public static final String HELP = "help";
+    public static final String KEYBOARD = "keyboard";
     public static final String LOCK_ALL = "lock_all";
     public static final String LOCK = "lock";
     public static final String MOVE = "move";
@@ -40,8 +41,9 @@ public class Icons {
     public static final String PAUSE = "pause";
     public static final String REWIND = "rewind";
     public static final String SAVE = "save";
-    public static final String SELECT_ALL = "select_all";
     public static final String SELECT = "select";
+    public static final String SELECT_ALL = "select_all";
+    public static final String SELECT_CONNECTED = "select_connected";
     public static final String START = "start";
     public static final String UNLOCK_ALL = "unlock_all";
     public static final String UNLOCK = "unlock";
@@ -61,6 +63,7 @@ public class Icons {
             Map.entry(HELP, "a question mark"),
             Map.entry(LOCK_ALL, "a closed lock with an 'A'"),
             Map.entry(LOCK, "a closed lock"),
+            Map.entry(KEYBOARD, "a keyboard"),
             Map.entry(MOVE, "a four-way arrow icon"),
             Map.entry(MUTE_ALL, "a speaker that is muted with a small 'A'"),
             Map.entry(MUTE, "a speaker that is muted"),
@@ -70,8 +73,9 @@ public class Icons {
             Map.entry(PAUSE, ""),
             Map.entry(REWIND, ""),
             Map.entry(SAVE, "a floppy disk"),
-            Map.entry(SELECT_ALL, "a pointing hand with an 'A'"),
             Map.entry(SELECT, "a pointing hand"),
+            Map.entry(SELECT_ALL, "a pointing hand with an 'A'"),
+            Map.entry(SELECT_CONNECTED, "a bunch of circles, some connected, some not, with connected circles in red"),
             Map.entry(START, ""),
             Map.entry(UNLOCK, "an open lock"),
             Map.entry(UNLOCK_ALL, "an open lock with an 'A'"),
@@ -82,8 +86,8 @@ public class Icons {
 
     static {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
-                HELP, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT, UNLOCK,
-                UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
+                HELP, KEYBOARD, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT,
+                SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }

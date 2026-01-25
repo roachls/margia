@@ -44,6 +44,22 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
+    private static final String SHIFT_TEXT = InputEvent.getModifiersExText(InputEvent.SHIFT_DOWN_MASK);
+    private static final String KEYBOARD_SHORTCUTS = """
+            <html>
+            <table>
+            <tr><td>Ctrl+C</td><td>copy selected musician</td></tr>
+            <tr><td>Ctrl+Shift+C</td><td>copy settings of one musician</td></tr>
+            <tr><td>Ctrl+V</td><td>paste copied musicians</td></tr>
+            <tr><td>Ctrl+Shift+V</td><td>paste copied settings into selected musicians</td></tr>
+            <tr><td>Ctrl+S</td><td>save</td></tr>
+            <tr><td>Ctrl+O</td><td>open</td></tr>
+            <tr><td>Ctrl+A</td><td>select all musicians</td></tr>
+            <tr><td>Del</td><td>delete selected musicians</td></tr>
+            <tr><td>Esc</td><td>Deselect all musicians</td></tr>
+            </table>
+            </html>
+            """;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -82,6 +98,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private class AgentPanelKeyListener implements KeyEventDispatcher {
 
         @Override
+        @SuppressWarnings("java:S3776")
         public boolean dispatchKeyEvent(KeyEvent e) {
             boolean complete = false;
             switch (e.getKeyCode()) {
@@ -101,14 +118,24 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 break;
             case KeyEvent.VK_C:
                 if (e.isControlDown()) {
-                    agentPanel.copySelectedComponents();
-                    complete = true;
+                    if (e.isShiftDown()) {
+                        agentPanel.copySelectedComponentOptions();
+                        complete = true;
+                    } else {
+                        agentPanel.copySelectedComponents();
+                        complete = true;
+                    }
                 }
                 break;
             case KeyEvent.VK_V:
                 if (e.isControlDown()) {
-                    agentPanel.paste();
-                    complete = true;
+                    if (e.isShiftDown()) {
+                        agentPanel.pasteSettings();
+                        complete = true;
+                    } else {
+                        agentPanel.paste();
+                        complete = true;
+                    }
                 }
                 break;
             case KeyEvent.VK_S:
@@ -171,55 +198,68 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var copyMenuItem = new JMenuItem("Copy (" + CONTROL_TEXT + "+C)", getToolbarIcon(COPY));
         copyMenuItem.setMnemonic(KeyEvent.VK_C);
         copyMenuItem.addActionListener(_ -> agentPanel.copySelectedComponents());
-        editMenu.add(copyMenuItem);
         var pasteMenuItem = new JMenuItem("Paste (" + CONTROL_TEXT + "+V)", getToolbarIcon(PASTE));
         pasteMenuItem.setMnemonic(KeyEvent.VK_P);
         pasteMenuItem.addActionListener(_ -> agentPanel.paste());
-        editMenu.add(pasteMenuItem);
+        var copyParamsMenuItem = new JMenuItem("Copy settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+C)",
+                getToolbarIcon(COPY));
+        copyParamsMenuItem.addActionListener(_ -> agentPanel.copySelectedComponentOptions());
+        var pasteParamsMenuItem = new JMenuItem("Paste settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+V)",
+                getToolbarIcon(PASTE));
+        pasteParamsMenuItem.addActionListener(_ -> agentPanel.pasteSettings());
 
         var selectAll = new JMenuItem("Select All (" + CONTROL_TEXT + "+A)", getToolbarIcon(SELECT_ALL));
         selectAll.setMnemonic(KeyEvent.VK_S);
         selectAll.addActionListener(_ -> agentPanel.selectAll());
-        editMenu.add(selectAll);
         var deselectAll = new JMenuItem("Deselect All (" + KeyEvent.getKeyText(KeyEvent.VK_ESCAPE) + ")",
                 getToolbarIcon(DESELECT_ALL));
         deselectAll.setMnemonic(KeyEvent.VK_D);
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
-        editMenu.add(deselectAll);
+        var selectConnected = new JMenuItem("Select connected", getMenuIcon(SELECT_CONNECTED));
+        selectConnected.setMnemonic(KeyEvent.VK_D);
+        selectConnected.addActionListener(_ -> agentPanel.selectConnected());
         var muteSelected = new JMenuItem("Mute selected", getToolbarIcon(MUTE));
         muteSelected.setMnemonic(KeyEvent.VK_U);
         muteSelected.addActionListener(_ -> agentPanel.muteSelected());
-        editMenu.add(muteSelected);
         var unmuteSelected = new JMenuItem("Unmute selected", getToolbarIcon(UNMUTE));
         unmuteSelected.setMnemonic(KeyEvent.VK_E);
         unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
-        editMenu.add(unmuteSelected);
         var lockSelected = new JMenuItem("Lock selected", getToolbarIcon(LOCK));
         lockSelected.setMnemonic(KeyEvent.VK_L);
         lockSelected.addActionListener(_ -> agentPanel.lockSelected());
-        editMenu.add(lockSelected);
         var unlockSelected = new JMenuItem("Unlock selected", getToolbarIcon(UNLOCK));
         unlockSelected.setMnemonic(KeyEvent.VK_N);
         unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
-        editMenu.add(unlockSelected);
         var lockAll = new JMenuItem("Lock all", getToolbarIcon(LOCK_ALL));
         lockAll.addActionListener(_ -> agentPanel.lockAll());
-        editMenu.add(lockAll);
         var unlockAll = new JMenuItem("Unlock all", getToolbarIcon(UNLOCK_ALL));
         unlockAll.addActionListener(_ -> agentPanel.unlockAll());
-        editMenu.add(unlockAll);
         var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
                 getToolbarIcon(DELETE));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
         deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
-        editMenu.add(deleteSelected);
         var connectSelected = new JMenuItem("Connect selected", getToolbarIcon(CONNECT));
         connectSelected.setMnemonic(KeyEvent.VK_T);
         connectSelected.addActionListener(_ -> agentPanel.connectSelected());
-        editMenu.add(connectSelected);
         var disconnectSelected = new JMenuItem("Disconnect selected", getToolbarIcon(DISCONNECT));
         disconnectSelected.setMnemonic(KeyEvent.VK_I);
         disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
+        
+        editMenu.add(copyMenuItem);
+        editMenu.add(pasteMenuItem);
+        editMenu.add(copyParamsMenuItem);
+        editMenu.add(pasteParamsMenuItem);
+        editMenu.add(selectAll);
+        editMenu.add(deselectAll);
+        editMenu.add(selectConnected);
+        editMenu.add(muteSelected);
+        editMenu.add(unmuteSelected);
+        editMenu.add(lockSelected);
+        editMenu.add(unlockSelected);
+        editMenu.add(lockAll);
+        editMenu.add(unlockAll);
+        editMenu.add(deleteSelected);
+        editMenu.add(connectSelected);
         editMenu.add(disconnectSelected);
         menubar.add(editMenu);
     }
@@ -267,6 +307,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         selectAll.addActionListener(_ -> agentPanel.selectAll());
         var deselectAll = new JButton(getMenuIcon(DESELECT_ALL));
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
+        var selectConnected = new JButton(getMenuIcon(SELECT_CONNECTED));
+        selectConnected.addActionListener(_ -> agentPanel.selectConnected());
 
         var showUiOptions = new JToggleButton("Options");
         showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
@@ -313,6 +355,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.addSeparator();
         toolbar.add(connectSelected);
         toolbar.add(disconnectSelected);
+        toolbar.add(selectConnected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
         toolbar.addSeparator();
@@ -325,7 +368,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private class AddPanel extends JPanel {
-        AddMode mode = AddMode.SINGLE;
+        AddMode mode = AddMode.MULTIPLE;
 
         AddPanel() {
             super(new FlowLayout(FlowLayout.LEFT, 0, 10));
@@ -361,7 +404,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     }
                 }
                     break;
-                case SINGLE: {
+                case MULTIPLE: {
                     var panel = new JPanel(new GridLayout(1, 2));
                     panel.add(new JLabel("Number to add"));
                     var spinner = new JSpinner(new SpinnerNumberModel(2, 1, 1000, 1));
@@ -380,7 +423,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             });
             var modeMenu = new JPopupMenu();
             var singleMode = new JMenuItem(getMenuIcon(ADD));
-            singleMode.setName(AddMode.SINGLE.toString());
+            singleMode.setName(AddMode.MULTIPLE.toString());
             singleMode.setToolTipText("Add N musicians");
             var circleMode = new JMenuItem(getMenuIcon(ADD_CIRCLE));
             circleMode.setName(AddMode.CIRCLE.toString());
@@ -415,7 +458,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         }
 
         enum AddMode {
-            SINGLE, CIRCLE, GRID;
+            MULTIPLE, CIRCLE, GRID;
         }
     }
 
@@ -473,7 +516,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var aboutMenuItem = new JMenuItem("About", getToolbarIcon(ABOUT));
         aboutMenuItem.setMnemonic(KeyEvent.VK_A);
         aboutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, ABOUT_MESSAGE));
+        var keyboardShortcutMenuItem = new JMenuItem("Keyboard Shortcuts", getToolbarIcon(KEYBOARD));
+        keyboardShortcutMenuItem.setMnemonic(KeyEvent.VK_K);
+        keyboardShortcutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, KEYBOARD_SHORTCUTS));
         helpMenu.add(aboutMenuItem);
+        helpMenu.add(keyboardShortcutMenuItem);
 
         menubar.add(Box.createHorizontalGlue());
         menubar.add(helpMenu);
