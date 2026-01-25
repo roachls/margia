@@ -268,36 +268,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var deselectAll = new JButton(getMenuIcon(DESELECT_ALL));
         deselectAll.addActionListener(_ -> agentPanel.deselectAll());
 
-        // shapes
-        var addCircle = new JButton(getToolbarIcon(ADD_CIRCLE));
-        addCircle.addActionListener(_ -> {
-            var panel = new JPanel(new GridLayout(1, 2));
-            panel.add(new JLabel("Number to add"));
-            var spinner = new JSpinner(new SpinnerNumberModel(3, 3, 1000, 1));
-            panel.add(spinner);
-            var result = JOptionPane.showConfirmDialog(null, panel, "Add Circle params", JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE);
-            if (result == JOptionPane.OK_OPTION) {
-                var numToAdd = (int) spinner.getValue();
-                agentPanel.addCircle(numToAdd);
-            }
-        });
-        var addGrid = new JButton(getToolbarIcon(ADD_GRID));
-        addGrid.addActionListener(_ -> {
-            var panel = new JPanel(new GridLayout(2, 2));
-            panel.add(new JLabel("Rows"));
-            var rowSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-            panel.add(rowSpinner);
-            panel.add(new JLabel("Columns"));
-            var colSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-            panel.add(colSpinner);
-            var result = JOptionPane.showConfirmDialog(null, panel, "Add Grid params", JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE);
-            if (result == JOptionPane.OK_OPTION) {
-                agentPanel.addGrid((int) rowSpinner.getValue(), (int) colSpinner.getValue());
-            }
-        });
-
         var showUiOptions = new JToggleButton("Options");
         showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
         optionsWindow.addWindowListener(new WindowAdapter() {
@@ -305,13 +275,13 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             public void windowClosed(WindowEvent e) {
                 showUiOptions.setSelected(false);
             }
-            
+
             @Override
             public void windowDeactivated(WindowEvent e) {
                 showUiOptions.setSelected(false);
             }
         });
-        
+
         var showMusicianOptions = new JToggleButton("Musician");
         showMusicianOptions.addActionListener(_ -> musicianOptionsWindow.setVisible(true));
         musicianOptionsWindow.addWindowListener(new WindowAdapter() {
@@ -319,7 +289,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             public void windowClosed(WindowEvent e) {
                 showMusicianOptions.setSelected(false);
             }
-            
+
             @Override
             public void windowDeactivated(WindowEvent e) {
                 showMusicianOptions.setSelected(false);
@@ -345,13 +315,108 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.add(disconnectSelected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
-        toolbar.add(addCircle);
-        toolbar.add(addGrid);
         toolbar.addSeparator();
         toolbar.add(new JLabel("Show: "));
         toolbar.add(showUiOptions);
         toolbar.add(showMusicianOptions);
+        toolbar.addSeparator();
+        toolbar.add(new AddPanel());
         return toolbar;
+    }
+
+    private class AddPanel extends JPanel {
+        AddMode mode = AddMode.SINGLE;
+
+        AddPanel() {
+            super(new FlowLayout(FlowLayout.LEFT, 0, 10));
+            var addBtn = new JButton(getToolbarIcon(ADD));
+            setOpaque(false);
+            addBtn.addActionListener(_ -> {
+                switch (mode) {
+                case CIRCLE: {
+                    var panel = new JPanel(new GridLayout(1, 2));
+                    panel.add(new JLabel("Number to add"));
+                    var spinner = new JSpinner(new SpinnerNumberModel(3, 3, 1000, 1));
+                    panel.add(spinner);
+                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Circle",
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    if (result == JOptionPane.OK_OPTION) {
+                        var numToAdd = (int) spinner.getValue();
+                        agentPanel.addCircle(numToAdd);
+                    }
+                }
+                    break;
+                case GRID: {
+                    var panel = new JPanel(new GridLayout(2, 2));
+                    panel.add(new JLabel("Rows"));
+                    var rowSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+                    panel.add(rowSpinner);
+                    panel.add(new JLabel("Columns"));
+                    var colSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+                    panel.add(colSpinner);
+                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Grid",
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    if (result == JOptionPane.OK_OPTION) {
+                        agentPanel.addGrid((int) rowSpinner.getValue(), (int) colSpinner.getValue());
+                    }
+                }
+                    break;
+                case SINGLE: {
+                    var panel = new JPanel(new GridLayout(1, 2));
+                    panel.add(new JLabel("Number to add"));
+                    var spinner = new JSpinner(new SpinnerNumberModel(2, 1, 1000, 1));
+                    panel.add(spinner);
+                    var result = JOptionPane.showConfirmDialog(null, panel, "Add N musicians",
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    if (result == JOptionPane.OK_OPTION) {
+                        var numToAdd = (int) spinner.getValue();
+                        agentPanel.addNMusicians(numToAdd);
+                    }
+                }
+                    break;
+                default:
+                    break;
+                }
+            });
+            var modeMenu = new JPopupMenu();
+            var singleMode = new JMenuItem(getMenuIcon(ADD));
+            singleMode.setName(AddMode.SINGLE.toString());
+            singleMode.setToolTipText("Add N musicians");
+            var circleMode = new JMenuItem(getMenuIcon(ADD_CIRCLE));
+            circleMode.setName(AddMode.CIRCLE.toString());
+            circleMode.setToolTipText("Add musician circle");
+            var gridMode = new JMenuItem(getMenuIcon(ADD_GRID));
+            gridMode.setName(AddMode.GRID.toString());
+            gridMode.setToolTipText("Add musician grid");
+            modeMenu.add(singleMode);
+            modeMenu.add(circleMode);
+            modeMenu.add(gridMode);
+
+            var modeSelectionListener = (ActionListener) (e -> {
+                if (e.getSource() instanceof JMenuItem jmi) {
+                    var name = jmi.getName();
+                    mode = AddMode.valueOf(name);
+                    addBtn.setIcon(jmi.getIcon());
+                }
+            });
+
+            singleMode.addActionListener(modeSelectionListener);
+            circleMode.addActionListener(modeSelectionListener);
+            gridMode.addActionListener(modeSelectionListener);
+
+            var modeBtn = new JButton("▼");
+            modeBtn.setMargin(new Insets(0, 0, 0, 0));
+            modeBtn.setPreferredSize(new Dimension(16, 28));
+            modeBtn.addActionListener(_ -> modeMenu.show(modeBtn, 0, 0));
+
+            add(new JLabel("Add: "));
+            add(addBtn);
+            add(modeBtn);
+        }
+
+        enum AddMode {
+            SINGLE, CIRCLE, GRID;
+        }
     }
 
     private void setupModesToolbar(JToolBar toolbar) {
