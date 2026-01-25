@@ -2,6 +2,7 @@ package org.roach.margia.storage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.roach.margia.*;
 import org.roach.margia.util.RangeCheck;
@@ -15,9 +16,13 @@ public class MusicianOptions {
     private boolean muted;
     private boolean listening = true;
     private int id;
-    private final RuleOptions ruleOptions = new RuleOptions();
+    private RuleOptions ruleOptions = new RuleOptions();
     private String keyName = Key.Chromatic.getName();
     private NoteRange range = new NoteRange(48, 92);
+    /**
+     * {@link AtomicInteger} that is used to generate the ID of the next musician
+     */
+    public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
 
     /**
      * @return the channel
@@ -93,7 +98,7 @@ public class MusicianOptions {
         if (oldKeyName != null && !oldKeyName.equals(this.keyName))
             Options.getInstance().setDirty();
     }
-    
+
     /**
      * @return the range
      */
@@ -108,6 +113,26 @@ public class MusicianOptions {
     public String toString() {
         return "MusicianOptions [channel=" + channel + ", peerIds=" + peerIds + ", muted=" + muted + ", id=" + id
                 + ", ruleOptions=" + ruleOptions + ", keyName=" + keyName + "]";
+    }
+
+    /**
+     * Make a copy of these options but with a different ID. PeerIds are
+     * intentionally not copied.
+     * 
+     * @param newId The ID of the copy
+     * @return a new {@link MusicianOptions} instance that is a copy of this one,
+     *         <i>except</i> that the ID will be the given ID
+     */
+    public MusicianOptions copy(int newId) {
+        var copy = new MusicianOptions();
+        copy.channel = channel;
+        copy.muted = muted;
+        copy.listening = listening;
+        copy.ruleOptions = ruleOptions.copy();
+        copy.keyName = keyName;
+        copy.range = range.copy();
+        copy.id = newId;
+        return copy;
     }
 
 }

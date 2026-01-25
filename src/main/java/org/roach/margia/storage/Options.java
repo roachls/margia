@@ -87,7 +87,7 @@ public class Options {
         MidiController.getInstance().setMidiDevice(storedOptions.getMidiOptions().isUseExternalMidi());
         restoreMusicians();
         MusicianList.getInstance().getMusicians().keySet().stream().max(Integer::compare)
-                .ifPresent(maxId -> Musician.ID_GENERATOR.set(maxId + 1));
+                .ifPresent(maxId -> MusicianOptions.ID_GENERATOR.set(maxId + 1));
         this.dirty = false;
         emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
     }

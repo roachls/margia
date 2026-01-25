@@ -52,6 +52,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
     private static boolean showNumbers = Options.getInstance().getUiOptions().isShowNumbers();
+    /**
+     * property name of mass spinner
+     */
+    public static final String MASS_PROPERTY = "mass";
 
     /**
      * listener for the show numbers property
@@ -62,6 +66,14 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
     private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 15);
+    /**
+     * default mass
+     */
+    public static final double DEFAULT_MASS = 1.0;
+    /**
+     * property to update position
+     */
+    public static final String POSITION_PROPERTY = "position";
 
     /**
      * @param musician         the {@link Musician} being displayed
@@ -71,10 +83,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.musician = musician;
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
                 _ -> new MusicianComponentOptions());
+        options.addChangeListener(MASS_PROPERTY, this);
+        options.addChangeListener(RADIUS_PROPERTY, this);
+        updatePosition();
         this.setName("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
-        setCircleRadius(Options.getInstance().getUiOptions().getRadius());
+        updateSize(options.getRadius());
     }
 
     @Override
@@ -196,9 +211,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     /**
      * @param circleRadius radius of displayed circle
      */
-    void setCircleRadius(int circleRadius) {
-        options.setRadius(Math.max(0, circleRadius));
-        var dim = new Dimension(circleRadius * 2, circleRadius * 2);
+    void updateSize(int circleRadius) {
+        var diameter = getDiameter();
+        var dim = new Dimension(diameter, diameter);
         setPreferredSize(dim);
         setMinimumSize(dim);
         setSize(dim);
@@ -207,10 +222,11 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof
-
-        ChangeSource(String property, Object newVal) && MusicianComponent.RADIUS_PROPERTY.equals(property)) {
-            this.setCircleRadius((int) newVal);
+        if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
+            if (RADIUS_PROPERTY.equals(property)) {
+                this.updateSize((int) newVal);
+            } else if (POSITION_PROPERTY.equals(property))
+                updatePosition();
         }
     }
 
@@ -269,10 +285,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     Point2D.Double getPosition() { return options.getPosition(); }
 
-    void setPosition(double x, double y) {
-        if (options.isLocked())
-            return;
-        options.getPosition().setLocation(x, y);
+    void updatePosition() {
         updateLocation();
     }
 
@@ -328,10 +341,12 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
          */
         var position = options.getPosition();
         var radius = options.getRadius();
-        setPosition(Math.clamp(position.getX(), radius, width - radius * 3.0),
-                Math.clamp(position.getY(), radius, height - radius * 3.0));
-
+        options.setPosition(new Point2D.Double(Math.clamp(position.getX(), radius, width - radius * 3.0),
+                Math.clamp(position.getY(), radius, height - radius * 3.0)));
+        updatePosition();
     }
+
+    MusicianComponentOptions getOptions() { return options; }
 
     void toggleLocked() {
         options.setLocked(!options.isLocked());
@@ -345,7 +360,4 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     static int getTickLengthMillis() { return tickLengthMillis; }
 
-    void setMass(double mass) {
-        options.setMass(mass);
-    }
 }

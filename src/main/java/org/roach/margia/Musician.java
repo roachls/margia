@@ -4,7 +4,9 @@ import java.beans.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,6 +15,7 @@ import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.storage.MusicianOptions;
 import org.roach.margia.storage.Options;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.ui.PropertyChangeEmitter;
 
 /**
@@ -20,7 +23,7 @@ import org.roach.margia.ui.PropertyChangeEmitter;
  * polls its own message queue and responds to any messages it receives in the
  * order they were received.
  */
-public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
+public class Musician implements PropertyChangeEmitter, PropertyChangeListener, ChangeListener {
     /**
      * property for storing the peer IDs
      */
@@ -29,6 +32,10 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * the property to fire when the last note changes
      */
     public static final String LAST_CHORD_PROPERTY = "lastNote";
+    /**
+     * property fired when the rule changes
+     */
+    public static final String RULE_NAME_PROPERTY = "ruleName";
     /**
      * Minimum velocity a note may be played at
      */
@@ -49,11 +56,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * a rest of 1 tick
      */
     public static final Chord REST = new Chord(Collections.emptySet(), 1, 0);
-    /**
-     * {@link AtomicInteger} that is used to generate the ID of the next musician
-     */
-    public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
-    private final int id;
+    private int id;
     private final MidiController controller;
     private final BlockingQueue<MusicianMessage> messageQueue = new LinkedBlockingQueue<>();
     private final List<Musician> peers = new ArrayList<>();
@@ -69,19 +72,33 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * private constructor - may only be created with factory methods
      */
     private Musician(final int id) {
+        this();
         this.id = id;
         musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
         musicianOptions.setId(id);
+        musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
+    }
+    
+    private Musician(final MusicianOptions options) {
+        this();
+        this.musicianOptions = options;
+        Options.getInstance().getMusicians().put(options.getId(), options);
+        this.id = options.getId();
+        musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
+    }
+    
+    private Musician() {
+        propertyChange = new PropertyChangeSupport(this);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
-        propertyChange = new PropertyChangeSupport(this);
+        
     }
 
     /**
      * @return a new Musician with a generated ID
      */
     public static Musician newInstance() {
-        return new Musician(ID_GENERATOR.getAndIncrement());
+        return new Musician(MusicianOptions.ID_GENERATOR.getAndIncrement());
     }
 
     /**
@@ -207,15 +224,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public boolean isMuted() { return musicianOptions.isMuted(); }
 
     /**
-     * @param muted true to mute this musician. A muted musician won't actually play
-     *              a note to the MIDI controller, but other musicians will still
-     *              hear it.
-     */
-    public void setMuted(boolean muted) {
-        musicianOptions.setMuted(muted);
-    }
-
-    /**
      * @return current number of notes in this {@link Musician musician's} queue
      */
     public int getQueueSize() { return this.messageQueue.size(); }
@@ -236,23 +244,9 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public int getRangeLow() { return musicianOptions.getRange().low(); }
 
     /**
-     * @param rangeLow the lowest note that this musician can play
-     */
-    public void setRangeLow(int rangeLow) {
-        musicianOptions.setRange(musicianOptions.getRange().withLow(rangeLow));
-    }
-
-    /**
      * @return the highest note that this musician can play
      */
     public int getRangeHi() { return musicianOptions.getRange().high(); }
-
-    /**
-     * @param rangeHi the lowest note that this musician can play
-     */
-    public void setRangeHi(int rangeHi) {
-        musicianOptions.setRange(musicianOptions.getRange().withHigh(rangeHi));
-    }
 
     /**
      * @return this {@link Musician}'s range
@@ -263,15 +257,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @return the key that this musician plays in
      */
     public Key getKey() { return Key.BUILTIN_KEYS.get(musicianOptions.getKeyName()); }
-
-    /**
-     * @param key The key for this musician (default is {@link Key#CPentatonic})
-     */
-    public void setKey(Key key) {
-        if (key == null)
-            return;
-        musicianOptions.setKeyName(key.getName());
-    }
 
     /**
      * @return the last chord that this musician played
@@ -342,14 +327,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      */
     public boolean isListening() { return musicianOptions.isListening(); }
 
-    /**
-     * @param listening set to false to have musician ignore incoming notes (may
-     *                  still receive other types of messages
-     */
-    public void setListening(boolean listening) {
-        musicianOptions.setListening(listening);
-    }
-
     @Override
     public String toString() {
         return "Musician [id=" + id + ", options=" + musicianOptions;
@@ -363,13 +340,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     /**
      * @param rule the rule this musician will use for generating notes
      */
-    public void setRule(AbstractMusicianRule rule) {
+    private void setRule(AbstractMusicianRule rule) {
         if (rule == null)
             return;
         this.rule = rule;
         this.rule.setMusician(this);
-        var myOpts = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
-        myOpts.getRuleOptions().setName(rule.getName());
     }
 
     /**
@@ -383,6 +358,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
     public void setChannel(int channel) {
         musicianOptions.setChannel(channel);
     }
+
+    /**
+     * @return this {@link Musician}'s {@link MusicianOptions}
+     */
+    public MusicianOptions getOptions() { return musicianOptions; }
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
@@ -403,9 +383,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
      * @return a new {@link Musician} with the given properties
      */
     public static Musician restoreFromStorage(MusicianOptions props) {
-        Musician m = new Musician(props.getId());
-        m.setChannel(props.getChannel());
-        m.setMuted(props.isMuted());
+        Musician m = new Musician(props);
         var ruleOpts = props.getRuleOptions();
         var ruleName = ruleOpts.getName();
         if (ruleName != null) {
@@ -420,6 +398,25 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener {
             }
         }
         return m;
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String propertyName, Object newValue)) {
+            if (RULE_NAME_PROPERTY.equals(propertyName)) {
+                var ruleName = (String) newValue;
+                if (ruleName != null) {
+                    var availableRules = ServiceLoader.load(MusicianRule.class);
+                    for (var availableRule : availableRules) {
+                        if (ruleName.equals(availableRule.getName())) {
+                            var realRule = ((AbstractMusicianRule) availableRule).copy();
+                            setRule(realRule);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

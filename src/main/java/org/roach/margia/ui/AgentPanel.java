@@ -17,7 +17,9 @@ import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Musician;
 import org.roach.margia.MusicianList;
-import org.roach.margia.rules.*;
+import org.roach.margia.rules.RandomRule;
+import org.roach.margia.rules.StateBasedRule;
+import org.roach.margia.storage.MusicianOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -96,11 +98,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var yRatio = (double) newHeight / (double) oldHeight;
             musicianComponents.values().forEach(mc -> {
                 var locked = mc.isLocked();
-                mc.setLocked(false);
-                mc.setPosition(mc.getPosition().getX() * xRatio, mc.getPosition().getY() * yRatio);
+                var mcOpts = mc.getOptions();
+                mcOpts.setLocked(false);
+                mcOpts.setPosition(
+                        new Point2D.Double(mc.getPosition().getX() * xRatio, mc.getPosition().getY() * yRatio));
                 mc.setVelocity(mc.getVelocity().x() * xRatio, mc.getVelocity().y() * yRatio);
                 // restore to previous locked status
-                mc.setLocked(locked);
+                mcOpts.setLocked(locked);
             });
             oldWidth = newWidth;
             oldHeight = newHeight;
@@ -123,9 +127,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     private MusicianComponent addMusicianComponent(Musician musician) {
         var n = new MusicianComponent(musician);
-        Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, n);
-        n.setPosition(RANDOM.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
-                RANDOM.nextInt(n.getDiameter(), getHeight() - n.getDiameter()));
+        var compOptions = n.getOptions();
+        if (compOptions.getPosition().x == 0.0 && compOptions.getPosition().y == 0.0) {
+            compOptions.setPosition(new Point2D.Double(RANDOM.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
+                    RANDOM.nextInt(n.getDiameter(), getHeight() - n.getDiameter())));
+            n.updatePosition();
+        }
         musicianComponents.put(musician.getId(), n);
         add(n);
         numMusicians = musicianComponents.size();
@@ -369,9 +376,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         private void handleMusicianMove(MouseEvent e) {
             if (movingComponent != null) {
-                movingComponent.setLocked(false);
-                movingComponent.setPosition(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY());
-                movingComponent.setLocked(true);
+                var mcOpts = movingComponent.getOptions();
+                mcOpts.setLocked(false);
+                mcOpts.setPosition(
+                        new Point2D.Double(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
+                mcOpts.setLocked(true);
                 movingComponent.setSelected(false);
                 setCursor(Cursor.getDefaultCursor());
             }
@@ -421,16 +430,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         private void handleAdd(MouseEvent e) {
             var musician = Musician.newInstance();
-            musician.setRule(new RandomRule());
-            musician.setMuted(true);
+            var musOpts = musician.getOptions();
+            musOpts.getRuleOptions().setName(new RandomRule().getName());
+            musOpts.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
             numMusicians = MusicianList.getInstance().numMusicians();
             var musicianComponent = new MusicianComponent(musician);
             musicianComponents.put(musician.getId(), musicianComponent);
-            Options.getInstance().addChangeListener(MusicianComponent.RADIUS_PROPERTY, musicianComponent);
-            musicianComponent.setLocked(false);
-            musicianComponent.setPosition(e.getPoint().getX(), e.getPoint().getY());
-            musicianComponent.setLocked(false);
+            musicianComponent.getOptions().setPosition(new Point2D.Double(e.getX(), e.getY()));
             add(musicianComponent);
         }
 
@@ -439,9 +446,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (mode == EditMode.CONNECT && isConnecting) {
                 endSelection = e.getPoint();
             } else if (mode == EditMode.MOVE && e.getModifiersEx() == BUTTON1 && movingComponent != null) {
-                movingComponent.setLocked(false);
-                movingComponent.setPosition(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY());
-                movingComponent.setLocked(true);
+                var mcOpts = movingComponent.getOptions();
+                mcOpts.setLocked(false);
+                mcOpts.setPosition(
+                        new Point2D.Double(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
+                mcOpts.setLocked(true);
             } else if (e.getModifiersEx() == SHIFT_BUTTON1) {
                 dragEnd = e.getPoint();
             }
@@ -534,19 +543,19 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     void muteAll() {
-        musicianComponents.values().forEach(mc -> mc.getMusician().setMuted(true));
+        musicianComponents.values().forEach(mc -> mc.getMusician().getOptions().setMuted(true));
     }
 
     void unmuteAll() {
-        musicianComponents.values().forEach(mc -> mc.getMusician().setMuted(false));
+        musicianComponents.values().forEach(mc -> mc.getMusician().getOptions().setMuted(false));
     }
 
     void mute(List<MusicianComponent> selectedMusicianComponents) {
-        selectedMusicianComponents.forEach(mc -> mc.getMusician().setMuted(true));
+        selectedMusicianComponents.forEach(mc -> mc.getMusician().getOptions().setMuted(true));
     }
 
     void unmute(List<MusicianComponent> selectedMusicianComponents) {
-        selectedMusicianComponents.forEach(mc -> mc.getMusician().setMuted(false));
+        selectedMusicianComponents.forEach(mc -> mc.getMusician().getOptions().setMuted(false));
     }
 
     void delete(List<MusicianComponent> selectedMusicianComponents) {
@@ -582,12 +591,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void muteSelected() {
         musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().setMuted(true));
+                .forEach(mc -> mc.getMusician().getOptions().setMuted(true));
     }
 
     void unmuteSelected() {
         musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().setMuted(false));
+                .forEach(mc -> mc.getMusician().getOptions().setMuted(false));
     }
 
     void lockSelected() {
@@ -646,15 +655,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         if (this.copiedComponents == null)
             return;
         for (var componentToCopy : copiedComponents) {
-            var musicianToCopy = componentToCopy.getMusician();
-            var newMusician = Musician.newInstance();
-            newMusician.setRule((AbstractMusicianRule) musicianToCopy.getRule());
-            newMusician.setChannel(musicianToCopy.getChannel());
-            newMusician.setKey(musicianToCopy.getKey());
-            newMusician.setMuted(musicianToCopy.isMuted());
-            var newComponent = addMusicianComponent(newMusician);
-            newComponent.setMass(componentToCopy.getMass());
-            newComponent.setCircleRadius(componentToCopy.getRadius());
+            var musicianIdToCopy = componentToCopy.getMusician().getId();
+            var musicianToCopyOpts = componentToCopy.getMusician().getOptions()
+                    .copy(MusicianOptions.ID_GENERATOR.getAndIncrement());
+            var newMusician = Musician.restoreFromStorage(musicianToCopyOpts);
+
+            addMusicianComponent(newMusician);
+            Options.getInstance().getUiOptions().copyMusicianComponentOptions(musicianIdToCopy, newMusician.getId());
         }
         invalidate();
         this.copiedComponents = null;
@@ -673,7 +680,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             return;
         var list = IntStream.range(0, numToAdd).mapToObj(_ -> Musician.newInstance()).toList();
         list.forEach(m -> {
-            m.setRule(new StateBasedRule());
+            m.getOptions().getRuleOptions().setName(new StateBasedRule().getName());
             MusicianList.getInstance().addMusician(m);
         });
         for (int i = 0; i < list.size() - 1; i++) {
@@ -694,6 +701,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
     }
 
+    @SuppressWarnings("java:S3776")
     void addGrid(int numRows, int numCols) {
         if (numRows <= 0 || numCols <= 0)
             return;
@@ -703,7 +711,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             for (var x = 0; x < numCols; x++) {
                 arr[y][x] = Musician.newInstance();
                 MusicianList.getInstance().addMusician(arr[y][x]);
-                arr[y][x].setRule(new StateBasedRule());
+                arr[y][x].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
                 list.add(arr[y][x]);
             }
         }
@@ -731,7 +739,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         var components = list.stream().map(this::addMusicianComponent).toList();
         createEdges(components);
     }
-    
+
     void addNMusicians(int n) {
         if (n < 1)
             return;

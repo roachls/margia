@@ -12,7 +12,6 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 public class UiOptions {
     final ChangeEmitter emitter = new ChangeEmitter();
     private boolean showNumbers = true;
-    private int radius = MusicianComponent.DEFAULT_RADIUS;
     private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
     private int edgeLength = AgentPanel.DEFAULT_EDGE_LENGTH;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
@@ -36,24 +35,6 @@ public class UiOptions {
         if (oldShowNumbers != showNumbers) {
             emitter.fireChangeEvent(MusicianComponent.SHOW_NUMBERS_PROPERTY,
                     new ChangeSource(MusicianComponent.SHOW_NUMBERS_PROPERTY, this.showNumbers));
-            Options.getInstance().setDirty();
-        }
-    }
-
-    /**
-     * @return the radius
-     */
-    public int getRadius() { return radius; }
-
-    /**
-     * @param radius the radius to set
-     */
-    public void setRadius(int radius) {
-        var oldRadius = this.radius;
-        this.radius = radius;
-        if (oldRadius != radius) {
-            emitter.fireChangeEvent(MusicianComponent.RADIUS_PROPERTY,
-                    new ChangeSource(MusicianComponent.RADIUS_PROPERTY, this.radius));
             Options.getInstance().setDirty();
         }
     }
@@ -93,8 +74,24 @@ public class UiOptions {
 
     @Override
     public String toString() {
-        return "UiOptions [showNumbers=" + showNumbers + ", radius=" + radius + ", gravity=" + gravity + ", edgeLength="
-                + edgeLength + ", musicianComponents=" + musicianComponents + "]";
+        return "UiOptions [showNumbers=" + showNumbers + ", gravity=" + gravity + ", edgeLength=" + edgeLength
+                + ", musicianComponents=" + musicianComponents + "]";
+    }
+
+    /**
+     * Creates a copy of the {@link MusicianComponentOptions} with id
+     * {@code musicianIdToCopy} and stores it with the id {@code id}
+     * 
+     * @param musicianIdToCopy id of the component to copy
+     * @param id               new ID
+     */
+    public void copyMusicianComponentOptions(int musicianIdToCopy, int id) {
+        var orig = musicianComponents.get(musicianIdToCopy);
+        if (orig == null)
+            throw new IllegalArgumentException(
+                    "Somehow tried to make a copy of musician component " + musicianIdToCopy + " which doesn't exist");
+        var copy = orig.copy();
+        musicianComponents.put(id, copy);
     }
 
 }
