@@ -30,7 +30,6 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private JSpinner radius;
 
     private JPanel ruleOptsPanel;
-    private HashMap<String, MusicianRule> availableRules;
 
     /**
      * constructor
@@ -205,6 +204,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     }
 
     private JPanel createRuleParamPanel() {
+        HashMap<String, MusicianRule> availableRules;
         // add JPanel for rule params
         var panel = new JPanel();
         var ruleParamsBorder = BorderFactory.createTitledBorder("Rule-specific params");

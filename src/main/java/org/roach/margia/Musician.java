@@ -13,8 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.messages.MusicianMessage;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
-import org.roach.margia.storage.MusicianOptions;
-import org.roach.margia.storage.Options;
+import org.roach.margia.storage.*;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 import org.roach.margia.ui.PropertyChangeEmitter;
 
@@ -78,7 +77,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         musicianOptions.setId(id);
         musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
     }
-    
+
     private Musician(final MusicianOptions options) {
         this();
         this.musicianOptions = options;
@@ -86,12 +85,12 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.id = options.getId();
         musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
     }
-    
+
     private Musician() {
         propertyChange = new PropertyChangeSupport(this);
         this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
-        
+
     }
 
     /**
@@ -386,6 +385,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         Musician m = new Musician(props);
         var ruleOpts = props.getRuleOptions();
         var ruleName = ruleOpts.getName();
+        findRuleFromName(m, ruleOpts, ruleName);
+        return m;
+    }
+
+    private static void findRuleFromName(Musician m, RuleOptions ruleOpts, String ruleName) {
         if (ruleName != null) {
             var availableRules = ServiceLoader.load(MusicianRule.class);
             for (var availableRule : availableRules) {
@@ -397,26 +401,16 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 }
             }
         }
-        return m;
     }
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String propertyName, Object newValue)) {
-            if (RULE_NAME_PROPERTY.equals(propertyName)) {
-                var ruleName = (String) newValue;
-                if (ruleName != null) {
-                    var availableRules = ServiceLoader.load(MusicianRule.class);
-                    for (var availableRule : availableRules) {
-                        if (ruleName.equals(availableRule.getName())) {
-                            var realRule = ((AbstractMusicianRule) availableRule).copy();
-                            setRule(realRule);
-                            break;
-                        }
-                    }
-                }
-            }
+        if (e.getSource() instanceof ChangeSource(String propertyName, Object newValue)
+                && RULE_NAME_PROPERTY.equals(propertyName)) {
+            var ruleName = (String) newValue;
+            findRuleFromName(this, this.musicianOptions.getRuleOptions(), ruleName);
         }
+
     }
 
 }

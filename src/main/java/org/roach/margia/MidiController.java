@@ -35,8 +35,8 @@ public class MidiController implements ChangeListener {
     private MidiDevice outputDevice;
     private Receiver receiver;
     // one executor per MIDI channel
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4,
-            new NamedThreadFactory("controller"));
+    private final ScheduledExecutorService executor = Executors
+            .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
     private final Map<Integer, List<Chord>> chordsToPlayNext = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
@@ -126,6 +126,7 @@ public class MidiController implements ChangeListener {
     /**
      * Actually play notes for this tick to be played
      */
+    @SuppressWarnings("java:S3776")
     public void playChordsThisTick() {
         for (var i = 0; i < 16; i++) {
             var ai = new AtomicInteger(i);
@@ -243,10 +244,10 @@ public class MidiController implements ChangeListener {
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object _)) {
-            if (MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
-                instance.loadMidiDevice(); // value of property doesn't matter
-        }
+        if (e.getSource() instanceof ChangeSource(String property, _)
+                && MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
+            instance.loadMidiDevice(); // value of property doesn't matter
+
     }
 
 }
