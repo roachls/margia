@@ -30,7 +30,9 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
     /**
      * Reset this rule back to its defaults (for rewinds)
      */
-    void reset();
+    default void reset() {
+        // nothing to do
+    }
 
     /**
      * @return settable parameter types

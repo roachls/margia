@@ -12,8 +12,14 @@ class KeyTest {
 
     @ParameterizedTest
     @CsvSource({ "0,3,4", "0,4,5", "7,1,7", "7,2,9", "7,3,11", "7,4,12", "7,5,14", "7,6,16", "7,7,17" })
-    void testUp(int start, int interval, int expected) {
+    void testUpCMajor(int start, int interval, int expected) {
         assertEquals(expected, Key.CMajor.up(start, interval));
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "0,3,2", "0,4,3", "7,1,7", "7,2,8", "7,3,9", "7,4,10", "7,5,11", "7,6,12", "7,7,13" })
+    void testUpChromatic(int start, int interval, int expected) {
+        assertEquals(expected, Key.Chromatic.up(start, interval));
     }
 
     @ParameterizedTest

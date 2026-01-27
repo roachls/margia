@@ -27,13 +27,15 @@ public class MidiController implements ChangeListener {
     /**
      * Default Windows synth
      */
-    private static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
+    public static final String DEFAULT_SYNTH = "Microsoft GS Wavetable Synth";
     /**
      * External MIDI synth via loopMIDI
      */
-    private static final String LOOP_MIDI = "loopMIDI Port";
+    public static final String LOOP_MIDI = "loopMIDI Port";
     private MidiDevice outputDevice;
-    private Receiver receiver;
+    private MidiDevice inputDevice;
+    private Receiver primaryReceiver;
+    private ExternalReceiver externalReceiver;
     // one executor per MIDI channel
     private final ScheduledExecutorService executor = Executors
             .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
@@ -66,7 +68,7 @@ public class MidiController implements ChangeListener {
     /**
      * Load/reload midi device from {@link Options#getMidiOptions()}
      */
-    public void loadMidiDevice() {
+    public void loadMidiOutputDevice() {
         try {
             String busName = Options.getInstance().getMidiOptions().isUseExternalMidi() ? LOOP_MIDI : DEFAULT_SYNTH;
             // Get information about all available MIDI devices
@@ -99,11 +101,40 @@ public class MidiController implements ChangeListener {
 
             outputDevice = selectedDevice;
             outputDevice.open(); // Open the device to use it
-            receiver = outputDevice.getReceiver(); // Get the receiver to send MIDI messages
+            primaryReceiver = outputDevice.getReceiver(); // Get the receiver to send MIDI messages
 
             LOGGER.atInfo().log("Using MIDI output device: {}", outputDevice.getDeviceInfo().getName());
         } catch (MidiUnavailableException e) {
             LOGGER.atError().log("MIDI device {} unavailable", outputDevice.getDeviceInfo().getName(), e);
+        }
+    }
+
+    /**
+     * Scans for an available MIDI input device.
+     * 
+     * @throws MidiUnavailableException
+     */
+    public void findMidiInputDevice() {
+        MidiDevice device;
+        MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
+        for (MidiDevice.Info info : infos) {
+            try {
+                device = MidiSystem.getMidiDevice(info);
+                // Check if device has transmitters and isn't a software synthesizer
+                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)
+                        && info.getName().toLowerCase().contains("axiom")) {
+                    LOGGER.atInfo().log("Using input device {}", info.getName());
+                    inputDevice = device;
+                    inputDevice.open();
+                    var transmitter = inputDevice.getTransmitter();
+                    this.externalReceiver = new ExternalReceiver();
+                    transmitter.setReceiver(externalReceiver);
+                    break;
+                }
+            } catch (MidiUnavailableException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
     }
 
@@ -114,7 +145,7 @@ public class MidiController implements ChangeListener {
      * @param chord       chord to send
      */
     public void playChord(int midiChannel, Chord chord) {
-        if (receiver == null) {
+        if (primaryReceiver == null) {
             LOGGER.atError().log("MIDI receiver not available");
             return;
         }
@@ -161,7 +192,7 @@ public class MidiController implements ChangeListener {
      * Send a clock pulse. Pulses should be sent 24 per beat
      */
     public void sendClockPulse() {
-        receiver.send(timingPulse, -1);
+        primaryReceiver.send(timingPulse, -1);
     }
 
     /**
@@ -171,7 +202,7 @@ public class MidiController implements ChangeListener {
         var startMsg = new ShortMessage();
         try {
             startMsg.setMessage(ShortMessage.START);
-            receiver.send(startMsg, -1);
+            primaryReceiver.send(startMsg, -1);
         } catch (InvalidMidiDataException e) {
             LOGGER.atError().withThrowable(e).log("Error sending MIDI clock start message");
         }
@@ -184,7 +215,7 @@ public class MidiController implements ChangeListener {
         var stopMsg = new ShortMessage();
         try {
             stopMsg.setMessage(ShortMessage.STOP);
-            receiver.send(stopMsg, -1);
+            primaryReceiver.send(stopMsg, -1);
         } catch (InvalidMidiDataException e) {
             LOGGER.atError().withThrowable(e).log("Error sending MIDI clock stop message");
         }
@@ -196,10 +227,11 @@ public class MidiController implements ChangeListener {
         try {
             switch (eventType) {
             case NOTE_ON:
-                receiver.send(new ShortMessage(NOTE_ON, midiChannel, note, velocity), System.currentTimeMillis());
+                primaryReceiver.send(new ShortMessage(NOTE_ON, midiChannel, note, velocity),
+                        System.currentTimeMillis());
                 break;
             case NOTE_OFF:
-                receiver.send(new ShortMessage(NOTE_OFF, midiChannel, note, 0), System.currentTimeMillis());
+                primaryReceiver.send(new ShortMessage(NOTE_OFF, midiChannel, note, 0), System.currentTimeMillis());
 
                 break;
             default:
@@ -220,13 +252,16 @@ public class MidiController implements ChangeListener {
         } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
-        if (receiver != null) {
+        if (primaryReceiver != null) {
             allNotesOff();
-            receiver.close();
+            primaryReceiver.close();
         }
         if (outputDevice != null && outputDevice.isOpen()) {
             outputDevice.close();
         }
+
+        if (inputDevice != null && inputDevice.isOpen())
+            inputDevice.close();
     }
 
     private void allNotesOff() {
@@ -234,7 +269,7 @@ public class MidiController implements ChangeListener {
         try {
             for (var i = 0; i < 16; i++) {
                 for (var n = 0; n < 128; n++) {
-                    receiver.send(new ShortMessage(NOTE_OFF, i, n, 0), -1);
+                    primaryReceiver.send(new ShortMessage(NOTE_OFF, i, n, 0), -1);
                 }
             }
         } catch (InvalidMidiDataException e) {
@@ -246,8 +281,47 @@ public class MidiController implements ChangeListener {
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource(String property, _)
                 && MidiOptions.EXTERNAL_MIDI_PROPERTY.equals(property))
-            instance.loadMidiDevice(); // value of property doesn't matter
+            instance.loadMidiOutputDevice(); // value of property doesn't matter
 
     }
 
+    public ExternalReceiver getExternalReceiver() { return externalReceiver; }
+
+    public class ExternalReceiver implements Receiver {
+        private final List<MidiReceiver> receivers = new ArrayList<>();
+
+        @Override
+        public void send(MidiMessage message, long timeStamp) {
+            // Process the incoming MIDI message
+            if (message instanceof ShortMessage sm) {
+                var channel = sm.getChannel();
+                LOGGER.atTrace().log("Received a {} on channel {}", sm.getClass().getName(), channel);
+                for (var receiver : receivers) {
+                    receiver.receive(sm);
+                }
+//                if (sm.getCommand() == ShortMessage.NOTE_ON && sm.getData1() > 0) {
+//                    System.out.println("Note On: channel " + sm.getChannel() + ", key " + sm.getData1() + ", velocity "
+//                            + sm.getData2());
+//                } else if (sm.getCommand() == ShortMessage.NOTE_OFF
+//                        || (sm.getCommand() == ShortMessage.NOTE_ON && sm.getData2() == 0)) {
+//                    System.out.println("Note Off: channel " + sm.getChannel() + ", key " + sm.getData1());
+//                }
+            } else if (message instanceof SysexMessage) {
+                // TODO handle SysexMessages
+            }
+        }
+
+        public void registerReceiver(MidiReceiver receiver) {
+            this.receivers.add(receiver);
+        }
+
+        @Override
+        public void close() {
+            // nothing to do
+        }
+    }
+
+    public interface MidiReceiver {
+        void receive(ShortMessage message);
+    }
 }
