@@ -112,7 +112,12 @@ public class MidiController implements ChangeListener {
     /**
      * Scans for all available MIDI input devices
      */
-    public void findMidiInputDevice() {
+    public void scanForMidiInputDevices() {
+        for (var inputDevice:inputDevices.values()) {
+            inputDevice.close();
+        }
+        this.inputDevices.clear();
+        this.externalReceivers.clear();
         MidiDevice device;
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         for (MidiDevice.Info info : infos) {
@@ -297,6 +302,12 @@ public class MidiController implements ChangeListener {
      * @return all available input device names
      */
     public List<String> getInputDeviceNames() { return externalReceivers.keySet().stream().toList(); }
+    
+    public void registerWithAllExternalReceivers(MidiReceiver midiReceiver) {
+        for (var externalReceiver : this.externalReceivers.values()) {
+            externalReceiver.registerReceiver(midiReceiver);
+        }
+    }
 
     /**
      * Interested classes may register with an instance of this class to receive

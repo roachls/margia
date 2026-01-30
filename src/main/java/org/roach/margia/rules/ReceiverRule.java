@@ -65,16 +65,7 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
                             "Device {} is not available, musician {} will not be able to receive", deviceName,
                             musician.getId());
             } else {
-                var deviceList = MidiController.getInstance().getInputDeviceNames();
-                for (var device : deviceList) {
-                    var distributor = MidiController.getInstance().getExternalReceiver(device);
-                    if (distributor != null) {
-                        distributor.registerReceiver(this);
-                    } else
-                        musician.getLogger().atWarn().log(
-                                "Device {} is not available, musician {} will not be able to receive from it", device,
-                                musician.getId());
-                }
+                MidiController.getInstance().registerWithAllExternalReceivers(this);
             }
         }
     }

@@ -11,6 +11,7 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 public class MidiOptions {
     private boolean useExternalMidi;
     private boolean sendingMidiTimecode;
+    private boolean autoStartOnNoteOn = true;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -51,6 +52,16 @@ public class MidiOptions {
             Options.getInstance().setDirty();
         }
     }
+
+    /**
+     * @return the autoStartOnNoteOn
+     */
+    public boolean isAutoStartOnNoteOn() { return autoStartOnNoteOn; }
+
+    /**
+     * @param autoStartOnNoteOn the autoStartOnNoteOn to set
+     */
+    public void setAutoStartOnNoteOn(boolean autoStartOnNoteOn) { this.autoStartOnNoteOn = autoStartOnNoteOn; }
 
     /**
      * @param key      name of property being listened for

@@ -85,7 +85,7 @@ public class Options {
             this.storedOptions = loadedOpts;
         }
         MidiController.getInstance().loadMidiOutputDevice();
-        MidiController.getInstance().findMidiInputDevice();
+        MidiController.getInstance().scanForMidiInputDevices();
         restoreMusicians();
         MusicianList.getInstance().getMusicians().keySet().stream().max(Integer::compare)
                 .ifPresent(maxId -> MusicianOptions.ID_GENERATOR.set(maxId + 1));
