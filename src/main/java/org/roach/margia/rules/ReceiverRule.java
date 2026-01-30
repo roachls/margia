@@ -1,6 +1,7 @@
 package org.roach.margia.rules;
 
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 
 import javax.sound.midi.ShortMessage;
 
@@ -8,11 +9,23 @@ import org.roach.margia.Chord;
 import org.roach.margia.MidiController;
 import org.roach.margia.MidiController.MidiReceiver;
 import org.roach.margia.actions.PlayChord;
+import org.roach.margia.storage.Options;
+import org.roach.margia.storage.RuleOptions;
 
 /**
  * Receives and enqueues messages from an external MIDI controller
  */
 public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
+    /**
+     * device name property
+     */
+    public static final String DEVICE_NAME_PROPERTY = "deviceName";
+    /**
+     * special deviceName property representing all devices
+     */
+    public static final String ALL_DEVICES = "All Available Devices";
+
+    private String deviceName;
 
     @Override
     public void calculateAction(long tick) {
@@ -25,14 +38,51 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
     public String getName() { return "receiver"; }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() { return Collections.emptyList(); }
+    public List<SettableParamDescription<?>> getSettableParameters() {
+        return List.of(new SettableParamDescription<String>(DEVICE_NAME_PROPERTY, "Device Name", String.class, null,
+                null, null));
+    }
+
+    /**
+     * @param deviceName the name of the external device from which this object
+     *                   should parse messages
+     */
+    public void setDeviceName(String deviceName) {
+        this.deviceName = deviceName;
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .setRuleSpecificOption(DEVICE_NAME_PROPERTY, deviceName);
+        registerWithExternalReceiver();
+    }
+
+    private void registerWithExternalReceiver() {
+        if (this.deviceName != null) {
+            if (!ALL_DEVICES.equals(this.deviceName)) {
+                var distributor = MidiController.getInstance().getExternalReceiver(this.deviceName);
+                if (distributor != null) {
+                    distributor.registerReceiver(this);
+                } else
+                    musician.getLogger().atWarn().log(
+                            "Device {} is not available, musician {} will not be able to receive", deviceName,
+                            musician.getId());
+            } else {
+                var deviceList = MidiController.getInstance().getInputDeviceNames();
+                for (var device : deviceList) {
+                    var distributor = MidiController.getInstance().getExternalReceiver(device);
+                    if (distributor != null) {
+                        distributor.registerReceiver(this);
+                    } else
+                        musician.getLogger().atWarn().log(
+                                "Device {} is not available, musician {} will not be able to receive from it", device,
+                                musician.getId());
+                }
+            }
+        }
+    }
 
     @Override
     public AbstractMusicianRule copy() {
         var copy = new ReceiverRule();
-        var distributor = MidiController.getInstance().getExternalReceiver();
-        if (distributor != null)
-            distributor.registerReceiver(copy);
+        copy.deviceName = this.deviceName;
         return copy;
     }
 
@@ -45,6 +95,19 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
             logger.atTrace().log("Received NOTE_ON note={}, velocity={}", note, velocity);
             musician.receiveMessage(new Chord(Set.of(note), 1, velocity));
         }
+    }
+
+    @Override
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        super.restoreFromStorage(ruleOptions);
+        if (ruleOptions.getRuleSpecificOptions().containsKey(DEVICE_NAME_PROPERTY)) {
+            this.deviceName = (String) ruleOptions.getRuleSpecificOptions().get(DEVICE_NAME_PROPERTY);
+        }
+    }
+
+    @Override
+    public void initActionsAfterMusicianAssigned() {
+        registerWithExternalReceiver();
     }
 
 }

@@ -33,9 +33,9 @@ public class MidiController implements ChangeListener {
      */
     public static final String LOOP_MIDI = "loopMIDI Port";
     private MidiDevice outputDevice;
-    private MidiDevice inputDevice;
+    private final Map<String, MidiDevice> inputDevices = new HashMap<>();
     private Receiver primaryReceiver;
-    private ExternalReceiver externalReceiver;
+    private final Map<String, ExternalReceiver> externalReceivers = new HashMap<>();
     // one executor per MIDI channel
     private final ScheduledExecutorService executor = Executors
             .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
@@ -110,9 +110,7 @@ public class MidiController implements ChangeListener {
     }
 
     /**
-     * Scans for an available MIDI input device.
-     * 
-     * @throws MidiUnavailableException
+     * Scans for all available MIDI input devices
      */
     public void findMidiInputDevice() {
         MidiDevice device;
@@ -124,16 +122,15 @@ public class MidiController implements ChangeListener {
                 if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)
                         && info.getName().toLowerCase().contains("axiom")) {
                     LOGGER.atInfo().log("Using input device {}", info.getName());
-                    inputDevice = device;
-                    inputDevice.open();
-                    var transmitter = inputDevice.getTransmitter();
-                    this.externalReceiver = new ExternalReceiver();
+                    device.open();
+                    inputDevices.put(info.getName(), device);
+                    var transmitter = device.getTransmitter();
+                    var externalReceiver = new ExternalReceiver();
                     transmitter.setReceiver(externalReceiver);
-                    break;
+                    externalReceivers.put(info.getName(), externalReceiver);
                 }
             } catch (MidiUnavailableException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                LOGGER.atError().withThrowable(e).log("Error opening MIDI device");
             }
         }
     }
@@ -260,8 +257,10 @@ public class MidiController implements ChangeListener {
             outputDevice.close();
         }
 
-        if (inputDevice != null && inputDevice.isOpen())
-            inputDevice.close();
+        for (var inputDevice : inputDevices.values()) {
+            if (inputDevice.isOpen())
+                inputDevice.close();
+        }
     }
 
     private void allNotesOff() {
@@ -285,8 +284,24 @@ public class MidiController implements ChangeListener {
 
     }
 
-    public ExternalReceiver getExternalReceiver() { return externalReceiver; }
+    /**
+     * @param receiverName device name
+     * @return the {@link ExternalReceiver} with the given device name
+     * @see #getInputDeviceNames()
+     */
+    public ExternalReceiver getExternalReceiver(String receiverName) {
+        return externalReceivers.get(receiverName);
+    }
 
+    /**
+     * @return all available input device names
+     */
+    public List<String> getInputDeviceNames() { return externalReceivers.keySet().stream().toList(); }
+
+    /**
+     * Interested classes may register with an instance of this class to receive
+     * incoming MIDI signals
+     */
     public class ExternalReceiver implements Receiver {
         private final List<MidiReceiver> receivers = new ArrayList<>();
 
@@ -299,18 +314,14 @@ public class MidiController implements ChangeListener {
                 for (var receiver : receivers) {
                     receiver.receive(sm);
                 }
-//                if (sm.getCommand() == ShortMessage.NOTE_ON && sm.getData1() > 0) {
-//                    System.out.println("Note On: channel " + sm.getChannel() + ", key " + sm.getData1() + ", velocity "
-//                            + sm.getData2());
-//                } else if (sm.getCommand() == ShortMessage.NOTE_OFF
-//                        || (sm.getCommand() == ShortMessage.NOTE_ON && sm.getData2() == 0)) {
-//                    System.out.println("Note Off: channel " + sm.getChannel() + ", key " + sm.getData1());
-//                }
-            } else if (message instanceof SysexMessage) {
-                // TODO handle SysexMessages
             }
         }
 
+        /**
+         * Registers the given {@code receiver} to receive incoming messages
+         * 
+         * @param receiver the receiver of ShortMessages
+         */
         public void registerReceiver(MidiReceiver receiver) {
             this.receivers.add(receiver);
         }
@@ -321,7 +332,14 @@ public class MidiController implements ChangeListener {
         }
     }
 
+    /**
+     * A class that can register itself with an {@link ExternalReceiver} to receive
+     * messages
+     */
     public interface MidiReceiver {
+        /**
+         * @param message an incoming MIDI {@link ShortMessage}
+         */
         void receive(ShortMessage message);
     }
 }

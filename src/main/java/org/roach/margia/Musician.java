@@ -344,6 +344,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             return;
         this.rule = rule;
         this.rule.setMusician(this);
+        rule.initActionsAfterMusicianAssigned();
     }
 
     /**

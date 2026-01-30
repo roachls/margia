@@ -35,6 +35,11 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
     }
 
     /**
+     * Actions to be performed after this rule is assigned a {@link Musician}
+     */
+    void initActionsAfterMusicianAssigned();
+
+    /**
      * @return settable parameter types
      */
     @SuppressWarnings("java:S1452")
