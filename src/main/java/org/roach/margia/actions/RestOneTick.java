@@ -1,6 +1,6 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Musician;
+import org.roach.margia.controller.Musician;
 
 /**
  * Have the musician rest one tick

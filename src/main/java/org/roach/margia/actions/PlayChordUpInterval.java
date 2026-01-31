@@ -1,6 +1,7 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.*;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.Chord;
 
 /**
  * Command to play the given chord up the given interval

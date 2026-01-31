@@ -2,12 +2,15 @@ package org.roach.margia;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.*;
+import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.timing.TimingSource;
+import org.roach.margia.model.Length;
 import org.roach.margia.storage.Options;
-import org.roach.margia.timing.TimingSource;
-import org.roach.margia.ui.MusicianComponent;
+import org.roach.margia.view.MusicianComponent;
 
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every

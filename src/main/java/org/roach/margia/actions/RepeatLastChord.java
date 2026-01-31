@@ -1,6 +1,6 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Musician;
+import org.roach.margia.controller.Musician;
 
 /**
  * Tell the {@link Musician} to repeat its last chord

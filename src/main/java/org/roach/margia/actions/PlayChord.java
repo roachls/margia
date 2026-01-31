@@ -1,7 +1,7 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Chord;
-import org.roach.margia.Musician;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.Chord;
 
 /**
  * Tells the musician to play the given note

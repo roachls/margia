@@ -1,6 +1,6 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.Musician;
+import org.roach.margia.controller.Musician;
 
 /**
  * Tell the given musician to reset its count of how many chords it has played
