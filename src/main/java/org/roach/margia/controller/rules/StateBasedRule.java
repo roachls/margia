@@ -229,11 +229,8 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     @Override
     public void restoreFromStorage(RuleOptions ruleOptions) {
         super.restoreFromStorage(ruleOptions);
-        var ruleOpts = ruleOptions.getRuleSpecificOptions();
-        if (ruleOpts.containsKey(INITIAL_TICK_DELAY_PROPERTY))
-            this.initialTickDelay = (int) ruleOpts.get(INITIAL_TICK_DELAY_PROPERTY);
-        if (ruleOpts.containsKey(SEQUENCE_LENGTH_PROPERTY))
-            this.sequenceLength = (int) ruleOpts.get(SEQUENCE_LENGTH_PROPERTY);
+        this.initialTickDelay = (int) ruleOptions.getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0);
+        this.sequenceLength = (int) ruleOptions.getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 1);
         ruleOptions.addChangeListener(INITIAL_TICK_DELAY_PROPERTY, this);
         ruleOptions.addChangeListener(SEQUENCE_LENGTH_PROPERTY, this);
     }
@@ -259,8 +256,8 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     public List<SettableParamDescription> getSettableParameters() {
         return List.of(
         // @formatter:off
-            new NumericParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
-            new NumericParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
+            new NumericParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d, 0d),
+            new NumericParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d, 1d)
             // @formatter:on
         );
     }

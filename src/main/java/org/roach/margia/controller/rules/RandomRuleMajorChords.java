@@ -71,9 +71,7 @@ public class RandomRuleMajorChords extends AbstractMusicianRule {
     @Override
     public void restoreFromStorage(RuleOptions ruleOptions) {
         super.restoreFromStorage(ruleOptions);
-        var ruleOpts = ruleOptions.getRuleSpecificOptions();
-        if (ruleOpts.containsKey(FLAVOR_PROPERTY))
-            this.flavor = ChordFlavor.valueOf(ruleOptions.getRuleSpecificOptions().get(FLAVOR_PROPERTY).toString());
-
+        this.flavor = ChordFlavor
+                .valueOf(ruleOptions.getRuleSpecificOptionOrDefault(FLAVOR_PROPERTY, ChordFlavor.MAJOR).toString());
     }
 }

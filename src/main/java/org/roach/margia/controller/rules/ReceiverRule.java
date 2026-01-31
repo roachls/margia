@@ -41,7 +41,7 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
     @Override
     public List<SettableParamDescription> getSettableParameters() {
         return List.of(new StringListParamDescription(DEVICE_NAME_PROPERTY, "Device Name",
-                MidiController.getInstance().getInputDeviceNames()));
+                MidiController.getInstance().getInputDeviceNames(), ALL_DEVICES));
     }
 
     /**
@@ -92,9 +92,7 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
     @Override
     public void restoreFromStorage(RuleOptions ruleOptions) {
         super.restoreFromStorage(ruleOptions);
-        if (ruleOptions.getRuleSpecificOptions().containsKey(DEVICE_NAME_PROPERTY)) {
-            this.deviceName = (String) ruleOptions.getRuleSpecificOptions().get(DEVICE_NAME_PROPERTY);
-        }
+        this.deviceName = (String) ruleOptions.getRuleSpecificOptionOrDefault(DEVICE_NAME_PROPERTY, ALL_DEVICES);
     }
 
     @Override

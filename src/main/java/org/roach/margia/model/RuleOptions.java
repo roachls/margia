@@ -11,6 +11,12 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * Options related to a {@link MusicianRule}
+ * 
+ * Note to implementers: this class is persisted directly to YAML. Do not add
+ * new getters/setters that you don't wanted persisted. If you must add a field
+ * that won't be persisted, use non-JavaBean getters/setters for it, i.e., if
+ * the field is called {@code foo}, use {@code foo()} for a getter and
+ * {@code foo(Foo f)} for a setter.
  */
 public class RuleOptions {
     private String name;
@@ -33,8 +39,7 @@ public class RuleOptions {
         var oldName = this.name;
         this.name = name;
         if (oldName != null && !oldName.equals(this.name)) {
-            emitter.fireChangeEvent(RULE_NAME_PROPERTY,
-                    new ChangeSource(RULE_NAME_PROPERTY, this.name));
+            emitter.fireChangeEvent(RULE_NAME_PROPERTY, new ChangeSource(RULE_NAME_PROPERTY, this.name));
             Options.getInstance().setDirty();
             this.ruleSpecificOptions.clear();
         }
@@ -42,8 +47,22 @@ public class RuleOptions {
 
     /**
      * @return an unmodifiable view of the ruleSpecificOptions
+     * @apiNote This must be here for YAML storage, and it must be public, but it
+     *          should not be used to access any properties. Use instead
+     *          {@link #getRuleSpecificOptionOrDefault(String, Object)}.
      */
     public Map<String, Object> getRuleSpecificOptions() { return Collections.unmodifiableMap(ruleSpecificOptions); }
+
+    /**
+     * @param optionName   name of option
+     * @param defaultValue default value if not found
+     * @return the stored value for the given option, or {@code defaultValue} if not
+     *         found. Normally the only reason it wouldn't be found is that someone
+     *         manually edited a config file and didn't include it.
+     */
+    public Object getRuleSpecificOptionOrDefault(String optionName, Object defaultValue) {
+        return ruleSpecificOptions.getOrDefault(optionName, defaultValue);
+    }
 
     /**
      * @param optionName name of option
@@ -80,6 +99,7 @@ public class RuleOptions {
 
     /**
      * Copies these {@link RuleOptions} into the {@code target}
+     * 
      * @param target target {@link RuleOptions}
      */
     public void copyInto(RuleOptions target) {

@@ -334,9 +334,9 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
                 for (var ruleParam : ruleParams) {
                     paramComps[row].removeAll();
                     switch (ruleParam) {
-                    case NumericParamDescription(String propertyName, String displayName, Class<? extends Number> type, Double minValue, Double maxValue, Double step): {
+                    case NumericParamDescription(String propertyName, String displayName, Class<? extends Number> type, Double minValue, Double maxValue, Double step, Double defaultValue): {
                         var comp = createSpinner(propertyName,
-                                ((Number) ruleOpts.getRuleSpecificOptions().getOrDefault(propertyName, minValue))
+                                ((Number) ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue))
                                         .doubleValue(),
                                 minValue, maxValue, step, type);
                         comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getValue()));
@@ -346,19 +346,19 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
                         row++;
                     }
                         break;
-                    case BooleanParamDescription(String propertyName, String displayName): {
+                    case BooleanParamDescription(String propertyName, String displayName, boolean defaultValue): {
                         var comp = new JCheckBox(displayName);
-                        comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
                         comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.isSelected()));
                         paramComps[row].add(Box.createHorizontalStrut(1));
                         paramComps[row].add(comp);
                         row++;
                     }
                         break;
-                    case StringListParamDescription(String propertyName, String displayName, List<String> possibleValues): {
+                    case StringListParamDescription(String propertyName, String displayName, List<String> possibleValues, String defaultValue): {
                         var model = new DefaultComboBoxModel<String>(possibleValues.toArray(new String[0]));
                         var comp = new JComboBox<String>(model);
-                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
                         comp.addActionListener(
                                 _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
                         var label = new JLabel(displayName);
@@ -371,7 +371,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
                     case EnumParamDescription(String propertyName, String displayName, Enum<?> defaultValue): {
                         @SuppressWarnings("unchecked")
                         var comp = createEnumComboBox(defaultValue.getClass());
-                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
                         comp.addActionListener(
                                 _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
                         var label = new JLabel(displayName);

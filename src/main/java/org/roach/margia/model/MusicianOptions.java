@@ -10,6 +10,12 @@ import org.roach.margia.util.RangeCheck;
 
 /**
  * Options for a specific {@link Musician}
+ * 
+ * Note to implementers: this class is persisted directly to YAML. Do not add
+ * new getters/setters that you don't wanted persisted. If you must add a field
+ * that won't be persisted, use non-JavaBean getters/setters for it, i.e., if
+ * the field is called {@code foo}, use {@code foo()} for a getter and
+ * {@code foo(Foo f)} for a setter.
  */
 public class MusicianOptions {
     private String busName = ALL_BUSSES;
