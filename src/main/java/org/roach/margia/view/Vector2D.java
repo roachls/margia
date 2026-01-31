@@ -77,4 +77,29 @@ public record Vector2D(double x, double y) {
     public Vector2D(Point2D origin, Point2D target) {
         this(target.getX() - origin.getX(), target.getY() - origin.getY());
     }
+
+    /**
+     * @return a vector that is this vector rotated clockwise by 90 degrees
+     */
+    public Vector2D rotateClockwise90() {
+        return new Vector2D(y, -x);
+    }
+
+    /**
+     * @return a vector that is this vector normalized to a magnitude of 1; in the
+     *         special case of a zero-length vector, a copy of the original vector
+     *         will be returned
+     */
+    public Vector2D normalize() {
+        if (this.magnitude() == 0.0)
+            return new Vector2D(x, y);
+        return this.divide(magnitude());
+    }
+
+    /**
+     * @return a vector that is this vector flipped to point the opposite direction
+     */
+    public Vector2D flip() {
+        return new Vector2D(-x, -y);
+    }
 }

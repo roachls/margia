@@ -67,7 +67,7 @@ class Vector2DTest {
         assertEquals(ex, newVec.x(), 1e-9);
         assertEquals(ey, newVec.y(), 1e-9);
     }
-    
+
     @Test
     void testDivideByZero() {
         var vec = new Vector2D(1, 2);
@@ -102,6 +102,35 @@ class Vector2DTest {
         var sum = v1.subtract(v2);
         assertEquals(ex, sum.x(), 1e-6);
         assertEquals(ey, sum.y(), 1e-6);
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "1,0,1,0,1", "0,1,0,1,1", "4,5,0.6246950475544243,0.7808688094430304,1",
+            "-1.2,4.6,-0.25242189714700275,0.9676172723968439,1", "0,0,0,0,0" })
+    void testNormalize(double x, double y, double ex, double ey, double expMag) {
+        var v = new Vector2D(x, y);
+        var n = assertDoesNotThrow(v::normalize);
+        assertEquals(expMag, n.magnitude(), 1e-8);
+        assertEquals(ex, n.x());
+        assertEquals(ey, n.y());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "1,0,0,-1", "0,1,1,-0", "4,5,5,-4", "-1.2,4.6,4.6,1.2", "0,0,0,-0" })
+    void testRotate(double x, double y, double ex, double ey) {
+        var v = new Vector2D(x, y);
+        var n = assertDoesNotThrow(v::rotateClockwise90);
+        assertEquals(ex, n.x());
+        assertEquals(ey, n.y());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "1,0,-1,-0", "0,1,-0,-1", "4,5,-4,-5", "-1.2,4.6,1.2,-4.6", "0,0,-0,-0" })
+    void testflip(double x, double y, double ex, double ey) {
+        var v = new Vector2D(x, y);
+        var n = assertDoesNotThrow(v::flip);
+        assertEquals(ex, n.x());
+        assertEquals(ey, n.y());
     }
 
 }

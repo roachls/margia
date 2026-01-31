@@ -13,6 +13,7 @@ import org.roach.margia.storage.Persistence;
 class OptionsWindow extends JDialog {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
     private JSpinner gravity;
+    private JSpinner windSpeed;
     private JSpinner edgeLength;
     private JCheckBox showIcons;
 
@@ -79,6 +80,10 @@ class OptionsWindow extends JDialog {
                 Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
         var gravityLabel = createLabelFor("Gravitational Constant", gravity);
+        windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(), -200.0, 200.0, 0.1,
+                Double.class);
+        windSpeed.addChangeListener(_ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
+        var windSpeedLabel = createLabelFor("WindSpeed", windSpeed);
         edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
         edgeLength.addChangeListener(
@@ -95,6 +100,11 @@ class OptionsWindow extends JDialog {
         panel.add(gravityLabel, c);
         c.gridx = 1;
         panel.add(gravity, c);
+        c.gridx = 0;
+        c.gridy = row++;
+        panel.add(windSpeedLabel, c);
+        c.gridx = 1;
+        panel.add(windSpeed, c);
         c.gridx = 0;
         c.gridy = row++;
         panel.add(edgeLengthLabel, c);
@@ -201,5 +211,6 @@ class OptionsWindow extends JDialog {
         gravity.setValue(options.getUiOptions().getGravity());
         showIcons.setSelected(options.getUiOptions().isShowNumbers());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());
+        windSpeed.setValue(options.getUiOptions().getWindSpeed());
     }
 }

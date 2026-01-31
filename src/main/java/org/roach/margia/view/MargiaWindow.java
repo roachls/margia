@@ -79,7 +79,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         musicianOptionsWindow = new MusicianOptionWindow();
         optionsWindow = new OptionsWindow();
         updateTitle();
-        Options.getInstance().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
+        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();

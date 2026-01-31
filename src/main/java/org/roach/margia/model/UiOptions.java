@@ -19,9 +19,10 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  */
 public class UiOptions {
     final ChangeEmitter emitter = new ChangeEmitter();
+
     @Override
     public int hashCode() {
-        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers);
+        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
     }
 
     @Override
@@ -35,12 +36,14 @@ public class UiOptions {
         UiOptions other = (UiOptions) obj;
         return edgeLength == other.edgeLength
                 && Double.doubleToLongBits(gravity) == Double.doubleToLongBits(other.gravity)
-                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers;
+                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers
+                && Double.doubleToLongBits(windSpeed) == Double.doubleToLongBits(other.windSpeed);
     }
 
     private boolean showNumbers = true;
-    private double gravity = UiOptions.DEFAULT_GRAVITATIONAL_CONSTANT;
-    private int edgeLength = UiOptions.DEFAULT_EDGE_LENGTH;
+    private double gravity = DEFAULT_GRAVITATIONAL_CONSTANT;
+    private int edgeLength = DEFAULT_EDGE_LENGTH;
+    private double windSpeed = DEFAULT_WINDSPEED;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
     /**
      * property name of whether to show numbers
@@ -54,10 +57,8 @@ public class UiOptions {
      * default edge length
      */
     public static final int DEFAULT_EDGE_LENGTH = 60;
-    /**
-     * default gravitational constant
-     */
-    public static final double DEFAULT_GRAVITATIONAL_CONSTANT = 5.0;
+    private static final double DEFAULT_GRAVITATIONAL_CONSTANT = 5.0;
+    private static final double DEFAULT_WINDSPEED = 0.0;
 
     /**
      * @return the musicianComponents
@@ -113,10 +114,28 @@ public class UiOptions {
         }
     }
 
+    /**
+     * @return the windSpeed; positive numbers are clockwise, negative numbers are
+     *         counter-clockwise
+     */
+    public double getWindSpeed() { return windSpeed; }
+
+    /**
+     * @param windSpeed the windSpeed to set; positive numbers are clockwise,
+     *                  negative numbers are counter-clockwise
+     */
+    public void setWindSpeed(double windSpeed) {
+        var oldWindSpeed = this.windSpeed;
+        this.windSpeed = windSpeed;
+        if (oldWindSpeed != this.windSpeed) {
+            Options.getInstance().setDirty();
+        }
+    }
+
     @Override
     public String toString() {
         return "UiOptions [showNumbers=" + showNumbers + ", gravity=" + gravity + ", edgeLength=" + edgeLength
-                + ", musicianComponents=" + musicianComponents + "]";
+                + ", windSpeed=" + windSpeed + ", musicianComponents=" + musicianComponents + "]";
     }
 
     /**
