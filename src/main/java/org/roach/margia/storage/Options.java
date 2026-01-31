@@ -84,7 +84,7 @@ public class Options {
         if (loadedOpts != null) {
             this.storedOptions = loadedOpts;
         }
-        MidiController.getInstance().loadMidiOutputDevice();
+        MidiController.getInstance().scanForMidiOutputDevices();
         MidiController.getInstance().scanForMidiInputDevices();
         restoreMusicians();
         MusicianList.getInstance().getMusicians().keySet().stream().max(Integer::compare)

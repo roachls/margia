@@ -11,6 +11,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Key;
+import org.roach.margia.MidiController;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.storage.*;
@@ -27,6 +28,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private JComboBox<String> key;
     private JSpinner rangeLow;
     private JSpinner rangeHi;
+    private JComboBox<String> bus;
     private JSpinner channel;
     private JSpinner mass;
     private JSpinner radius;
@@ -171,6 +173,14 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         var rangeHiLabel = createLabelFor("High note", rangeHi);
         channel = createSpinner("MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
         var channelLabel = createLabelFor("MIDI Channel", channel);
+        var availableDevices = new TreeSet<String>();
+        availableDevices.add("");
+        availableDevices.add(MusicianOptions.ALL_BUSSES);
+        availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
+        var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
+        bus = new JComboBox<>(busModel);
+        var busLabel = new JLabel("MIDI Bus");
+        busLabel.setLabelFor(bus);
 
         var c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
@@ -179,26 +189,30 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        var row = 0;
         c.gridx = 0;
-        c.gridy = row++;
+        c.gridy = 0;
         panel.add(rangeLowLabel, c);
         c.gridx = 1;
         panel.add(rangeLow, c);
         c.gridx = 0;
-        c.gridy = row++;
+        c.gridy++;
         panel.add(rangeHiLabel, c);
         c.gridx = 1;
         panel.add(rangeHi, c);
         c.gridx = 0;
-        c.gridy = row++;
+        c.gridy++;
         panel.add(channelLabel, c);
         c.gridx = 1;
         panel.add(channel, c);
+        c.gridx = 0;
+        c.gridy++;
+        panel.add(busLabel, c);
+        c.gridx = 1;
+        panel.add(bus, c);
 
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
-        c.gridy = row++;
+        c.gridy++;
         c.weighty = 1.0; // Give all extra vertical space to this row
         c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
         panel.add(Box.createVerticalGlue(), c);
@@ -258,6 +272,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
 
     private ActionListener ruleActionListener;
     private ActionListener keyActionListener;
+    private ActionListener busActionListener;
     private ChangeListener channelChangeListener;
     private ChangeListener rangeLowChangeListener;
     private ChangeListener rangeHiChangeListener;
@@ -295,6 +310,9 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             rangeHi.setValue(musOpts.getRange().high());
             rangeHiChangeListener = _ -> musOpts.setRange(musOpts.getRange().withHigh((int) rangeHi.getValue()));
             rangeHi.addChangeListener(rangeHiChangeListener);
+            bus.setSelectedItem(musOpts.getBusName());
+            busActionListener = _ -> musOpts.setBusName((String) bus.getSelectedItem());
+            bus.addActionListener(busActionListener);
             channel.setValue(musOpts.getChannel());
             channelChangeListener = _ -> musOpts.setChannel((int) channel.getValue());
             channel.addChangeListener(channelChangeListener);
@@ -375,7 +393,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
 
     private static <E extends Enum<E>> JComboBox<E> createEnumComboBox(Class<E> clazz) {
         var model = new DefaultComboBoxModel<E>(clazz.getEnumConstants());
-        return new JComboBox<E>(model);
+        return new JComboBox<>(model);
     }
 
     private void resetUiAndListeners() {
@@ -404,6 +422,11 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             channelChangeListener = null;
         }
         channel.setValue(0);
+        if (busActionListener != null) {
+            bus.removeActionListener(busActionListener);
+            busActionListener = null;
+        }
+        bus.setSelectedItem("");
         if (massChangeListener != null) {
             mass.removeChangeListener(massChangeListener);
             massChangeListener = null;

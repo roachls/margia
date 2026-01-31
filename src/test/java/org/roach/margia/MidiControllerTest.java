@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.roach.margia.storage.MusicianOptions;
 import org.roach.margia.storage.Options;
 
 class MidiControllerTest {
@@ -18,11 +19,11 @@ class MidiControllerTest {
         Options.getInstance().getMusicOptions().setTempo(60);
         Options.getInstance().getMidiOptions().setUseExternalMidi(false);
         var controller = MidiController.getInstance();
-        controller.loadMidiOutputDevice();
+        controller.scanForMidiOutputDevices();
         for (var note = 48; note < 84; note++) {
             logger.atInfo().log("Playing {}", note);
             var chord = new Chord(Set.of(note, note + 4, note + 7), 1, 70);
-            controller.playChord(0, chord);
+            controller.playChord(MusicianOptions.ALL_BUSSES, 0, chord);
             controller.playChordsThisTick();
             Thread.sleep(250);
         }
