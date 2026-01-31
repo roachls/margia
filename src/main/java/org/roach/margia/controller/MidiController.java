@@ -116,9 +116,13 @@ public class MidiController implements ChangeListener {
             try {
                 device = MidiSystem.getMidiDevice(info);
                 // Check if device has transmitters and isn't a software synthesizer
-                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)
-                        && info.getName().toLowerCase().contains("axiom")) {
-                    LOGGER.atInfo().log("Using input device {}", info.getName());
+                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)) {
+                    LOGGER.atDebug().log("Found input device {}", info.getName());
+                    var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
+                    if (similarNameExists)
+                        continue;
+                    LOGGER.atInfo().log("Adding input device {} ({}:{})", info.getName(), info.getVendor(),
+                            info.getVersion());
                     device.open();
                     inputDevices.put(info.getName(), device);
                     var transmitter = device.getTransmitter();

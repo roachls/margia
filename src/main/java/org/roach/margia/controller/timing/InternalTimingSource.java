@@ -145,4 +145,9 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
         }
     }
 
+    @Override
+    public String toString() {
+        return "InternalTimingSource";
+    }
+
 }

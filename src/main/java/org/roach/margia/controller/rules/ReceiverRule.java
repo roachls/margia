@@ -136,4 +136,10 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
         }
     }
 
+    @Override
+    public String toString() {
+        return "ReceiverRule [musicianId=" + (musician == null ? -1 : musician.getId()) + ", deviceName=" + deviceName
+                + "]";
+    }
+
 }
