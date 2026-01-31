@@ -13,6 +13,8 @@ import org.roach.margia.actions.PlayChord;
 import org.roach.margia.actions.PlayChordUpInterval;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.storage.params.NumericParamDescription;
+import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
@@ -64,11 +66,11 @@ public class UpFourthRule extends AbstractMusicianRule implements ChangeListener
         }
         tickCountdown = chord.getLength();
 
-            if (!Musician.REST.equals(chord)) { // note a rest
-                actionsToTake.add(new PlayChordUpInterval(musician, chord, 6));
-            } else {
-                actionsToTake.add(new PlayChord(musician, chord));
-            }
+        if (!Musician.REST.equals(chord)) { // note a rest
+            actionsToTake.add(new PlayChordUpInterval(musician, chord, 6));
+        } else {
+            actionsToTake.add(new PlayChord(musician, chord));
+        }
 
         if (sequenceCountdown <= 0) {
             sequenceCountdown = sequenceLength;
@@ -176,11 +178,11 @@ public class UpFourthRule extends AbstractMusicianRule implements ChangeListener
     }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() {
+    public List<SettableParamDescription> getSettableParameters() {
         return List.of(
         // @formatter:off
-            new SettableParamDescription<Integer>(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
-            new SettableParamDescription<Integer>(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
+            new NumericParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
+            new NumericParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
             // @formatter:on
         );
     }

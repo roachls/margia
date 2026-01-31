@@ -308,6 +308,10 @@ public class MidiController implements ChangeListener {
      *                     connected to
      */
     public void registerWithAllExternalReceivers(MidiReceiver midiReceiver) {
+        if (this.externalReceivers.isEmpty()) {
+            LOGGER.atError().log("No external input devices have been registered");
+            return;
+        }
         for (var externalReceiver : this.externalReceivers.values()) {
             externalReceiver.registerReceiver(midiReceiver);
         }

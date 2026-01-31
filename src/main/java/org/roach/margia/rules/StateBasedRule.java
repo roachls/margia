@@ -12,6 +12,8 @@ import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.storage.params.NumericParamDescription;
+import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
@@ -255,11 +257,11 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() {
+    public List<SettableParamDescription> getSettableParameters() {
         return List.of(
         // @formatter:off
-            new SettableParamDescription<Integer>(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
-            new SettableParamDescription<Integer>(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
+            new NumericParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d),
+            new NumericParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d)
             // @formatter:on
         );
     }

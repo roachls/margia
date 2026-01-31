@@ -5,6 +5,7 @@ import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.VetoableChangeListener;
 import java.util.*;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
@@ -13,6 +14,7 @@ import org.roach.margia.Key;
 import org.roach.margia.rules.AbstractMusicianRule;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.storage.*;
+import org.roach.margia.storage.params.*;
 
 /**
  * GUI and musical options
@@ -129,8 +131,8 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.gridx = 1;
         panel.add(mass, c);
 
-        radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, (double) MusicianComponentOptions.DEFAULT_RADIUS, 1d, 50d,
-                1d, Integer.class);
+        radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY,
+                (double) MusicianComponentOptions.DEFAULT_RADIUS, 1d, 50d, 1d, Integer.class);
         var radiusLabel = createLabelFor("Radius", radius);
         c.gridx = 0;
         c.gridy = row++;
@@ -312,33 +314,68 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
                 var row = 0;
                 for (var ruleParam : ruleParams) {
                     paramComps[row].removeAll();
-                    if (Number.class.isAssignableFrom(ruleParam.type())) {
-                        @SuppressWarnings("unchecked")
-                        var comp = createSpinner(ruleParam.propertyName(),
-                                ((Number) ruleOpts.getRuleSpecificOptions().getOrDefault(ruleParam.propertyName(),
-                                        ruleParam.minValue())).doubleValue(),
-                                ruleParam.minValue(), ruleParam.maxValue(), ruleParam.step(),
-                                (Class<? extends Number>) ruleParam.type());
-                        comp.addChangeListener(
-                                _ -> ruleOpts.setRuleSpecificOption(ruleParam.propertyName(), comp.getValue()));
-                        var label = createLabelFor(ruleParam.displayName(), comp);
+                    switch (ruleParam) {
+                    case NumericParamDescription(String propertyName, String displayName, Class<? extends Number> type, Double minValue, Double maxValue, Double step): {
+                        var comp = createSpinner(propertyName,
+                                ((Number) ruleOpts.getRuleSpecificOptions().getOrDefault(propertyName, minValue))
+                                        .doubleValue(),
+                                minValue, maxValue, step, type);
+                        comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getValue()));
+                        var label = createLabelFor(displayName, comp);
                         paramComps[row].add(label);
                         paramComps[row].add(comp);
                         row++;
-                    } else if (Boolean.class.equals(ruleParam.type())) {
-                        var comp = new JCheckBox(ruleParam.displayName());
-                        comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptions().get(ruleParam.propertyName()));
-                        comp.addChangeListener(
-                                _ -> ruleOpts.setRuleSpecificOption(ruleParam.propertyName(), comp.isSelected()));
+                    }
+                        break;
+                    case BooleanParamDescription(String propertyName, String displayName): {
+                        var comp = new JCheckBox(displayName);
+                        comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.isSelected()));
                         paramComps[row].add(Box.createHorizontalStrut(1));
                         paramComps[row].add(comp);
                         row++;
+                    }
+                        break;
+                    case StringListParamDescription(String propertyName, String displayName, List<String> possibleValues): {
+                        var model = new DefaultComboBoxModel<String>(possibleValues.toArray(new String[0]));
+                        var comp = new JComboBox<String>(model);
+                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.addActionListener(
+                                _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
+                        var label = new JLabel(displayName);
+                        label.setLabelFor(comp);
+                        paramComps[row].add(label);
+                        paramComps[row].add(comp);
+                        row++;
+                    }
+                        break;
+                    case EnumParamDescription(String propertyName, String displayName, Enum<?> defaultValue): {
+                        @SuppressWarnings("unchecked")
+                        var comp = createEnumComboBox(defaultValue.getClass());
+                        comp.setSelectedItem(ruleOpts.getRuleSpecificOptions().get(propertyName));
+                        comp.addActionListener(
+                                _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
+                        var label = new JLabel(displayName);
+                        label.setLabelFor(comp);
+                        paramComps[row].add(label);
+                        paramComps[row].add(comp);
+                        row++;
+                    }
+                        break;
+                    default:
+                        throw new IllegalArgumentException(
+                                "I haven't been programmed to understand a " + ruleParam.getClass().getName());
                     }
                 }
                 ruleOptsPanel.revalidate();
                 ruleOptsPanel.repaint();
             });
         }
+    }
+
+    private static <E extends Enum<E>> JComboBox<E> createEnumComboBox(Class<E> clazz) {
+        var model = new DefaultComboBoxModel<E>(clazz.getEnumConstants());
+        return new JComboBox<E>(model);
     }
 
     private void resetUiAndListeners() {
