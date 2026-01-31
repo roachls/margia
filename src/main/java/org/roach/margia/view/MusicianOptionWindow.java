@@ -313,6 +313,8 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
 
             // populate rulesPanel
             var selectedRule = (AbstractMusicianRule) selectedMusician.getMusician().getRule();
+            if (selectedRule == null)
+                return;
             var ruleParams = selectedRule.getSettableParameters();
             var ruleOpts = Options.getInstance().getMusicians().get(selectedMusician.getMusician().getId())
                     .getRuleOptions();

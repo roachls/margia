@@ -776,6 +776,51 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         createEdges(components);
     }
 
+    /**
+     * Direction in which fan peer relationships should be constructed
+     */
+    public enum FanDirection {
+        /**
+         * node to children
+         */
+        DOWN,
+        /**
+         * node to parent
+         */
+        UP,
+        /**
+         * node to children and parent
+         */
+        BIDIRECTIONAL;
+    }
+
+    @SuppressWarnings("java:S3776")
+    void addFan(int levels, FanDirection direction) {
+        if (levels <= 2 || levels > 10)
+            return;
+        var num = Math.powExact(2, levels) - 1;
+        var numWithConnections = Math.powExact(2, levels - 1) - 1;
+        var arr = new Musician[num];
+        for (var y = 0; y < num; y++) {
+            arr[y] = Musician.newInstance();
+            MusicianList.getInstance().addMusician(arr[y]);
+            arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
+        }
+        // make connections
+        for (var y = 0; y < num; y++) {
+            if (direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL && y < numWithConnections) {
+                arr[y].addPeer(arr[y * 2 + 1]);
+                arr[y].addPeer(arr[y * 2 + 2]);
+            }
+            if (direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL && y > 0) {
+                arr[y].addPeer(arr[y / 2]);
+            }
+        }
+        var components = Arrays.asList(arr).stream().map(this::addMusicianComponent).toList();
+
+        createEdges(components);
+    }
+
     void addNMusicians(int n) {
         if (n < 1)
             return;

@@ -1,10 +1,11 @@
 package org.roach.margia.controller.rules;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.sound.midi.ShortMessage;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.roach.margia.actions.PlayChord;
 import org.roach.margia.controller.MidiController;
@@ -14,11 +15,12 @@ import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.storage.params.StringListParamDescription;
+import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * Receives and enqueues messages from an external MIDI controller
  */
-public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
+public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, ChangeListener {
     /**
      * device name property
      */
@@ -115,6 +117,23 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
     @Override
     public void initActionsAfterMusicianAssigned() {
         registerWithExternalReceiver();
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .addChangeListener(RuleOptions.RULE_SPECIFIC_OPTIONS_PROPERTY, this);
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String prop, Object value)
+                && RuleOptions.RULE_SPECIFIC_OPTIONS_PROPERTY.equals(prop)) {
+            @SuppressWarnings("unchecked")
+            var newOpts = (Map<String, Object>) value;
+            var oldDeviceName = this.deviceName;
+            this.deviceName = (String) newOpts.get(DEVICE_NAME_PROPERTY);
+            if (!this.deviceName.equals(oldDeviceName)) {
+                MidiController.getInstance().getExternalReceiver(oldDeviceName).unregisterReceiver(this);
+                MidiController.getInstance().getExternalReceiver(this.deviceName).registerReceiver(this);
+            }
+        }
     }
 
 }

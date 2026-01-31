@@ -26,6 +26,10 @@ public class RuleOptions {
      * property fired when the rule changes
      */
     public static final String RULE_NAME_PROPERTY = "ruleName";
+    /**
+     * property fired when rule-specific options change
+     */
+    public static final String RULE_SPECIFIC_OPTIONS_PROPERTY = "rule-specific options";
 
     /**
      * @return the name
@@ -70,8 +74,11 @@ public class RuleOptions {
      */
     public void setRuleSpecificOption(String optionName, Object value) {
         var oldValue = this.ruleSpecificOptions.put(optionName, value);
-        if (!Objects.equals(oldValue, value))
+        if (!Objects.equals(oldValue, value)) {
             Options.getInstance().setDirty();
+            emitter.fireChangeEvent(RULE_SPECIFIC_OPTIONS_PROPERTY,
+                    new ChangeSource(RULE_SPECIFIC_OPTIONS_PROPERTY, this.ruleSpecificOptions));
+        }
     }
 
     /**
