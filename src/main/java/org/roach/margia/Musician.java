@@ -24,17 +24,9 @@ import org.roach.margia.ui.PropertyChangeEmitter;
  */
 public class Musician implements PropertyChangeEmitter, PropertyChangeListener, ChangeListener {
     /**
-     * property for storing the peer IDs
-     */
-    public static final String PEER_IDS_PROPERTY = "peerIds";
-    /**
      * the property to fire when the last note changes
      */
     public static final String LAST_CHORD_PROPERTY = "lastNote";
-    /**
-     * property fired when the rule changes
-     */
-    public static final String RULE_NAME_PROPERTY = "ruleName";
     /**
      * Minimum velocity a note may be played at
      */
@@ -75,7 +67,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.id = id;
         musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
         musicianOptions.setId(id);
-        musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
+        musicianOptions.getRuleOptions().addChangeListener(RuleOptions.RULE_NAME_PROPERTY, this);
     }
 
     private Musician(final MusicianOptions options) {
@@ -83,7 +75,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         this.musicianOptions = options;
         Options.getInstance().getMusicians().put(options.getId(), options);
         this.id = options.getId();
-        musicianOptions.getRuleOptions().addChangeListener(RULE_NAME_PROPERTY, this);
+        musicianOptions.getRuleOptions().addChangeListener(RuleOptions.RULE_NAME_PROPERTY, this);
     }
 
     private Musician() {
@@ -407,7 +399,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     @Override
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource(String propertyName, Object newValue)
-                && RULE_NAME_PROPERTY.equals(propertyName)) {
+                && RuleOptions.RULE_NAME_PROPERTY.equals(propertyName)) {
             var ruleName = (String) newValue;
             findRuleFromName(this, this.musicianOptions.getRuleOptions(), ruleName);
         }

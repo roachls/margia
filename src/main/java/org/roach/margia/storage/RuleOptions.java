@@ -4,7 +4,6 @@ import java.util.*;
 
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Musician;
 import org.roach.margia.rules.MusicianRule;
 import org.roach.margia.ui.ChangeEmitter;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -16,6 +15,10 @@ public class RuleOptions {
     private String name;
     private final Map<String, Object> ruleSpecificOptions = new LinkedHashMap<>();
     private final ChangeEmitter emitter = new ChangeEmitter();
+    /**
+     * property fired when the rule changes
+     */
+    public static final String RULE_NAME_PROPERTY = "ruleName";
 
     /**
      * @return the name
@@ -29,8 +32,8 @@ public class RuleOptions {
         var oldName = this.name;
         this.name = name;
         if (oldName != null && !oldName.equals(this.name)) {
-            emitter.fireChangeEvent(Musician.RULE_NAME_PROPERTY,
-                    new ChangeSource(Musician.RULE_NAME_PROPERTY, this.name));
+            emitter.fireChangeEvent(RULE_NAME_PROPERTY,
+                    new ChangeSource(RULE_NAME_PROPERTY, this.name));
             Options.getInstance().setDirty();
             this.ruleSpecificOptions.clear();
         }

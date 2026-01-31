@@ -20,7 +20,6 @@ import org.roach.margia.MusicianList;
 import org.roach.margia.rules.RandomRule;
 import org.roach.margia.rules.StateBasedRule;
 import org.roach.margia.storage.*;
-import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
@@ -50,19 +49,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private MusicianOptions copiedMusicianOptions;
     private static final Random RANDOM = new SecureRandom();
 
-    /**
-     * default edge length
-     */
-    public static final int DEFAULT_EDGE_LENGTH = 60;
-    /**
-     * default gravitational constant
-     */
-    public static final double DEFAULT_GRAVITATIONAL_CONSTANT = 5.0;
-    /**
-     * property name of edge length spinner
-     */
-    public static final String EDGE_LENGTH_PROPERTY = "ui.edge_length";
-
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
 
@@ -74,12 +60,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
      */
     public AgentPanel() {
         setLayout(null);
-        Options.getInstance().addChangeListener(EDGE_LENGTH_PROPERTY, this);
+        Options.getInstance().addChangeListener(UiOptions.EDGE_LENGTH_PROPERTY, this);
         setDoubleBuffered(true);
         setBackground(Color.LIGHT_GRAY);
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
         addComponentListener(new Resizer());
+        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }
 
     void init() {
@@ -207,7 +194,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var peerIds = mus.peerIds();
             for (var peerId : peerIds) {
                 edges.add(new Edge(musicianComponents.get(id), musicianComponents.get(peerId),
-                        AgentPanel.DEFAULT_EDGE_LENGTH));
+                        UiOptions.DEFAULT_EDGE_LENGTH));
             }
         }
     }
@@ -398,7 +385,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                             edges.remove(connection);
                         }, () -> {
                             source.getMusician().addPeer(target.getMusician());
-                            edges.add(new Edge(source, target, DEFAULT_EDGE_LENGTH));
+                            edges.add(new Edge(source, target, UiOptions.DEFAULT_EDGE_LENGTH));
                         });
                 source.setSelected(false);
                 this.source = null;
@@ -503,11 +490,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
             switch (key) {
-            case AgentPanel.EDGE_LENGTH_PROPERTY:
+            case UiOptions.EDGE_LENGTH_PROPERTY:
                 var len = (int) newValue;
                 edges.forEach(edge -> edge.idealLength = len);
                 break;
-            case TimingSource.TEMPO_PROPERTY:
+            case MusicOptions.TEMPO_PROPERTY:
                 this.tickLengthMillis = 60000 / ((int) newValue * 24);
                 MusicianComponent.setTickLengthMillis(tickLengthMillis);
                 break;
@@ -623,8 +610,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 var mus2 = mc2.getMusician();
                 mus1.addPeer(mus2);
                 mus2.addPeer(mus1);
-                edges.add(new Edge(mc1, mc2, DEFAULT_EDGE_LENGTH));
-                edges.add(new Edge(mc2, mc1, DEFAULT_EDGE_LENGTH));
+                edges.add(new Edge(mc1, mc2, UiOptions.DEFAULT_EDGE_LENGTH));
+                edges.add(new Edge(mc2, mc1, UiOptions.DEFAULT_EDGE_LENGTH));
             }
         }
     }
@@ -651,7 +638,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     void copySelectedComponents() {
         this.copiedComponents = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
     }
-    
+
     void copySelectedComponentOptions() {
         var firstSelected = musicianComponents.values().stream().filter(MusicianComponent::isSelected).findAny();
         firstSelected.ifPresent(c -> {
@@ -696,7 +683,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.copiedComponents = null;
         deselectAll();
     }
-    
+
     void pasteSettings() {
         if (this.copiedComponentOptions == null || this.copiedMusicianOptions == null)
             return;

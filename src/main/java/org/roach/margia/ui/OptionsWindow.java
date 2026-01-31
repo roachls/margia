@@ -6,8 +6,7 @@ import java.awt.event.ComponentEvent;
 
 import javax.swing.*;
 
-import org.roach.margia.storage.Options;
-import org.roach.margia.storage.Persistence;
+import org.roach.margia.storage.*;
 
 class OptionsWindow extends JDialog {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
@@ -78,7 +77,7 @@ class OptionsWindow extends JDialog {
                 Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
         var gravityLabel = createLabelFor("Gravitational Constant", gravity);
-        edgeLength = createSpinner(AgentPanel.EDGE_LENGTH_PROPERTY,
+        edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
         edgeLength.addChangeListener(
                 _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));

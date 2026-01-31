@@ -20,6 +20,10 @@ public class MusicianOptions {
     private String keyName = Key.Chromatic.getName();
     private NoteRange range = new NoteRange(48, 92);
     /**
+     * property for storing the peer IDs
+     */
+    public static final String PEER_IDS_PROPERTY = "peerIds";
+    /**
      * {@link AtomicInteger} that is used to generate the ID of the next musician
      */
     public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);

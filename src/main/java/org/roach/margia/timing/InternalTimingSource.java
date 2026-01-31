@@ -13,6 +13,7 @@ import javax.swing.event.ChangeListener;
 import org.roach.margia.MidiController;
 import org.roach.margia.Transport;
 import org.roach.margia.MidiController.MidiReceiver;
+import org.roach.margia.storage.MusicOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
@@ -35,7 +36,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
     public InternalTimingSource(Transport transport) {
         this.transport = transport;
         clockExecutor = Executors.newSingleThreadScheduledExecutor();
-        Options.getInstance().getMusicOptions().addChangeListener(TEMPO_PROPERTY, this);
+        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
         updateTempo();
         MidiController.getInstance().registerWithAllExternalReceivers(this);
     }
@@ -87,7 +88,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs && TEMPO_PROPERTY.equals(cs.key())) {
+        if (e.getSource() instanceof ChangeSource cs && MusicOptions.TEMPO_PROPERTY.equals(cs.key())) {
             updateTempo();
         }
     }
@@ -114,6 +115,14 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
                 transport.reset();
             } else if (message.getData1() == 1) {
 //                System.out.println("mod wheel: " + message.getData2());
+            } else if (message.getData1() == Options.getInstance().getMidiOptions().getTempoController()) {
+                var opts = Options.getInstance().getMusicOptions();
+                var min = opts.getTempoMinimum();
+                var max = opts.getTempoMaximum();
+                var input = message.getData2();
+                var newTempo = (int) (input / 127d * (max - min) + min);
+                Options.getInstance().getMusicOptions().setTempo(newTempo);
+                updateTempo();
             } else {
 //                System.out.printf("Control change: %d %d%n", message.getData1(), message.getData2());
             }

@@ -129,7 +129,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.gridx = 1;
         panel.add(mass, c);
 
-        radius = createSpinner(MusicianComponent.RADIUS_PROPERTY, (double) MusicianComponent.DEFAULT_RADIUS, 1d, 50d,
+        radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, (double) MusicianComponentOptions.DEFAULT_RADIUS, 1d, 50d,
                 1d, Integer.class);
         var radiusLabel = createLabelFor("Radius", radius);
         c.gridx = 0;
@@ -376,7 +376,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             radius.removeChangeListener(radiusChangeListener);
             radiusChangeListener = null;
         }
-        radius.setValue(MusicianComponent.DEFAULT_RADIUS);
+        radius.setValue(MusicianComponentOptions.DEFAULT_RADIUS);
         for (var paramPanel : paramComps) {
             paramPanel.removeAll();
             paramPanel.revalidate();

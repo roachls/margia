@@ -113,7 +113,7 @@ public class MidiController implements ChangeListener {
      * Scans for all available MIDI input devices
      */
     public void scanForMidiInputDevices() {
-        for (var inputDevice:inputDevices.values()) {
+        for (var inputDevice : inputDevices.values()) {
             inputDevice.close();
         }
         this.inputDevices.clear();
@@ -302,7 +302,11 @@ public class MidiController implements ChangeListener {
      * @return all available input device names
      */
     public List<String> getInputDeviceNames() { return externalReceivers.keySet().stream().toList(); }
-    
+
+    /**
+     * @param midiReceiver receiver that doesn't care about which device it is
+     *                     connected to
+     */
     public void registerWithAllExternalReceivers(MidiReceiver midiReceiver) {
         for (var externalReceiver : this.externalReceivers.values()) {
             externalReceiver.registerReceiver(midiReceiver);
