@@ -32,7 +32,7 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
             return;
         }
         for (var action : actionsToTake) {
-            logger.atDebug().log("{}: performing action {}", action.getClass().getSimpleName());
+            logger.atDebug().log("{}: performing action {}", musician.getId(), action.getClass().getSimpleName());
             action.perform();
         }
         actionsToTake.clear();
@@ -56,5 +56,5 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
     public void initActionsAfterMusicianAssigned() {
         // to be implemented by children
     }
-    
+
 }
