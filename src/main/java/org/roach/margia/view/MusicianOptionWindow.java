@@ -31,7 +31,6 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private JSpinner rangeHi;
     private JComboBox<String> bus;
     private JSpinner channel;
-    private JSpinner mass;
     private JSpinner radius;
 
     private JPanel ruleOptsPanel;
@@ -125,27 +124,19 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        mass = createSpinner("Mass", 1d, 0.1d, 100d, 0.1d, Double.class);
-        var massLabel = createLabelFor("Mass", mass);
-        var row = 0;
-        c.gridx = 0;
-        c.gridy = row++;
-        panel.add(massLabel, c);
-        c.gridx = 1;
-        panel.add(mass, c);
-
         radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY,
                 (double) MusicianComponentOptions.DEFAULT_RADIUS, 1d, 50d, 1d, Integer.class);
         var radiusLabel = createLabelFor("Radius", radius);
         c.gridx = 0;
-        c.gridy = row++;
+        c.gridy = 0;
         panel.add(radiusLabel, c);
         c.gridx = 1;
         panel.add(radius, c);
 
         // Add a "filler" component to absorb extra vertical space
         // This pushes all previous components to the top of the container
-        c.gridy = row++;
+        c.gridx = 0;
+        c.gridy++;
         c.weighty = 1.0; // Give all extra vertical space to this row
         c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
         panel.add(Box.createVerticalGlue(), c);
@@ -278,7 +269,6 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
     private ChangeListener rangeLowChangeListener;
     private ChangeListener rangeHiChangeListener;
     private MusicianComponent selectedMusician;
-    private ChangeListener massChangeListener;
     private ChangeListener radiusChangeListener;
 
     @Override
@@ -317,9 +307,6 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             channel.setValue(musOpts.getChannel());
             channelChangeListener = _ -> musOpts.setChannel((int) channel.getValue());
             channel.addChangeListener(channelChangeListener);
-            mass.setValue(compOpts.getMass());
-            massChangeListener = _ -> compOpts.setMass((double) mass.getValue());
-            mass.addChangeListener(massChangeListener);
             radius.setValue(compOpts.getRadius());
             radiusChangeListener = _ -> compOpts.setRadius((int) radius.getValue());
             radius.addChangeListener(radiusChangeListener);
@@ -428,11 +415,6 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             busActionListener = null;
         }
         bus.setSelectedItem("");
-        if (massChangeListener != null) {
-            mass.removeChangeListener(massChangeListener);
-            massChangeListener = null;
-        }
-        mass.setValue(MusicianComponent.DEFAULT_MASS);
         if (radiusChangeListener != null) {
             radius.removeChangeListener(radiusChangeListener);
             radiusChangeListener = null;

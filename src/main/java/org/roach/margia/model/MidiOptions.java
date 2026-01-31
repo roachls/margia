@@ -1,5 +1,7 @@
 package org.roach.margia.model;
 
+import java.util.Objects;
+
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.storage.Options;
@@ -96,6 +98,25 @@ public class MidiOptions {
 
     @Override
     public String toString() {
-        return "MidiOptions [useExternalMidi=" + useExternalMidi + ", controlDawTiming=" + sendingMidiTimecode + "]";
+        return "MidiOptions [useExternalMidi=" + useExternalMidi + ", sendingMidiTimecode=" + sendingMidiTimecode
+                + ", autoStartOnNoteOn=" + autoStartOnNoteOn + ", tempoController=" + tempoController + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(autoStartOnNoteOn, sendingMidiTimecode, tempoController, useExternalMidi);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MidiOptions other = (MidiOptions) obj;
+        return autoStartOnNoteOn == other.autoStartOnNoteOn && sendingMidiTimecode == other.sendingMidiTimecode
+                && tempoController == other.tempoController && useExternalMidi == other.useExternalMidi;
     }
 }

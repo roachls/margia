@@ -22,7 +22,7 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
 /**
  * GUI element that displays an agent as a colored circle
  */
-@SuppressWarnings({ "java:S1948" })
+@SuppressWarnings({ "java:S1948", "java:S115" })
 public class MusicianComponent extends JComponent implements PropertyChangeListener, ChangeListener {
     private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
     private final Musician musician;
@@ -48,10 +48,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
     private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 15);
-    /**
-     * default mass
-     */
-    public static final double DEFAULT_MASS = 1.0;
+
+    private static final double ρ = 0.00009;
+
     /**
      * @param musician         the {@link Musician} being displayed
      * @param tickLengthMillis length of a tick in milliseconds
@@ -60,7 +59,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.musician = musician;
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
                 _ -> new MusicianComponentOptions());
-        options.addChangeListener(MusicianComponentOptions.MASS_PROPERTY, this);
         options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY, this);
         updatePosition();
         this.setName("Musician_" + musician.getId());
@@ -258,7 +256,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     public void setEdited(boolean edited) { this.edited = edited; }
 
-    double getMass() { return options.getMass(); }
+    /**
+     * Mass is ρ * 4/3 * πr^3, where ρ = density
+     * 
+     * @return the mass of the component
+     */
+    double getMass() {
+        var r = options.getRadius();
+        return (4d / 3d) * Math.PI * Math.pow(r, 3) * ρ;
+    }
 
     Point2D.Double getPosition() { return options.getPosition(); }
 
@@ -298,7 +304,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     }
 
     void applyForces() {
-        var scaledForceVec = force.divide(options.getMass()).multiply(TIMESTEP);
+        var scaledForceVec = force.divide(getMass()).multiply(TIMESTEP);
         velocity = velocity.add(scaledForceVec).multiply(DAMPING);
         var scaledVelocity = velocity.multiply(TIMESTEP);
         var position = options.getPosition();

@@ -1,7 +1,6 @@
 package org.roach.margia.model;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import javax.swing.event.ChangeListener;
 
@@ -20,6 +19,25 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  */
 public class UiOptions {
     final ChangeEmitter emitter = new ChangeEmitter();
+    @Override
+    public int hashCode() {
+        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        UiOptions other = (UiOptions) obj;
+        return edgeLength == other.edgeLength
+                && Double.doubleToLongBits(gravity) == Double.doubleToLongBits(other.gravity)
+                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers;
+    }
+
     private boolean showNumbers = true;
     private double gravity = UiOptions.DEFAULT_GRAVITATIONAL_CONSTANT;
     private int edgeLength = UiOptions.DEFAULT_EDGE_LENGTH;

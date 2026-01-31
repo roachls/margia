@@ -82,11 +82,6 @@ public class RuleOptions {
         this.emitter.addChangeListener(key, listener);
     }
 
-    @Override
-    public String toString() {
-        return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
-    }
-
     /**
      * @return a new {@link RuleOptions} instance that is a copy of this one
      */
@@ -106,6 +101,28 @@ public class RuleOptions {
         target.setName(this.name);
         target.ruleSpecificOptions.clear();
         target.ruleSpecificOptions.putAll(ruleSpecificOptions);
+    }
+
+    @Override
+    public String toString() {
+        return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, ruleSpecificOptions);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RuleOptions other = (RuleOptions) obj;
+        return Objects.equals(name, other.name) && Objects.equals(ruleSpecificOptions, other.ruleSpecificOptions);
     }
 
 }

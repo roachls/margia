@@ -1,5 +1,7 @@
 package org.roach.margia.model;
 
+import java.util.Objects;
+
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.storage.Options;
@@ -76,6 +78,24 @@ public class MusicOptions {
 
     @Override
     public String toString() {
-        return "MusicOptions [tempo=" + tempo + "]";
+        return "MusicOptions [tempo=" + tempo + ", tempoMinimum=" + tempoMinimum + ", tempoMaximum=" + tempoMaximum
+                + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tempo, tempoMaximum, tempoMinimum);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MusicOptions other = (MusicOptions) obj;
+        return tempo == other.tempo && tempoMaximum == other.tempoMaximum && tempoMinimum == other.tempoMinimum;
     }
 }

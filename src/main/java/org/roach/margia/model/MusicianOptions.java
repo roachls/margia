@@ -1,7 +1,6 @@
 package org.roach.margia.model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.roach.margia.controller.Musician;
@@ -18,6 +17,26 @@ import org.roach.margia.util.RangeCheck;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicianOptions {
+    @Override
+    public int hashCode() {
+        return Objects.hash(busName, channel, id, keyName, listening, muted, peerIds, range, ruleOptions);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MusicianOptions other = (MusicianOptions) obj;
+        return Objects.equals(busName, other.busName) && channel == other.channel && id == other.id
+                && Objects.equals(keyName, other.keyName) && listening == other.listening && muted == other.muted
+                && Objects.equals(peerIds, other.peerIds) && Objects.equals(range, other.range)
+                && Objects.equals(ruleOptions, other.ruleOptions);
+    }
+
     private String busName = ALL_BUSSES;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
@@ -149,8 +168,9 @@ public class MusicianOptions {
 
     @Override
     public String toString() {
-        return "MusicianOptions [channel=" + channel + ", peerIds=" + peerIds + ", muted=" + muted + ", id=" + id
-                + ", ruleOptions=" + ruleOptions + ", keyName=" + keyName + "]";
+        return "MusicianOptions [id=" + id + ", busName=" + busName + ", channel=" + channel + ", peerIds=" + peerIds
+                + ", muted=" + muted + ", listening=" + listening + ", ruleOptions=" + ruleOptions + ", keyName="
+                + keyName + ", range=" + range + "]";
     }
 
     /**
