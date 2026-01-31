@@ -5,15 +5,6 @@ package org.roach.margia.timing;
  */
 public interface TimingSource {
     /**
-     * Default tempo
-     */
-    static final int DEFAULT_TEMPO = 60;
-    /**
-     * the property fired when the tempo changes
-     */
-    String TEMPO_PROPERTY = "music.tempo";
-
-    /**
      * Start the clock
      */
     void start();

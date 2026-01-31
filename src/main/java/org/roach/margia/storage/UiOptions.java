@@ -12,9 +12,25 @@ import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 public class UiOptions {
     final ChangeEmitter emitter = new ChangeEmitter();
     private boolean showNumbers = true;
-    private double gravity = AgentPanel.DEFAULT_GRAVITATIONAL_CONSTANT;
-    private int edgeLength = AgentPanel.DEFAULT_EDGE_LENGTH;
+    private double gravity = UiOptions.DEFAULT_GRAVITATIONAL_CONSTANT;
+    private int edgeLength = UiOptions.DEFAULT_EDGE_LENGTH;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
+    /**
+     * property name of whether to show numbers
+     */
+    public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
+    /**
+     * property name of edge length spinner
+     */
+    public static final String EDGE_LENGTH_PROPERTY = "ui.edge_length";
+    /**
+     * default edge length
+     */
+    public static final int DEFAULT_EDGE_LENGTH = 60;
+    /**
+     * default gravitational constant
+     */
+    public static final double DEFAULT_GRAVITATIONAL_CONSTANT = 5.0;
 
     /**
      * @return the musicianComponents
@@ -33,8 +49,7 @@ public class UiOptions {
         var oldShowNumbers = this.showNumbers;
         this.showNumbers = showNumbers;
         if (oldShowNumbers != showNumbers) {
-            emitter.fireChangeEvent(MusicianComponent.SHOW_NUMBERS_PROPERTY,
-                    new ChangeSource(MusicianComponent.SHOW_NUMBERS_PROPERTY, this.showNumbers));
+            emitter.fireChangeEvent(SHOW_NUMBERS_PROPERTY, new ChangeSource(SHOW_NUMBERS_PROPERTY, this.showNumbers));
             Options.getInstance().setDirty();
         }
     }
@@ -66,8 +81,7 @@ public class UiOptions {
         var oldEdgeLength = this.edgeLength;
         this.edgeLength = edgeLength;
         if (oldEdgeLength != edgeLength) {
-            emitter.fireChangeEvent(AgentPanel.EDGE_LENGTH_PROPERTY,
-                    new ChangeSource(AgentPanel.EDGE_LENGTH_PROPERTY, this.edgeLength));
+            emitter.fireChangeEvent(EDGE_LENGTH_PROPERTY, new ChangeSource(EDGE_LENGTH_PROPERTY, this.edgeLength));
             Options.getInstance().setDirty();
         }
     }

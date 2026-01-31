@@ -6,8 +6,7 @@ import java.awt.event.ComponentEvent;
 
 import javax.swing.*;
 
-import org.roach.margia.storage.Options;
-import org.roach.margia.storage.Persistence;
+import org.roach.margia.storage.*;
 
 class OptionsWindow extends JDialog {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
@@ -78,7 +77,7 @@ class OptionsWindow extends JDialog {
                 Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
         var gravityLabel = createLabelFor("Gravitational Constant", gravity);
-        edgeLength = createSpinner(AgentPanel.EDGE_LENGTH_PROPERTY,
+        edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
         edgeLength.addChangeListener(
                 _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
@@ -146,19 +145,31 @@ class OptionsWindow extends JDialog {
         c.insets = new Insets(5, 5, 5, 5);
 
         var external = new JCheckBox("Use External MIDI");
-        external.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
         var sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
         sendMidiTimecode.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
         sendMidiTimecode.setSelected(Options.getInstance().getMidiOptions().isSendingMidiTimecode());
+        sendMidiTimecode.setEnabled(external.isSelected());
+        var autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
+        autoStartOnNoteOn.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
+        autoStartOnNoteOn.setSelected(Options.getInstance().getMidiOptions().isAutoStartOnNoteOn());
+        autoStartOnNoteOn.setEnabled(external.isSelected());
+
+        external.addActionListener(_ -> {
+            Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
+            sendMidiTimecode.setEnabled(external.isSelected());
+            autoStartOnNoteOn.setEnabled(external.isSelected());
+        });
 
         c.gridx = 0;
         c.gridy = 0;
         midiPanel.add(external, c);
-        c.gridy = 1;
+        c.gridy++;
         midiPanel.add(sendMidiTimecode, c);
+        c.gridy++;
+        midiPanel.add(autoStartOnNoteOn, c);
         return midiPanel;
     }
 

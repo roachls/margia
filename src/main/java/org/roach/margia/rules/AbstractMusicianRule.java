@@ -51,4 +51,10 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
     public void restoreFromStorage(RuleOptions ruleOptions) {
         // nothing here
     }
+
+    @Override
+    public void initActionsAfterMusicianAssigned() {
+        // to be implemented by children
+    }
+    
 }

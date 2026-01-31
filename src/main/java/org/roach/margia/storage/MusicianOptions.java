@@ -11,6 +11,7 @@ import org.roach.margia.util.RangeCheck;
  * Options for a specific {@link Musician}
  */
 public class MusicianOptions {
+    private String busName = ALL_BUSSES;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
     private boolean muted;
@@ -20,9 +21,34 @@ public class MusicianOptions {
     private String keyName = Key.Chromatic.getName();
     private NoteRange range = new NoteRange(48, 92);
     /**
+     * property for storing the peer IDs
+     */
+    public static final String PEER_IDS_PROPERTY = "peerIds";
+    /**
      * {@link AtomicInteger} that is used to generate the ID of the next musician
      */
     public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
+    /**
+     * special value of busName to indicate all/any available busses
+     */
+    public static final String ALL_BUSSES = "All available outputs";
+
+    /**
+     * @return the busName
+     */
+    public String getBusName() { return busName; }
+
+    /**
+     * @param busName the busName to set
+     */
+    public void setBusName(String busName) {
+        if (busName == null)
+            return;
+        var oldBusName = this.busName;
+        this.busName = busName;
+        if (oldBusName != null && !oldBusName.equals(this.busName))
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the channel
@@ -32,7 +58,12 @@ public class MusicianOptions {
     /**
      * @param channel the channel to set
      */
-    public void setChannel(int channel) { this.channel = RangeCheck.check("MIDI channel", channel, 0, 16); }
+    public void setChannel(int channel) {
+        var oldChannel = this.channel;
+        this.channel = RangeCheck.check("MIDI channel", channel, 0, 16);
+        if (oldChannel != this.channel)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the peerIds
@@ -132,6 +163,7 @@ public class MusicianOptions {
         copy.keyName = keyName;
         copy.range = range.copy();
         copy.id = newId;
+        copy.busName = busName;
         return copy;
     }
 

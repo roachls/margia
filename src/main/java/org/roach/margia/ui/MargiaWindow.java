@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.Transport;
 import org.roach.margia.storage.Options;
+import org.roach.margia.storage.UiOptions;
 import org.roach.margia.timing.TimingSource;
 import org.roach.margia.ui.AgentPanel.EditMode;
 import org.roach.margia.ui.ChangeEmitter.ChangeSource;
@@ -78,13 +79,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         musicianOptionsWindow = new MusicianOptionWindow();
         optionsWindow = new OptionsWindow();
         updateTitle();
-        Options.getInstance().addChangeListener(MusicianComponent.SHOW_NUMBERS_PROPERTY,
+        Options.getInstance().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
         agentPanel.setBounds(0, 0, 1000, 1000);
         agentPanel.addVetoableChangeListener(musicianOptionsWindow);
-        transportPanel.addTempoListener(agentPanel);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 
         var palette1 = createToolPalette();

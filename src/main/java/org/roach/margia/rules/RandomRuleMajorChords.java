@@ -6,6 +6,8 @@ import org.roach.margia.Chord;
 import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
 import org.roach.margia.storage.RuleOptions;
+import org.roach.margia.storage.params.EnumParamDescription;
+import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.ui.ChordFlavor;
 
 /**
@@ -58,10 +60,10 @@ public class RandomRuleMajorChords extends AbstractMusicianRule {
     }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() {
+    public List<SettableParamDescription> getSettableParameters() {
         return List.of(
         // @formatter:off
-            new SettableParamDescription<ChordFlavor>(FLAVOR_PROPERTY, "Chord flavor", ChordFlavor.class, 0d, 100d, 1d)
+            new EnumParamDescription(FLAVOR_PROPERTY, "Chord flavor", ChordFlavor.MAJOR)
             // @formatter:on
         );
     }

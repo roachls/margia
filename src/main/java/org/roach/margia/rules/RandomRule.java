@@ -6,6 +6,7 @@ import java.util.List;
 import org.roach.margia.Chord;
 import org.roach.margia.Musician;
 import org.roach.margia.actions.*;
+import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
  * Random-note generator
@@ -55,5 +56,5 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public List<SettableParamDescription<?>> getSettableParameters() { return Collections.emptyList(); }
+    public List<SettableParamDescription> getSettableParameters() { return Collections.emptyList(); }
 }

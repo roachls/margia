@@ -6,16 +6,21 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-<!-- 		<Logger name="Musician_16" level="debug" additivity="false"> -->
-<!-- 			<AppenderRef ref="Console" /> -->
-<!-- 		</Logger> -->
-<!-- 		<Logger name="Musician_13" level="debug" additivity="false"> -->
-<!-- 			<AppenderRef ref="Console" /> -->
-<!-- 		</Logger> -->
-		<Logger name="org.roach.margia.rules.StateBasedRule" level="info" additivity="false">
+		<!-- <Logger name="Musician_0" level="trace" additivity="false"> -->
+		<!-- <AppenderRef ref="Console" /> -->
+		<!-- </Logger> -->
+		<Logger name="Musician_16" level="debug" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.rules.StateBasedRule"
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.Transport" level="info"
+			additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.MidiController" level="debug"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>

@@ -39,24 +39,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private static final double TIMESTEP = 0.8; // Simulation speed/stability
     private final MusicianComponentOptions options;
 
-    /**
-     * default radius of musician components
-     */
-    public static final int DEFAULT_RADIUS = 20;
-    /**
-     * property name of radius spinner
-     */
-    public static final String RADIUS_PROPERTY = "ui.radius";
-    /**
-     * property name of whether to show numbers
-     */
-    public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
     private static boolean showNumbers = Options.getInstance().getUiOptions().isShowNumbers();
-    /**
-     * property name of mass spinner
-     */
-    public static final String MASS_PROPERTY = "mass";
-
     /**
      * listener for the show numbers property
      */
@@ -71,11 +54,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     public static final double DEFAULT_MASS = 1.0;
     /**
-     * property to update position
-     */
-    public static final String POSITION_PROPERTY = "position";
-
-    /**
      * @param musician         the {@link Musician} being displayed
      * @param tickLengthMillis length of a tick in milliseconds
      */
@@ -83,8 +61,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.musician = musician;
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
                 _ -> new MusicianComponentOptions());
-        options.addChangeListener(MASS_PROPERTY, this);
-        options.addChangeListener(RADIUS_PROPERTY, this);
+        options.addChangeListener(MusicianComponentOptions.MASS_PROPERTY, this);
+        options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY, this);
         updatePosition();
         this.setName("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
@@ -223,9 +201,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public void stateChanged(ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
-            if (RADIUS_PROPERTY.equals(property)) {
+            if (MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
                 this.updateSize((int) newVal);
-            } else if (POSITION_PROPERTY.equals(property))
+            } else if (MusicianComponentOptions.POSITION_PROPERTY.equals(property))
                 updatePosition();
         }
     }

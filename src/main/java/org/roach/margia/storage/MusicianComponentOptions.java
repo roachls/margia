@@ -16,8 +16,24 @@ public class MusicianComponentOptions {
     private boolean locked;
     private final Point2D.Double position = new Point2D.Double();
     private double mass = 1.0;
-    private int radius = MusicianComponent.DEFAULT_RADIUS;
+    private int radius = MusicianComponentOptions.DEFAULT_RADIUS;
     private final ChangeEmitter emitter = new ChangeEmitter();
+    /**
+     * property to update position
+     */
+    public static final String POSITION_PROPERTY = "position";
+    /**
+     * property name of mass spinner
+     */
+    public static final String MASS_PROPERTY = "mass";
+    /**
+     * property name of radius spinner
+     */
+    public static final String RADIUS_PROPERTY = "ui.radius";
+    /**
+     * default radius of musician components
+     */
+    public static final int DEFAULT_RADIUS = 20;
 
     /**
      * @return the position
@@ -46,8 +62,7 @@ public class MusicianComponentOptions {
         var oldMass = this.mass;
         this.mass = RangeCheck.check("mass", mass, 0.1, 100.0);
         if (oldMass != this.mass) {
-            emitter.fireChangeEvent(MusicianComponent.MASS_PROPERTY,
-                    new ChangeSource(MusicianComponent.MASS_PROPERTY, this.mass));
+            emitter.fireChangeEvent(MASS_PROPERTY, new ChangeSource(MASS_PROPERTY, this.mass));
             Options.getInstance().setDirty();
         }
     }
@@ -63,8 +78,7 @@ public class MusicianComponentOptions {
         if (!oldPosition.equals(this.position)) {
             // value of position is irrelevant because the MusicianComponent
             // will simply call updatePosition
-            emitter.fireChangeEvent(MusicianComponent.POSITION_PROPERTY,
-                    new ChangeSource(MusicianComponent.POSITION_PROPERTY, null));
+            emitter.fireChangeEvent(POSITION_PROPERTY, new ChangeSource(POSITION_PROPERTY, null));
         }
     }
 
@@ -86,8 +100,7 @@ public class MusicianComponentOptions {
         var oldRadius = this.radius;
         this.radius = radius;
         if (oldRadius != radius) {
-            emitter.fireChangeEvent(MusicianComponent.RADIUS_PROPERTY,
-                    new ChangeSource(MusicianComponent.RADIUS_PROPERTY, this.radius));
+            emitter.fireChangeEvent(RADIUS_PROPERTY, new ChangeSource(RADIUS_PROPERTY, this.radius));
             Options.getInstance().setDirty();
         }
     }

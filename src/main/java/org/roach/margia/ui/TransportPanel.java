@@ -5,17 +5,20 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.Transport;
+import org.roach.margia.storage.MusicOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.timing.TimingSource;
+import org.roach.margia.ui.ChangeEmitter.ChangeSource;
 
 /**
  * Swing UI for controlling / viewing the {@link Transport} and
  * {@link TimingSource}
  */
-public class TransportPanel extends JPanel implements PropertyChangeListener {
+public class TransportPanel extends JPanel implements PropertyChangeListener, ChangeListener {
     private final JLabel measure;
     private final JLabel beat;
     private final JLabel clockPulse;
@@ -53,7 +56,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         var startIcon = Icons.getButtonIcon(Icons.START);
         var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
         var pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
-        
+
         var startBtn = new JButton(startIcon);
         startBtn.addActionListener(_ -> {
             if (timing.isRunning()) {
@@ -72,6 +75,8 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
             startBtn.setIcon(startIcon);
         });
         add(rewindBtn);
+
+        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }
 
     @Override
@@ -96,10 +101,12 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         });
     }
 
-    /**
-     * @param listener a listener for tempo changes
-     */
-    public void addTempoListener(ChangeListener listener) {
-        this.tempo.addChangeListener(listener);
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String key, Object newValue)
+                && MusicOptions.TEMPO_PROPERTY.equals(key)) {
+            tempo.setValue((int) newValue);
+        }
     }
+
 }
