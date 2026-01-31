@@ -95,6 +95,8 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void receive(ShortMessage message) {
+        if (!Options.getInstance().getMidiOptions().isUseExternalMidi())
+            return;
         switch (message.getCommand()) {
         case ShortMessage.START, ShortMessage.CONTINUE:
             start();

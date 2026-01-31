@@ -145,19 +145,31 @@ class OptionsWindow extends JDialog {
         c.insets = new Insets(5, 5, 5, 5);
 
         var external = new JCheckBox("Use External MIDI");
-        external.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected()));
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
         var sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
         sendMidiTimecode.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
         sendMidiTimecode.setSelected(Options.getInstance().getMidiOptions().isSendingMidiTimecode());
+        sendMidiTimecode.setEnabled(external.isSelected());
+        var autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
+        autoStartOnNoteOn.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
+        autoStartOnNoteOn.setSelected(Options.getInstance().getMidiOptions().isAutoStartOnNoteOn());
+        autoStartOnNoteOn.setEnabled(external.isSelected());
+
+        external.addActionListener(_ -> {
+            Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
+            sendMidiTimecode.setEnabled(external.isSelected());
+            autoStartOnNoteOn.setEnabled(external.isSelected());
+        });
 
         c.gridx = 0;
         c.gridy = 0;
         midiPanel.add(external, c);
-        c.gridy = 1;
+        c.gridy++;
         midiPanel.add(sendMidiTimecode, c);
+        c.gridy++;
+        midiPanel.add(autoStartOnNoteOn, c);
         return midiPanel;
     }
 

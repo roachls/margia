@@ -62,7 +62,12 @@ public class MidiOptions {
     /**
      * @param autoStartOnNoteOn the autoStartOnNoteOn to set
      */
-    public void setAutoStartOnNoteOn(boolean autoStartOnNoteOn) { this.autoStartOnNoteOn = autoStartOnNoteOn; }
+    public void setAutoStartOnNoteOn(boolean autoStartOnNoteOn) { 
+        var oldAutoStartOnNoteOn = this.autoStartOnNoteOn;
+        this.autoStartOnNoteOn = autoStartOnNoteOn;
+        if (oldAutoStartOnNoteOn != this.autoStartOnNoteOn)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the tempoController
