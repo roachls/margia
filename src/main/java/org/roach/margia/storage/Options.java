@@ -9,9 +9,12 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.*;
-import org.roach.margia.ui.ChangeEmitter;
-import org.roach.margia.ui.ChangeEmitter.ChangeSource;
+import org.roach.margia.MusicianList;
+import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.*;
+import org.roach.margia.view.ChangeEmitter;
+import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -98,7 +101,10 @@ public class Options {
      */
     public boolean isDirty() { return dirty; }
 
-    void setDirty() {
+    /**
+     * Mark options as dirty indicating that they haven't been saved to file
+     */
+    public void setDirty() {
         this.dirty = true;
         emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
     }
@@ -110,7 +116,7 @@ public class Options {
     public void addChangeListener(String property, ChangeListener listener) {
         emitter.addChangeListener(property, listener);
         storedOptions.getMidiOptions().addChangeListener(property, listener);
-        storedOptions.getUiOptions().emitter.addChangeListener(property, listener);
+        storedOptions.getUiOptions().addChangeListener(property, listener);
         storedOptions.getMusicOptions().addChangeListener(property, listener);
     }
 

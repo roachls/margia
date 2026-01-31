@@ -4,8 +4,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.roach.margia.Chord;
-import org.roach.margia.Musician;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.Chord;
 
 /**
  * 

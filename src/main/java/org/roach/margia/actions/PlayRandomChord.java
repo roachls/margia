@@ -4,9 +4,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.roach.margia.Chord;
-import org.roach.margia.Musician;
-import org.roach.margia.random.DieRoller;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.Chord;
+import org.roach.margia.util.DieRoller;
 
 /**
  * Tell the given {@link Musician} to roll the given dice, and if the resulting

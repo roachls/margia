@@ -2,9 +2,9 @@ package org.roach.margia.actions;
 
 import java.util.HashSet;
 
-import org.roach.margia.Chord;
-import org.roach.margia.Musician;
-import org.roach.margia.ui.ChordFlavor;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.Chord;
+import org.roach.margia.view.ChordFlavor;
 
 /**
  * 

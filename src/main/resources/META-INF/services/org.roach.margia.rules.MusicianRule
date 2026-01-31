@@ -1,5 +1,0 @@
-org.roach.margia.rules.RandomRule
-org.roach.margia.rules.StateBasedRule
-org.roach.margia.rules.RandomRuleMajorChords
-org.roach.margia.rules.ReceiverRule
-org.roach.margia.rules.UpFourthRule

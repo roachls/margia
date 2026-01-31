@@ -2,7 +2,8 @@ package org.roach.margia;
 
 import java.util.*;
 
-import org.roach.margia.storage.MusicianOptions;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.model.MusicianOptions;
 
 /**
  * A list of musicians that is able to restore itself from a YAML file

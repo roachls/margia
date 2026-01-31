@@ -1,6 +1,6 @@
 package org.roach.margia.actions;
 
-import org.roach.margia.rules.AbstractMusicianRule;
+import org.roach.margia.controller.rules.AbstractMusicianRule;
 
 /**
  * Represents an action that may be performed by a {@link AbstractMusicianRule}
