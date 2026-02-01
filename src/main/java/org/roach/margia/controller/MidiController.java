@@ -219,8 +219,9 @@ public class MidiController implements ChangeListener {
      * Send a clock pulse. Pulses should be sent 24 per beat
      */
     public void sendClockPulse() {
-        for (var primaryReceiver : outputReceivers.values()) {
-            primaryReceiver.send(timingPulse, -1);
+        for (var receiverEntry : outputReceivers.entrySet()) {
+            LOGGER.atTrace().log("Sending timecode to {}", receiverEntry.getKey());
+            receiverEntry.getValue().send(timingPulse, -1);
         }
     }
 

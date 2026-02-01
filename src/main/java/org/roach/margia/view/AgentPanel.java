@@ -53,7 +53,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
 
-    private static final float[] GRAD_FRACTIONS = new float[] { 0f, 0.75f, 1f };
+    private static final float[] GRAD_FRACTIONS = new float[] { 0f, 0.001f, 1f };
     private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.black, Color.white };
 
     /**
@@ -131,6 +131,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     @Override
     public void actionPerformed(ActionEvent e) {
         updatePhysics();
+        if (Options.getInstance().getUiOptions().isAnimateBackground())
+            animateBackground();
         repaint();
     }
 
@@ -185,6 +187,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             g2d.setStroke(SELECTION_LINE_STROKE);
             var rect = makeSelectionRectangle(dragStart, dragEnd);
             g2d.drawRect(rect.x, rect.y, rect.width, rect.height);
+        }
+    }
+
+    private static void animateBackground() {
+        if (GRAD_FRACTIONS[1] + 0.001 <= 1f)
+            GRAD_FRACTIONS[1] += 0.001;
+        else {
+            GRAD_COLORS[2] = GRAD_COLORS[1];
+            GRAD_COLORS[1] = GRAD_COLORS[0];
+            GRAD_COLORS[0] = new Color((float) Math.random(), (float) Math.random(), (float) Math.random());
+            GRAD_FRACTIONS[1] = 0.001f;
         }
     }
 
@@ -335,7 +348,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 handleMultipleSelection(selectedComponents);
             } else {
                 leftMouseButtonReleasedSingleSelection(e);
-            } 
+            }
 
         }
 

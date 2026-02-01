@@ -16,6 +16,7 @@ class OptionsWindow extends JDialog {
     private JSpinner windSpeed;
     private JSpinner edgeLength;
     private JCheckBox showIcons;
+    private JCheckBox animateBackground;
 
     OptionsWindow() {
         super((JFrame) null, "Options");
@@ -94,6 +95,11 @@ class OptionsWindow extends JDialog {
         showIcons.setToolTipText("Show/hide additional information on musicians");
         showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
         showIcons.addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
+        animateBackground = new JCheckBox("Animate background");
+        animateBackground.setToolTipText("Animate background");
+        animateBackground.setSelected(Options.getInstance().getUiOptions().isAnimateBackground());
+        animateBackground.addActionListener(
+                _ -> Options.getInstance().getUiOptions().setAnimateBackground(animateBackground.isSelected()));
 
         var row = 0;
         c.gridx = 0;
@@ -113,6 +119,8 @@ class OptionsWindow extends JDialog {
         panel.add(edgeLength, c);
         c.gridy = row++;
         panel.add(showIcons, c);
+        c.gridy = row++;
+        panel.add(animateBackground, c);
 
         return panel;
     }
