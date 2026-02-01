@@ -16,6 +16,7 @@ import javax.swing.event.ChangeListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.Transport;
+import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
@@ -164,6 +165,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         setupFileMenu(menubar);
         setupEditMenu(menubar);
+        setupMidiMenu(menubar);
         setupHelpMenu(menubar);
         setJMenuBar(menubar);
     }
@@ -282,6 +284,21 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         editMenu.add(connectSelected);
         editMenu.add(disconnectSelected);
         menubar.add(editMenu);
+    }
+
+    private static void setupMidiMenu(JMenuBar menubar) {
+        var midiMenu = new JMenu("Midi");
+        midiMenu.setMnemonic(KeyEvent.VK_M);
+        
+        var rescanMidi = new JMenuItem("Rescan MIDI devices");
+        rescanMidi.addActionListener(_ -> {
+            MidiController.getInstance().scanForMidiOutputDevices();
+            MidiController.getInstance().scanForMidiInputDevices();
+        });
+        
+        midiMenu.add(rescanMidi);
+        
+        menubar.add(midiMenu);
     }
 
     private JToolBar createToolPalette() {

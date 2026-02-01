@@ -64,6 +64,12 @@ public class MidiController implements ChangeListener {
      * Load/reload midi device from {@link Options#getMidiOptions()}
      */
     public void scanForMidiOutputDevices() {
+        for (var outputDevice : outputDevices.values()) {
+            outputDevice.close();
+        }
+        this.outputDevices.clear();
+        this.outputReceivers.clear();
+
         // Get information about all available MIDI devices
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
 
@@ -109,6 +115,7 @@ public class MidiController implements ChangeListener {
             inputDevice.close();
         }
         this.inputDevices.clear();
+        var oldInputReceivers = new HashMap<String, ExternalReceiver>(this.inputReceivers);
         this.inputReceivers.clear();
         MidiDevice device;
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
@@ -127,6 +134,13 @@ public class MidiController implements ChangeListener {
                     inputDevices.put(info.getName(), device);
                     var transmitter = device.getTransmitter();
                     var externalReceiver = new ExternalReceiver(info.getName());
+                    if (oldInputReceivers.containsKey(info.getName())) {
+                        // re-register any listeners
+                        var oldReceiver = oldInputReceivers.get(info.getName());
+                        for (var receiver : oldReceiver.getRegisteredReceivers()) {
+                            externalReceiver.registerReceiver(receiver);
+                        }
+                    }
                     transmitter.setReceiver(externalReceiver);
                     inputReceivers.put(info.getName(), externalReceiver);
                 }
@@ -346,6 +360,13 @@ public class MidiController implements ChangeListener {
          */
         public ExternalReceiver(String name) {
             this.name = name;
+        }
+
+        /**
+         * @return the receivers registered this {@link ExternalReceiver}
+         */
+        Iterable<MidiReceiver> getRegisteredReceivers() {
+            return Collections.unmodifiableList(receivers);
         }
 
         @Override
