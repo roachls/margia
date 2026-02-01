@@ -116,13 +116,17 @@ public class MidiController implements ChangeListener {
             try {
                 device = MidiSystem.getMidiDevice(info);
                 // Check if device has transmitters and isn't a software synthesizer
-                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)
-                        && info.getName().toLowerCase().contains("axiom")) {
-                    LOGGER.atInfo().log("Using input device {}", info.getName());
+                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)) {
+                    LOGGER.atDebug().log("Found input device {}", info.getName());
+                    var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
+                    if (similarNameExists)
+                        continue;
+                    LOGGER.atInfo().log("Adding input device {} ({}:{})", info.getName(), info.getVendor(),
+                            info.getVersion());
                     device.open();
                     inputDevices.put(info.getName(), device);
                     var transmitter = device.getTransmitter();
-                    var externalReceiver = new ExternalReceiver();
+                    var externalReceiver = new ExternalReceiver(info.getName());
                     transmitter.setReceiver(externalReceiver);
                     inputReceivers.put(info.getName(), externalReceiver);
                 }
@@ -335,6 +339,14 @@ public class MidiController implements ChangeListener {
      */
     public class ExternalReceiver implements Receiver {
         private final List<MidiReceiver> receivers = new ArrayList<>();
+        private final String name;
+
+        /**
+         * @param name name of the BUS that this receiver is listening to
+         */
+        public ExternalReceiver(String name) {
+            this.name = name;
+        }
 
         @Override
         public void send(MidiMessage message, long timeStamp) {
@@ -355,6 +367,16 @@ public class MidiController implements ChangeListener {
          */
         public void registerReceiver(MidiReceiver receiver) {
             this.receivers.add(receiver);
+            LOGGER.atDebug().log("Registered {} to receive messages from {}", receiver, name);
+        }
+
+        /**
+         * Unregisters the given receiver from getting messages
+         * 
+         * @param receiver receiver to remove
+         */
+        public void unregisterReceiver(MidiReceiver receiver) {
+            this.receivers.remove(receiver);
         }
 
         @Override

@@ -1,22 +1,26 @@
 package org.roach.margia.controller.rules;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.sound.midi.ShortMessage;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.roach.margia.actions.PlayChord;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.MidiController.MidiReceiver;
-import org.roach.margia.model.*;
+import org.roach.margia.model.Chord;
+import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.storage.params.StringListParamDescription;
+import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * Receives and enqueues messages from an external MIDI controller
  */
-public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
+public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, ChangeListener {
     /**
      * device name property
      */
@@ -28,11 +32,18 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
 
     private String deviceName;
 
+    private final List<Integer> notesThisTick = new ArrayList<>();
+    private int latestVelocity;
+
     @Override
     public void calculateAction(long tick) {
-        var message = musician.getNextMessageReceived();
-        if (message instanceof Chord chord)
+        if (!notesThisTick.isEmpty()) {
+            // gather up all notes received during this tick into a chord
+            var chord = new Chord(notesThisTick.stream().collect(Collectors.toSet()), 1, latestVelocity);
+            logger.atTrace().log("{}: Playing chord {}", musician.getCurrentTick(), chord);
             actionsToTake.add(new PlayChord(musician, chord));
+        }
+        notesThisTick.clear();
     }
 
     @Override
@@ -78,14 +89,22 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
         return copy;
     }
 
+    /**
+     * This method could be called at any time during a tick because it is dependent
+     * on a human musician, so we add the note to a list to be concatenated later by
+     * {@link #calculateAction(long)}.
+     */
     @Override
     public void receive(ShortMessage message) {
-        logger.atTrace().log("received {} on channel {}", message.getClass().getName(), message.getChannel());
-        if (message.getCommand() == ShortMessage.NOTE_ON) {
+        if (message.getCommand() == ShortMessage.NOTE_OFF) {
             var note = message.getData1();
             var velocity = message.getData2();
-            logger.atTrace().log("Received NOTE_ON note={}, velocity={}", note, velocity);
-            musician.receiveMessage(new Chord(Set.of(note), 1, velocity));
+            logger.atTrace().log("{}: Received NOTE_OFF note={}, velocity={}", musician.getCurrentTick(), note,
+                    velocity);
+            notesThisTick.add(note);
+        } else if (message.getCommand() == ShortMessage.NOTE_ON) {
+            // we use velocity of NOTE_ON
+            this.latestVelocity = message.getData2();
         }
     }
 
@@ -98,6 +117,29 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver {
     @Override
     public void initActionsAfterMusicianAssigned() {
         registerWithExternalReceiver();
+        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .addChangeListener(RuleOptions.RULE_SPECIFIC_OPTIONS_PROPERTY, this);
+    }
+
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String prop, Object value)
+                && RuleOptions.RULE_SPECIFIC_OPTIONS_PROPERTY.equals(prop)) {
+            @SuppressWarnings("unchecked")
+            var newOpts = (Map<String, Object>) value;
+            var oldDeviceName = this.deviceName;
+            this.deviceName = (String) newOpts.get(DEVICE_NAME_PROPERTY);
+            if (!this.deviceName.equals(oldDeviceName)) {
+                MidiController.getInstance().getExternalReceiver(oldDeviceName).unregisterReceiver(this);
+                MidiController.getInstance().getExternalReceiver(this.deviceName).registerReceiver(this);
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "ReceiverRule [musicianId=" + (musician == null ? -1 : musician.getId()) + ", deviceName=" + deviceName
+                + "]";
     }
 
 }

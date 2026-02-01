@@ -61,7 +61,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
      */
     public AgentPanel() {
         setLayout(null);
-        Options.getInstance().addChangeListener(UiOptions.EDGE_LENGTH_PROPERTY, this);
+        Options.getInstance().getUiOptions().addChangeListener(UiOptions.EDGE_LENGTH_PROPERTY, this);
         setDoubleBuffered(true);
         setBackground(Color.LIGHT_GRAY);
         this.addMouseListener(mouseAdapter);
@@ -201,10 +201,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     private void updatePhysics() {
-        // 1. Reset forces
+        // Reset forces
         musicianComponents.values().forEach(MusicianComponent::resetForce);
 
-        // 2. Calculate repulsive forces between ALL pairs of nodes (O(N^2))
+        // Calculate repulsive forces between ALL pairs of nodes (O(N^2))
         for (var n1 : musicianComponents.values()) {
             for (var n2 : musicianComponents.values().stream().filter(n -> !n.equals(n1)).toList()) {
                 var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
@@ -220,7 +220,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
-        // 3. Calculate attractive forces along edges (O(E))
+        // Calculate attractive forces along edges (O(E))
         for (Edge edge : edges) {
             MusicianComponent n1 = edge.source;
             MusicianComponent n2 = edge.target;
@@ -236,7 +236,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             n2.setForce(n2.getForce().add(forceVec));
         }
 
-        // 4. pull all items towards center in inverse square relationship
+        // apply gravity and wind
         var center = new Point2D.Double(getWidth() / 2d, getHeight() / 2d);
         for (var n1 : musicianComponents.values()) {
             var vec = new Vector2D(center, n1.getPosition());
@@ -248,8 +248,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var force = n1.getMass() * gravity / dist;
             var forceVec = vec.multiply(force);
             n1.setForce(n1.getForce().subtract(forceVec));
+
+            /*
+             * 5. wind - blow objects clockwise We take the gravity, negate it so it points
+             * away from the center, and rotate it clockwise 90 degrees
+             */
+            var windVec = forceVec.flip().rotateClockwise90().normalize()
+                    .multiply(Options.getInstance().getUiOptions().getWindSpeed());
+            n1.setForce(n1.getForce().add(windVec));
         }
-        // 5. Update velocities and positions
+
+        // Update velocities and positions
         for (MusicianComponent node : musicianComponents.values()) {
             node.applyForces();
             node.clampPosition(getWidth(), getHeight());
@@ -764,6 +773,51 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
         var components = list.stream().map(this::addMusicianComponent).toList();
+        createEdges(components);
+    }
+
+    /**
+     * Direction in which fan peer relationships should be constructed
+     */
+    public enum FanDirection {
+        /**
+         * node to children
+         */
+        DOWN,
+        /**
+         * node to parent
+         */
+        UP,
+        /**
+         * node to children and parent
+         */
+        BIDIRECTIONAL;
+    }
+
+    @SuppressWarnings("java:S3776")
+    void addFan(int levels, FanDirection direction) {
+        if (levels <= 2 || levels > 10)
+            return;
+        var num = Math.powExact(2, levels) - 1;
+        var numWithConnections = Math.powExact(2, levels - 1) - 1;
+        var arr = new Musician[num];
+        for (var y = 0; y < num; y++) {
+            arr[y] = Musician.newInstance();
+            MusicianList.getInstance().addMusician(arr[y]);
+            arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
+        }
+        // make connections
+        for (var y = 0; y < num; y++) {
+            if (direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL && y < numWithConnections) {
+                arr[y].addPeer(arr[y * 2 + 1]);
+                arr[y].addPeer(arr[y * 2 + 2]);
+            }
+            if (direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL && y > 0) {
+                arr[y].addPeer(arr[y / 2]);
+            }
+        }
+        var components = Arrays.asList(arr).stream().map(this::addMusicianComponent).toList();
+
         createEdges(components);
     }
 

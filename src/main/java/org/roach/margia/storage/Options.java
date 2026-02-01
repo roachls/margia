@@ -115,9 +115,6 @@ public class Options {
      */
     public void addChangeListener(String property, ChangeListener listener) {
         emitter.addChangeListener(property, listener);
-        storedOptions.getMidiOptions().addChangeListener(property, listener);
-        storedOptions.getUiOptions().addChangeListener(property, listener);
-        storedOptions.getMusicOptions().addChangeListener(property, listener);
     }
 
     /**

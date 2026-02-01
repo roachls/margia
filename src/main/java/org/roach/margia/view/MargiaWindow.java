@@ -20,6 +20,7 @@ import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.AgentPanel.EditMode;
+import org.roach.margia.view.AgentPanel.FanDirection;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
@@ -79,7 +80,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         musicianOptionsWindow = new MusicianOptionWindow();
         optionsWindow = new OptionsWindow();
         updateTitle();
-        Options.getInstance().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
+        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
@@ -244,7 +245,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var disconnectSelected = new JMenuItem("Disconnect selected", getToolbarIcon(DISCONNECT));
         disconnectSelected.setMnemonic(KeyEvent.VK_I);
         disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
-        
+
         editMenu.add(copyMenuItem);
         editMenu.add(pasteMenuItem);
         editMenu.add(copyParamsMenuItem);
@@ -368,7 +369,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private class AddPanel extends JPanel {
-        AddMode mode = AddMode.MULTIPLE;
+        private AddMode mode = AddMode.MULTIPLE;
+        private static final DefaultComboBoxModel<FanDirection> fanDirectionModel = new DefaultComboBoxModel<>(
+                FanDirection.values());
 
         AddPanel() {
             super(new FlowLayout(FlowLayout.LEFT, 0, 10));
@@ -404,6 +407,23 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     }
                 }
                     break;
+                case FAN: {
+                    var panel = new JPanel(new GridLayout(1, 2));
+                    panel.add(new JLabel("Levels"));
+                    var levelSpinner = new JSpinner(new SpinnerNumberModel(2, 2, 10, 1));
+                    panel.add(levelSpinner);
+                    var directionBox = new JComboBox<FanDirection>(fanDirectionModel);
+                    var directionLabel = new JLabel("Direction");
+                    directionLabel.setLabelFor(directionBox);
+                    panel.add(directionLabel);
+                    panel.add(directionBox);
+                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Fan",
+                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                    if (result == JOptionPane.OK_OPTION) {
+                        agentPanel.addFan((int) levelSpinner.getValue(), (FanDirection) directionBox.getSelectedItem());
+                    }
+                }
+                    break;
                 case MULTIPLE: {
                     var panel = new JPanel(new GridLayout(1, 2));
                     panel.add(new JLabel("Number to add"));
@@ -431,9 +451,13 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             var gridMode = new JMenuItem(getMenuIcon(ADD_GRID));
             gridMode.setName(AddMode.GRID.toString());
             gridMode.setToolTipText("Add musician grid");
+            var fanMode = new JMenuItem(getMenuIcon(ADD_FAN));
+            fanMode.setName(AddMode.FAN.toString());
+            fanMode.setToolTipText("Add musician fan");
             modeMenu.add(singleMode);
             modeMenu.add(circleMode);
             modeMenu.add(gridMode);
+            modeMenu.add(fanMode);
 
             var modeSelectionListener = (ActionListener) (e -> {
                 if (e.getSource() instanceof JMenuItem jmi) {
@@ -446,6 +470,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             singleMode.addActionListener(modeSelectionListener);
             circleMode.addActionListener(modeSelectionListener);
             gridMode.addActionListener(modeSelectionListener);
+            fanMode.addActionListener(modeSelectionListener);
 
             var modeBtn = new JButton("▼");
             modeBtn.setMargin(new Insets(0, 0, 0, 0));
@@ -458,7 +483,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         }
 
         enum AddMode {
-            MULTIPLE, CIRCLE, GRID;
+            MULTIPLE, CIRCLE, GRID, FAN;
         }
     }
 

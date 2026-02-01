@@ -22,6 +22,7 @@ public class Icons {
     public static final String ABOUT = "about";
     public static final String ADD = "add";
     public static final String ADD_CIRCLE = "add_circle";
+    public static final String ADD_FAN = "fan";
     public static final String ADD_GRID = "add_grid";
     public static final String CONNECT = "connect";
     public static final String COPY = "copy";
@@ -60,6 +61,7 @@ public class Icons {
             Map.entry(DELETE, "a large capital X"),
             Map.entry(DESELECT_ALL, "a hand with an 'A' and a red 'X' through it"),
             Map.entry(DISCONNECT, "two dots with a broken line between them"),
+            Map.entry(ADD_FAN, "7 dots in a binary tree formation"),
             Map.entry(HELP, "a question mark"),
             Map.entry(LOCK_ALL, "a closed lock with an 'A'"),
             Map.entry(LOCK, "a closed lock"),
@@ -86,8 +88,8 @@ public class Icons {
 
     static {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
-                HELP, KEYBOARD, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL, SELECT,
-                SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
+                ADD_FAN, HELP, KEYBOARD, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL,
+                SELECT, SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }

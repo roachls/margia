@@ -5,7 +5,6 @@ import java.awt.geom.Point2D;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.storage.Options;
-import org.roach.margia.util.RangeCheck;
 import org.roach.margia.view.ChangeEmitter;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.roach.margia.view.MusicianComponent;
@@ -22,17 +21,12 @@ import org.roach.margia.view.MusicianComponent;
 public class MusicianComponentOptions {
     private boolean locked;
     private final Point2D.Double position = new Point2D.Double();
-    private double mass = 1.0;
     private int radius = MusicianComponentOptions.DEFAULT_RADIUS;
     private final ChangeEmitter emitter = new ChangeEmitter();
     /**
      * property to update position
      */
     public static final String POSITION_PROPERTY = "position";
-    /**
-     * property name of mass spinner
-     */
-    public static final String MASS_PROPERTY = "mass";
     /**
      * property name of radius spinner
      */
@@ -58,23 +52,6 @@ public class MusicianComponentOptions {
     public void setLocked(boolean locked) { this.locked = locked; }
 
     /**
-     * @return the mass
-     */
-    public double getMass() { return mass; }
-
-    /**
-     * @param mass the mass to set
-     */
-    public void setMass(double mass) {
-        var oldMass = this.mass;
-        this.mass = RangeCheck.check("mass", mass, 0.1, 100.0);
-        if (oldMass != this.mass) {
-            emitter.fireChangeEvent(MASS_PROPERTY, new ChangeSource(MASS_PROPERTY, this.mass));
-            Options.getInstance().setDirty();
-        }
-    }
-
-    /**
      * Sets the position, but only if not {@code locked}
      * 
      * @param position new position
@@ -91,8 +68,7 @@ public class MusicianComponentOptions {
 
     @Override
     public String toString() {
-        return "MusicianComponentOptions [locked=" + locked + ", position=" + position + ", mass=" + mass + ", radius="
-                + radius + "]";
+        return "MusicianComponentOptions [locked=" + locked + ", position=" + position + ", radius=" + radius + "]";
     }
 
     /**
@@ -123,7 +99,6 @@ public class MusicianComponentOptions {
     MusicianComponentOptions copy() {
         var copy = new MusicianComponentOptions();
         copy.locked = locked;
-        copy.mass = mass;
         copy.radius = radius;
 
         return copy;
@@ -136,6 +111,5 @@ public class MusicianComponentOptions {
     public void copyInto(MusicianComponentOptions options) {
         options.setLocked(this.locked);
         options.setRadius(this.radius);
-        options.setMass(this.mass);
     }
 }

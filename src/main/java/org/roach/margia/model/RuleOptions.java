@@ -26,6 +26,10 @@ public class RuleOptions {
      * property fired when the rule changes
      */
     public static final String RULE_NAME_PROPERTY = "ruleName";
+    /**
+     * property fired when rule-specific options change
+     */
+    public static final String RULE_SPECIFIC_OPTIONS_PROPERTY = "rule-specific options";
 
     /**
      * @return the name
@@ -70,8 +74,11 @@ public class RuleOptions {
      */
     public void setRuleSpecificOption(String optionName, Object value) {
         var oldValue = this.ruleSpecificOptions.put(optionName, value);
-        if (!Objects.equals(oldValue, value))
+        if (!Objects.equals(oldValue, value)) {
             Options.getInstance().setDirty();
+            emitter.fireChangeEvent(RULE_SPECIFIC_OPTIONS_PROPERTY,
+                    new ChangeSource(RULE_SPECIFIC_OPTIONS_PROPERTY, this.ruleSpecificOptions));
+        }
     }
 
     /**
@@ -80,11 +87,6 @@ public class RuleOptions {
      */
     public void addChangeListener(String key, ChangeListener listener) {
         this.emitter.addChangeListener(key, listener);
-    }
-
-    @Override
-    public String toString() {
-        return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
     }
 
     /**
@@ -106,6 +108,28 @@ public class RuleOptions {
         target.setName(this.name);
         target.ruleSpecificOptions.clear();
         target.ruleSpecificOptions.putAll(ruleSpecificOptions);
+    }
+
+    @Override
+    public String toString() {
+        return "RuleOptions [name=" + name + ", ruleSpecificOptions=" + ruleSpecificOptions + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, ruleSpecificOptions);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RuleOptions other = (RuleOptions) obj;
+        return Objects.equals(name, other.name) && Objects.equals(ruleSpecificOptions, other.ruleSpecificOptions);
     }
 
 }
