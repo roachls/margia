@@ -585,6 +585,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
+        musicianComponents.values().forEach(mc -> mc.setEdited(false));
     }
 
     void muteSelected() {
