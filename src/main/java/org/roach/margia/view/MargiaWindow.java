@@ -70,9 +70,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      *                           true
      */
     public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
-        super();
-
+        setUndecorated(true);
         getContentPane().setLayout(new BorderLayout());
+
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
@@ -186,9 +186,28 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             saveSettingsToFile();
         });
 
+        var exitMenuItem = new JMenuItem("Exit", getToolbarIcon(EXIT));
+        exitMenuItem.setMnemonic(KeyEvent.VK_X);
+        exitMenuItem.addActionListener(_ -> {
+            if (Options.getInstance().isDirty()) {
+                var answer = JOptionPane.showOptionDialog(MargiaWindow.this,
+                        "Save " + Options.getInstance().getFilename() + " before exiting?", "Save before exiting?",
+                        JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                        new Object[] { "Save", "Don't Save", "Cancel" }, "Save");
+                if (answer == 0) {
+                    saveSettingsToFile();
+                } else if (answer == 1) {
+                    return;
+                }
+            }
+            System.exit(0);
+        });
+
         fileMenu.add(openMenuItem);
         fileMenu.add(saveMenuItem);
         fileMenu.add(saveAsMenuItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitMenuItem);
         menubar.add(fileMenu);
     }
 
@@ -359,7 +378,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.add(selectConnected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
-        toolbar.addSeparator();
         toolbar.add(new JLabel("Show: "));
         toolbar.add(showUiOptions);
         toolbar.add(showMusicianOptions);
@@ -474,7 +492,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
             var modeBtn = new JButton("▼");
             modeBtn.setMargin(new Insets(0, 0, 0, 0));
-            modeBtn.setPreferredSize(new Dimension(16, 28));
+            modeBtn.setPreferredSize(new Dimension(30, 40));
             modeBtn.addActionListener(_ -> modeMenu.show(modeBtn, 0, 0));
 
             add(new JLabel("Add: "));

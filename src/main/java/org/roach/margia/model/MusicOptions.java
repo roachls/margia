@@ -56,7 +56,12 @@ public class MusicOptions {
     /**
      * @param tempoMinimum the tempoMinimum to set
      */
-    public void setTempoMinimum(int tempoMinimum) { this.tempoMinimum = tempoMinimum; }
+    public void setTempoMinimum(int tempoMinimum) {
+        var oldTempoMin = this.tempoMinimum;
+        this.tempoMinimum = tempoMinimum;
+        if (oldTempoMin != this.tempoMinimum)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the tempoMaximum
@@ -66,7 +71,12 @@ public class MusicOptions {
     /**
      * @param tempoMaximum the tempoMaximum to set
      */
-    public void setTempoMaximum(int tempoMaximum) { this.tempoMaximum = tempoMaximum; }
+    public void setTempoMaximum(int tempoMaximum) {
+        var old = this.tempoMaximum;
+        this.tempoMaximum = tempoMaximum;
+        if (old != this.tempoMaximum)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @param property name of property

@@ -80,9 +80,10 @@ class OptionsWindow extends JDialog {
                 Double.class);
         gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
         var gravityLabel = createLabelFor("Gravitational Constant", gravity);
-        windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(), -200.0, 200.0, 0.1,
-                Double.class);
-        windSpeed.addChangeListener(_ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
+        windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(), -200.0,
+                200.0, 0.1, Double.class);
+        windSpeed.addChangeListener(
+                _ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
         var windSpeedLabel = createLabelFor("WindSpeed", windSpeed);
         edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
                 (double) Options.getInstance().getUiOptions().getEdgeLength(), 20d, 300d, 1d, Integer.class);
@@ -134,7 +135,7 @@ class OptionsWindow extends JDialog {
             textField.setColumns(15); // Set width to 3 columns
         }
         var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
-        randomSeedSpinner.setValue(Options.getInstance().getRandomSeed());
+        randomSeedSpinner.setValue((double) Options.getInstance().getRandomSeed());
         randomSeedSpinner.addChangeListener(
                 _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
