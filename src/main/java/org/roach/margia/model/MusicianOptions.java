@@ -164,7 +164,12 @@ public class MusicianOptions {
     /**
      * @param range the range to set
      */
-    public void setRange(NoteRange range) { this.range = range; }
+    public void setRange(NoteRange range) {
+        var oldRange = this.range;
+        this.range = range; 
+        if (!oldRange.equals(this.range)) 
+            Options.getInstance().setDirty();
+    }
 
     @Override
     public String toString() {
@@ -207,6 +212,7 @@ public class MusicianOptions {
         target.setMuted(this.muted);
         target.setRange(this.range.copy());
         this.ruleOptions.copyInto(target.ruleOptions);
+        Options.getInstance().setDirty();
     }
 
 }
