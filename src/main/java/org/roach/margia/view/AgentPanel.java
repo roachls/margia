@@ -271,7 +271,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // position of cursor in movingComponent space
         private Point movingComponentXY;
         private static final int BUTTON1 = InputEvent.BUTTON1_DOWN_MASK;
-        private static final int SHIFT_BUTTON1 = InputEvent.BUTTON1_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
 
         @Override
         public void mousePressed(MouseEvent e) {
