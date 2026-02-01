@@ -130,7 +130,9 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
             var oldDeviceName = this.deviceName;
             this.deviceName = (String) newOpts.get(DEVICE_NAME_PROPERTY);
             if (!this.deviceName.equals(oldDeviceName)) {
-                MidiController.getInstance().getExternalReceiver(oldDeviceName).unregisterReceiver(this);
+                var oldReceiver = MidiController.getInstance().getExternalReceiver(oldDeviceName);
+                if (oldReceiver != null)
+                    oldReceiver.unregisterReceiver(this);
                 MidiController.getInstance().getExternalReceiver(this.deviceName).registerReceiver(this);
             }
         }
