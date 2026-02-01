@@ -6,8 +6,13 @@ import java.nio.file.Files;
 import java.util.Scanner;
 import java.util.prefs.BackingStoreException;
 
+import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
+import org.pushingpixels.radiance.theming.api.RadianceSkin;
+import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
+import org.pushingpixels.radiance.theming.api.RadianceThemingSlices.FocusKind;
+import org.pushingpixels.radiance.theming.api.skin.GeminiSkin;
 import org.roach.margia.MainParams.UiType;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.timing.InternalTimingSource;
@@ -83,6 +88,10 @@ public class Main {
 
         if (params.ui == UiType.SWING) {
             SwingUtilities.invokeLater(() -> {
+                RadianceSkin skin = new GeminiSkin();
+                RadianceThemingCortex.GlobalScope.setSkin(skin);
+                RadianceThemingCortex.GlobalScope.setFocusKind(FocusKind.NONE);
+                JFrame.setDefaultLookAndFeelDecorated(true);
                 var ui = new MargiaWindow(timing, transport);
                 ui.setExtendedState(Frame.MAXIMIZED_BOTH);
                 ui.setVisible(true);

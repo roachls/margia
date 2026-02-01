@@ -49,7 +49,12 @@ public class MusicianComponentOptions {
     /**
      * @param locked the locked to set
      */
-    public void setLocked(boolean locked) { this.locked = locked; }
+    public void setLocked(boolean locked) { 
+        var oldLocked = locked;
+        this.locked = locked; 
+        if (oldLocked != this.locked)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * Sets the position, but only if not {@code locked}

@@ -283,9 +283,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private void leftMouseButtonPressed(MouseEvent e) {
             if (e.getModifiersEx() == BUTTON1) {
                 leftMousePressedSingleSelectionMode(e);
-            } else if (e.getModifiersEx() == SHIFT_BUTTON1) {
-                deselectAllMusicians();
-                dragStart = e.getPoint();
             }
         }
 
@@ -315,6 +312,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 }
             } else {
                 deselectAllMusicians();
+                dragStart = e.getPoint();
             }
         }
 
@@ -329,17 +327,16 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void leftMouseButtonReleased(MouseEvent e) {
-            if (!e.isShiftDown()) {
-                // no modifier keys
-                leftMouseButtonReleasedSingleSelection(e);
-            } else if (e.isShiftDown() && dragStart != null && dragEnd != null) {
+            if (dragStart != null && dragEnd != null) {
                 // shift held down
                 var rectangle = makeSelectionRectangle(dragStart, dragEnd);
                 var selectedComponents = getComponentsInRectangle(rectangle);
                 dragStart = null;
                 dragEnd = null;
                 handleMultipleSelection(selectedComponents);
-            }
+            } else {
+                leftMouseButtonReleasedSingleSelection(e);
+            } 
 
         }
 
@@ -397,6 +394,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                             source.getMusician().addPeer(target.getMusician());
                             edges.add(new Edge(source, target, UiOptions.DEFAULT_EDGE_LENGTH));
                         });
+                Options.getInstance().setDirty();
                 source.setSelected(false);
                 this.source = null;
                 startSelection = null;
@@ -437,6 +435,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             musicianComponents.put(musician.getId(), musicianComponent);
             musicianComponent.getOptions().setPosition(new Point2D.Double(e.getX(), e.getY()));
             add(musicianComponent);
+            Options.getInstance().setDirty();
         }
 
         @Override
@@ -449,7 +448,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 mcOpts.setPosition(
                         new Point2D.Double(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
                 mcOpts.setLocked(true);
-            } else if (e.getModifiersEx() == SHIFT_BUTTON1) {
+            } else if (mode == EditMode.SELECT) {
                 dragEnd = e.getPoint();
             }
         }
@@ -585,6 +584,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
+        musicianComponents.values().forEach(mc -> mc.setEdited(false));
     }
 
     void muteSelected() {
