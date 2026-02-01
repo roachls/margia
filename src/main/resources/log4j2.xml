@@ -24,7 +24,7 @@
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Logger name="org.roach.margia.controller.MidiController" level="debug"
+		<Logger name="org.roach.margia.controller.MidiController" level="trace"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
