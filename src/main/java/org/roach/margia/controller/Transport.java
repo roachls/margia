@@ -10,7 +10,6 @@ import org.roach.margia.MusicianList;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.Length;
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.MusicianComponent;
 
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every
@@ -52,8 +51,6 @@ public class Transport {
     public Transport() {
         var tempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
-        // TODO this should definitely go somewhere else, I don't like having the transport know about the UI
-        MusicianComponent.setTickLengthMillis(this.tickLength);
         this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
 
@@ -102,7 +99,6 @@ public class Transport {
             MidiController.getInstance().sendClockPulse();
         }
         // Once each 16th note (every 6 clock pulses) we kick off musician actions
-        // TODO should we do more than just 4/4?
         if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13 || currentClockPulse == 19) {
             if (tickActions.containsKey(tick)) {
                 logger.atDebug().log("Transport playing tick action {}", tick);

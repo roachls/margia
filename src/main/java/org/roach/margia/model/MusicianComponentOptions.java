@@ -50,7 +50,7 @@ public class MusicianComponentOptions {
      * @param locked the locked to set
      */
     public void setLocked(boolean locked) { 
-        var oldLocked = locked;
+        var oldLocked = this.locked;
         this.locked = locked; 
         if (oldLocked != this.locked)
             Options.getInstance().setDirty();

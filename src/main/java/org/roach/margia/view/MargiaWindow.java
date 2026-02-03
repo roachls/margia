@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
+import org.roach.margia.model.MusicOptions;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.AgentPanel.EditMode;
@@ -83,6 +84,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         updateTitle();
         Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
+        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY,
+                MusicianComponent.TEMPO_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
         agentPanel.setBounds(0, 0, 1000, 1000);
@@ -95,7 +98,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         pack();
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
-        
+
         transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
     }
 
@@ -291,15 +294,15 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private static void setupMidiMenu(JMenuBar menubar) {
         var midiMenu = new JMenu("Midi");
         midiMenu.setMnemonic(KeyEvent.VK_M);
-        
+
         var rescanMidi = new JMenuItem("Rescan MIDI devices");
         rescanMidi.addActionListener(_ -> {
             MidiController.getInstance().scanForMidiOutputDevices();
             MidiController.getInstance().scanForMidiInputDevices();
         });
-        
+
         midiMenu.add(rescanMidi);
-        
+
         menubar.add(midiMenu);
     }
 

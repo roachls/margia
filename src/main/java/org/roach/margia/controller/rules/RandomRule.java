@@ -1,6 +1,5 @@
 package org.roach.margia.controller.rules;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.roach.margia.actions.*;

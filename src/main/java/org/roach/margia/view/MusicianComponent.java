@@ -44,6 +44,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = (boolean) ((ChangeSource) e.getSource())
             .newValue();
+    static final ChangeListener TEMPO_LISTENER = _ -> tickLengthMillis = Length
+            .getMillisForTempo(1, Options.getInstance().getMusicOptions().getTempo()).getValue().intValue();
+
+    static {
+        var tempo = Options.getInstance().getMusicOptions().getTempo();
+        tickLengthMillis = Length.getMillisForTempo(1, tempo).getValue().intValue();
+    }
 
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
