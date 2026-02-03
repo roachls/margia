@@ -15,6 +15,7 @@ import org.pushingpixels.radiance.theming.api.RadianceThemingSlices.FocusKind;
 import org.pushingpixels.radiance.theming.api.skin.GeminiSkin;
 import org.roach.margia.MainParams.UiType;
 import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.InternalTimingSource;
 import org.roach.margia.model.Key;
 import org.roach.margia.storage.Options;

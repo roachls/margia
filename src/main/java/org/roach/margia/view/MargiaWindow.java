@@ -15,8 +15,8 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.Transport;
 import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
@@ -95,6 +95,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         pack();
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
+        
+        transport.addPropertyListener(Transport.CLOCK_PULSE_PROPERTY, agentPanel);
     }
 
     private class AgentPanelKeyListener implements KeyEventDispatcher {
