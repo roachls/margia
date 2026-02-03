@@ -55,7 +55,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
 
     private static final Object ANIMATE_LOCK = new Object();
-    private static final float ANIMATE_SPEED = 0.005f;
+    private static final float ANIMATE_SPEED = 0.015f;
     private static final float[] GRAD_FRACTIONS = new float[] { 0f, ANIMATE_SPEED, ANIMATE_SPEED * 4, 1f };
     private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.gray, Color.blue, Color.white };
 
@@ -860,8 +860,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        if (Transport.CLOCK_PULSE_PROPERTY.equals(evt.getPropertyName())
-                && Options.getInstance().getUiOptions().isAnimateBackground() && (int) evt.getNewValue() % 2 == 0)
+        if (Transport.TICK_PROPERTY.equals(evt.getPropertyName())
+                && Options.getInstance().getUiOptions().isAnimateBackground())
             animateBackground();
     }
 }

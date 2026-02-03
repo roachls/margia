@@ -96,7 +96,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
         
-        transport.addPropertyListener(Transport.CLOCK_PULSE_PROPERTY, agentPanel);
+        transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
     }
 
     private class AgentPanelKeyListener implements KeyEventDispatcher {
