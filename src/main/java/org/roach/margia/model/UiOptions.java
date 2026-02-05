@@ -63,8 +63,14 @@ public class UiOptions {
         }
     }
     
+    /**
+     * @return {@code true} if the background should be animated
+     */
     public boolean isAnimateBackground() { return this.animateBackground; }
     
+    /**
+     * @param animateBackground {@code true} means that the background should be animated
+     */
     public void setAnimateBackground(boolean animateBackground) {
         var oldAnim = this.animateBackground;
         this.animateBackground = animateBackground;
