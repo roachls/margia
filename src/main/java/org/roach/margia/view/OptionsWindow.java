@@ -25,6 +25,9 @@ class OptionsWindow extends JDialog {
     private static JCheckBox sendPanMessage;
     private static JSpinner panController;
     private static JCheckBox panWithRelativeLocations;
+    private static JCheckBox sendVerticalPanMessage;
+    private static JSpinner verticalPanController;
+    private static JCheckBox verticalPanWithRelativeLocations;
 
     OptionsWindow() {
         super((JFrame) null, "Options");
@@ -198,9 +201,30 @@ class OptionsWindow extends JDialog {
         var panControllerLabel = createLabelFor("Pan controller", panController);
 
         panWithRelativeLocations = new JCheckBox("Pan with relative locations");
+        panWithRelativeLocations.setToolTipText(
+                "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen");
         panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
                 .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
         panWithRelativeLocations.setEnabled(external.isSelected());
+
+        sendVerticalPanMessage = new JCheckBox("Send vertical panning");
+        sendVerticalPanMessage.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setSendVerticalPanMessage(sendVerticalPanMessage.isSelected()));
+        sendVerticalPanMessage.setEnabled(external.isSelected());
+
+        verticalPanController = createSpinner("Vertical pan controller",
+                (double) MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER, 0d, 127d, 1d, Integer.class);
+        verticalPanController.addChangeListener(_ -> Options.getInstance().getMidiOptions()
+                .setVerticalPanController((int) verticalPanController.getValue()));
+        verticalPanController.setEnabled(external.isSelected());
+        var verticalPanControllerLabel = createLabelFor("Vertical pan controller", verticalPanController);
+
+        verticalPanWithRelativeLocations = new JCheckBox("Vertical pan with relative locations");
+        verticalPanWithRelativeLocations.setToolTipText(
+                "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen");
+        verticalPanWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setVerticalPanWithRelativeLocations(verticalPanWithRelativeLocations.isSelected()));
+        verticalPanWithRelativeLocations.setEnabled(external.isSelected());
 
         external.addActionListener(_ -> {
             Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
@@ -209,11 +233,18 @@ class OptionsWindow extends JDialog {
             sendPanMessage.setEnabled(external.isSelected());
             panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
             panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            sendVerticalPanMessage.setEnabled(external.isSelected());
+            verticalPanController.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
         });
 
         sendPanMessage.addActionListener(_ -> {
             panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
             panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+        });
+        sendVerticalPanMessage.addActionListener(_ -> {
+            verticalPanControllerLabel.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
         });
 
         c.gridx = 0;
@@ -233,6 +264,16 @@ class OptionsWindow extends JDialog {
         c.gridx = 0;
         c.gridy++;
         midiPanel.add(panWithRelativeLocations, c);
+        c.gridy++;
+        midiPanel.add(sendVerticalPanMessage, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(verticalPanControllerLabel, c);
+        c.gridx = 1;
+        midiPanel.add(verticalPanController, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(verticalPanWithRelativeLocations, c);
 
         return midiPanel;
     }
@@ -274,5 +315,8 @@ class OptionsWindow extends JDialog {
         sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
         panController.setValue(options.getMidiOptions().getPanController());
         panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
+        sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
+        verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
+        verticalPanWithRelativeLocations.setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
     }
 }
