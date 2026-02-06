@@ -26,14 +26,16 @@ public class MidiController implements ChangeListener {
     private static final int ALL_NOTES_OFF = 123;
     private static final Logger LOGGER = LogManager.getLogger(MidiController.class);
     private static final Set<String> EXCLUDED_OUTPUT_DEVICES = Set.of("CoolSoft MIDIMapper", "Real Time Sequencer",
-            "Microsoft MIDI Mapper");
+            "Microsoft MIDI Mapper", "MidiView");
+    private static final Set<String> EXCLUDED_INPUT_DEVICES = Set.of("MidiView");
     private final Map<String, MidiDevice> outputDevices = new TreeMap<>();
     private final Map<String, MidiDevice> inputDevices = new TreeMap<>();
     private final Map<String, Receiver> outputReceivers = new TreeMap<>();
     private final Map<String, ExternalReceiver> inputReceivers = new TreeMap<>();
     // one executor per MIDI channel
-    private final ScheduledExecutorService executor = Executors
+    private final ScheduledExecutorService scheduledExecutor = Executors
             .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
+    private final ExecutorService immediateExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, Map<Integer, List<Chord>>> chordsToPlayNextPerBus = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
@@ -110,6 +112,7 @@ public class MidiController implements ChangeListener {
     /**
      * Scans for all available MIDI input devices
      */
+    @SuppressWarnings({ "java:S3776", "java:S135" })
     public void scanForMidiInputDevices() {
         for (var inputDevice : inputDevices.values()) {
             inputDevice.close();
@@ -120,6 +123,8 @@ public class MidiController implements ChangeListener {
         MidiDevice device;
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         for (MidiDevice.Info info : infos) {
+            if (EXCLUDED_INPUT_DEVICES.contains(info.getName()))
+                continue;
             try {
                 device = MidiSystem.getMidiDevice(info);
                 // Check if device has transmitters and isn't a software synthesizer
@@ -167,6 +172,35 @@ public class MidiController implements ChangeListener {
         }
     }
 
+    /**
+     * Sends a control MIDI signal
+     * 
+     * @param busName    BUS on which to send signal
+     * @param channel    MIDI channel (0-15)
+     * @param controller controller number to send (0-127)
+     * @param amount     controller value to send (0-127)
+     */
+    public void sendControlChange(String busName, int channel, int controller, int amount) {
+        if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
+            LOGGER.atDebug().log("out of range, returning");
+            return;
+        }
+        try {
+            var panMessage = new ShortMessage(ShortMessage.CONTROL_CHANGE, channel, controller, amount);
+            if (MusicianOptions.ALL_BUSSES.equals(busName)) {
+                for (var bus : outputReceivers.entrySet()) {
+                    immediateExecutor.submit(() -> bus.getValue().send(panMessage, -1));
+                    LOGGER.atTrace().log("Sending pan message on {}:{} with amount {}", bus.getKey(), channel, amount);
+                }
+            } else if (outputReceivers.containsKey(busName)) {
+                immediateExecutor.submit(() -> outputReceivers.get(busName).send(panMessage, -1));
+                LOGGER.atTrace().log("Sending pan message on {}:{} with amount {}", busName, channel, amount);
+            }
+        } catch (InvalidMidiDataException e) {
+            LOGGER.atError().withThrowable(e).log("Invalid MIDI data");
+        }
+    }
+
     private void addChordsThisTick(String busName, int midiChannel, Chord chord) {
         var chordsForBus = chordsToPlayNextPerBus.computeIfAbsent(busName, _ -> new HashMap<>());
         var listOfChords = chordsForBus.computeIfAbsent(midiChannel, _ -> new ArrayList<>());
@@ -186,14 +220,14 @@ public class MidiController implements ChangeListener {
                 if (chordsToPlayNext.containsKey(i)) {
                     var chordList = chordsToPlayNext.get(i);
                     // schedule all NOTE_ONs immediately
-                    executor.schedule(() -> {
+                    immediateExecutor.submit(() -> {
                         for (var chord : chordList) {
                             for (var noteInfo : chord.getNotes()) {
                                 play(outputReceivers.get(busEntry.getKey()), ai.get(), noteInfo, NOTE_ON,
                                         chord.getVelocity());
                             }
                         }
-                    }, 0L, TimeUnit.MILLISECONDS);
+                    });
                     // schedule all NOTE_OFFs
                     for (var chord : chordList) {
                         // stop note at 95% length
@@ -201,7 +235,7 @@ public class MidiController implements ChangeListener {
                                 .getMillisForTempo(chord.getLength(),
                                         Options.getInstance().getMusicOptions().getTempo())
                                 .getValue().doubleValue() * 0.95);
-                        executor.schedule(() -> {
+                        scheduledExecutor.schedule(() -> {
                             for (var noteInfo : chord.getNotes()) {
                                 play(outputReceivers.get(busEntry.getKey()), ai.get(), noteInfo, NOTE_OFF,
                                         chord.getVelocity());
@@ -281,8 +315,10 @@ public class MidiController implements ChangeListener {
      */
     public void close() {
         try {
-            executor.shutdown();
-            executor.awaitTermination(2, TimeUnit.SECONDS);
+            scheduledExecutor.shutdown();
+            scheduledExecutor.awaitTermination(2, TimeUnit.SECONDS);
+            immediateExecutor.shutdown();
+            immediateExecutor.awaitTermination(2, TimeUnit.SECONDS);
         } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
@@ -366,9 +402,7 @@ public class MidiController implements ChangeListener {
         /**
          * @return the receivers registered this {@link ExternalReceiver}
          */
-        Iterable<MidiReceiver> getRegisteredReceivers() {
-            return Collections.unmodifiableList(receivers);
-        }
+        Iterable<MidiReceiver> getRegisteredReceivers() { return Collections.unmodifiableList(receivers); }
 
         @Override
         public void send(MidiMessage message, long timeStamp) {

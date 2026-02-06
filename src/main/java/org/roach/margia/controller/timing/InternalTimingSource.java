@@ -121,13 +121,13 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
             } else if (message.getData1() == 1) {
 //                System.out.println("mod wheel: " + message.getData2());
             } else if (message.getData1() == Options.getInstance().getMidiOptions().getTempoController()) {
-                var opts = Options.getInstance().getMusicOptions();
-                var min = opts.getTempoMinimum();
-                var max = opts.getTempoMaximum();
-                var input = message.getData2();
-                var newTempo = (int) (input / 127d * (max - min) + min);
-                Options.getInstance().getMusicOptions().setTempo(newTempo);
-                updateTempo();
+//                var opts = Options.getInstance().getMusicOptions();
+//                var min = opts.getTempoMinimum();
+//                var max = opts.getTempoMaximum();
+//                var input = message.getData2();
+//                var newTempo = (int) (input / 127d * (max - min) + min);
+//                Options.getInstance().getMusicOptions().setTempo(newTempo);
+//                updateTempo();
             } else {
 //                System.out.printf("Control change: %d %d%n", message.getData1(), message.getData2());
             }

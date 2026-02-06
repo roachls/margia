@@ -14,8 +14,10 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
+import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -72,6 +74,23 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
         updateSize(options.getRadius());
+        options.addChangeListener(MusicianComponentOptions.POSITION_PROPERTY, e -> {
+            if (Options.getInstance().getMidiOptions().isSendPanMessage() && !musician.isMuted()
+                    && e.getSource() instanceof ChangeSource(_, Point2D.Double pos)) {
+                double width;
+                int panValue;
+                if (Options.getInstance().getMidiOptions().isPanWithRelativeLocations()) {
+                    width = Global.getMaxComponentX() - Global.getMinComponentX();
+                    panValue = width == 0 ? 63 : (int) (127d * (pos.x - Global.getMinComponentX()) / width);
+                } else {
+                    width = Global.getScreenWidth();
+                    panValue = width == 0 ? 63 : (int) (127d * pos.x / width);
+                }
+                MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
+                        musician.getChannel(), Options.getInstance().getMidiOptions().getPanController(), panValue);
+            }
+        });
+
     }
 
     @Override
@@ -204,11 +223,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
-            if (MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
-                this.updateSize((int) newVal);
-            } else if (MusicianComponentOptions.POSITION_PROPERTY.equals(property))
-                updatePosition();
+        if (e.getSource() instanceof ChangeSource(String property, Object newVal)
+                && MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
+            this.updateSize((int) newVal);
         }
     }
 
@@ -314,8 +331,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         var scaledForceVec = force.divide(getMass()).multiply(TIMESTEP);
         velocity = velocity.add(scaledForceVec).multiply(DAMPING);
         var scaledVelocity = velocity.multiply(TIMESTEP);
-        var position = options.getPosition();
-        position.setLocation(PointMath.movePoint(position, scaledVelocity));
+        options.setPosition(PointMath.movePoint(options.getPosition(), scaledVelocity));
     }
 
     /**

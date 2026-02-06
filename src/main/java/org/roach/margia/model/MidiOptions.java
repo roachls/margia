@@ -22,6 +22,9 @@ public class MidiOptions {
     private boolean sendingMidiTimecode;
     private boolean autoStartOnNoteOn = true;
     private int tempoController;
+    private boolean sendPanMessage = true;
+    private int panController;
+    private boolean panWithRelativeLocations = true;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -87,6 +90,38 @@ public class MidiOptions {
      * @param tempoController the tempoController to set
      */
     public void setTempoController(int tempoController) { this.tempoController = tempoController; }
+
+    /**
+     * @return the sendPanMessage
+     */
+    public boolean isSendPanMessage() { return sendPanMessage; }
+
+    /**
+     * @param sendPanMessage the sendPanMessage to set
+     */
+    public void setSendPanMessage(boolean sendPanMessage) { this.sendPanMessage = sendPanMessage; }
+
+    /**
+     * @return the panController
+     */
+    public int getPanController() { return panController; }
+
+    /**
+     * @param panController the panController to set
+     */
+    public void setPanController(int panController) { this.panController = panController; }
+
+    /**
+     * @return the panWithRelativeLocations
+     */
+    public boolean isPanWithRelativeLocations() { return panWithRelativeLocations; }
+
+    /**
+     * @param panWithRelativeLocations the panWithRelativeLocations to set
+     */
+    public void setPanWithRelativeLocations(boolean panWithRelativeLocations) {
+        this.panWithRelativeLocations = panWithRelativeLocations;
+    }
 
     /**
      * @param key      name of property being listened for

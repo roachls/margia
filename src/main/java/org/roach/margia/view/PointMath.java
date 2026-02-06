@@ -29,7 +29,7 @@ public class PointMath {
      * @param vec   vector
      * @return a new {@link Point2D} moved by the given vector
      */
-    public static Point2D movePoint(Point2D point, Vector2D vec) {
+    public static Point2D.Double movePoint(Point2D point, Vector2D vec) {
         return new Point2D.Double(point.getX() + vec.x(), point.getY() + vec.y());
     }
 

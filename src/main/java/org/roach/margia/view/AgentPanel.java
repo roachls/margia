@@ -21,6 +21,7 @@ import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.rules.RandomRule;
 import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
+import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -100,6 +101,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             });
             oldWidth = newWidth;
             oldHeight = newHeight;
+            Global.setScreenWidth(newWidth);
         }
     }
 
@@ -289,6 +291,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         for (MusicianComponent node : musicianComponents.values()) {
             node.applyForces();
             node.clampPosition(getWidth(), getHeight());
+        }
+
+        if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
+                    .min(Double::compare).ifPresent(Global::setMinComponentX);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
+                    .max(Double::compare).ifPresent(Global::setMaxComponentX);
         }
     }
 
