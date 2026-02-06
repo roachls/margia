@@ -17,26 +17,6 @@ import org.roach.margia.util.RangeCheck;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicianOptions {
-    @Override
-    public int hashCode() {
-        return Objects.hash(busName, channel, id, keyName, listening, muted, peerIds, range, ruleOptions);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        MusicianOptions other = (MusicianOptions) obj;
-        return Objects.equals(busName, other.busName) && channel == other.channel && id == other.id
-                && Objects.equals(keyName, other.keyName) && listening == other.listening && muted == other.muted
-                && Objects.equals(peerIds, other.peerIds) && Objects.equals(range, other.range)
-                && Objects.equals(ruleOptions, other.ruleOptions);
-    }
-
     private String busName = ALL_BUSSES;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
@@ -77,12 +57,20 @@ public class MusicianOptions {
     }
 
     /**
-     * @return the channel
+     * @return the MIDI channel. Note: very confusingly, the MIDI standard uses
+     *         channels 1-16, but Java stores it as 0-based. The channel here is
+     *         always 0-based (0-15), but we always display the value +1 to make it
+     *         look like the MIDI standard and be less confusing when looking at
+     *         DAWs that use the 1-based standard.
      */
     public int getChannel() { return channel; }
 
     /**
-     * @param channel the channel to set
+     * @param channel the channel to set. Note: very confusingly, the MIDI standard
+     *                uses channels 1-16, but Java stores it as 0-based. The channel
+     *                here is always 0-based (0-15), but we always display the value
+     *                +1 to make it look like the MIDI standard and be less
+     *                confusing when looking at DAWs that use the 1-based standard.
      */
     public void setChannel(int channel) {
         var oldChannel = this.channel;
@@ -166,8 +154,8 @@ public class MusicianOptions {
      */
     public void setRange(NoteRange range) {
         var oldRange = this.range;
-        this.range = range; 
-        if (!oldRange.equals(this.range)) 
+        this.range = range;
+        if (!oldRange.equals(this.range))
             Options.getInstance().setDirty();
     }
 
@@ -213,6 +201,26 @@ public class MusicianOptions {
         target.setRange(this.range.copy());
         this.ruleOptions.copyInto(target.ruleOptions);
         Options.getInstance().setDirty();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(busName, channel, id, keyName, listening, muted, peerIds, range, ruleOptions);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        MusicianOptions other = (MusicianOptions) obj;
+        return Objects.equals(busName, other.busName) && channel == other.channel && id == other.id
+                && Objects.equals(keyName, other.keyName) && listening == other.listening && muted == other.muted
+                && Objects.equals(peerIds, other.peerIds) && Objects.equals(range, other.range)
+                && Objects.equals(ruleOptions, other.ruleOptions);
     }
 
 }

@@ -49,9 +49,9 @@ public class MusicianComponentOptions {
     /**
      * @param locked the locked to set
      */
-    public void setLocked(boolean locked) { 
+    public void setLocked(boolean locked) {
         var oldLocked = this.locked;
-        this.locked = locked; 
+        this.locked = locked;
         if (oldLocked != this.locked)
             Options.getInstance().setDirty();
     }
@@ -65,9 +65,7 @@ public class MusicianComponentOptions {
         var oldPosition = new Point2D.Double(this.position.x, this.position.y);
         this.position.setLocation(position);
         if (!oldPosition.equals(this.position)) {
-            // value of position is irrelevant because the MusicianComponent
-            // will simply call updatePosition
-            emitter.fireChangeEvent(POSITION_PROPERTY, new ChangeSource(POSITION_PROPERTY, null));
+            emitter.fireChangeEvent(POSITION_PROPERTY, new ChangeSource(POSITION_PROPERTY, this.position));
         }
     }
 

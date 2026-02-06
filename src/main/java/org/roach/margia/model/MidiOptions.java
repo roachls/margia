@@ -18,10 +18,25 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  * {@code foo(Foo f)} for a setter.
  */
 public class MidiOptions {
+    /**
+     * default pan controller
+     */
+    public static final int DEFAULT_PAN_CONTROLLER = 77;
+    /**
+     * default vertical pan controller
+     */
+    public static final int DEFAULT_VERTICAL_PAN_CONTROLLER = 78;
+
     private boolean useExternalMidi;
     private boolean sendingMidiTimecode;
     private boolean autoStartOnNoteOn = true;
     private int tempoController;
+    private boolean sendPanMessage = true;
+    private int panController = DEFAULT_PAN_CONTROLLER;
+    private boolean panWithRelativeLocations = true;
+    private boolean sendVerticalPanMessage = true;
+    private int verticalPanController = DEFAULT_VERTICAL_PAN_CONTROLLER;
+    private boolean verticalPanWithRelativeLocations = true;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -87,6 +102,74 @@ public class MidiOptions {
      * @param tempoController the tempoController to set
      */
     public void setTempoController(int tempoController) { this.tempoController = tempoController; }
+
+    /**
+     * @return the sendPanMessage
+     */
+    public boolean isSendPanMessage() { return sendPanMessage; }
+
+    /**
+     * @param sendPanMessage the sendPanMessage to set
+     */
+    public void setSendPanMessage(boolean sendPanMessage) { this.sendPanMessage = sendPanMessage; }
+
+    /**
+     * @return the panController
+     */
+    public int getPanController() { return panController; }
+
+    /**
+     * @param panController the panController to set
+     */
+    public void setPanController(int panController) { this.panController = panController; }
+
+    /**
+     * @return the panWithRelativeLocations
+     */
+    public boolean isPanWithRelativeLocations() { return panWithRelativeLocations; }
+
+    /**
+     * @param panWithRelativeLocations the panWithRelativeLocations to set
+     */
+    public void setPanWithRelativeLocations(boolean panWithRelativeLocations) {
+        this.panWithRelativeLocations = panWithRelativeLocations;
+    }
+
+    /**
+     * @return the sendVerticalPanMessage
+     */
+    public boolean isSendVerticalPanMessage() { return sendVerticalPanMessage; }
+
+    /**
+     * @param sendVerticalPanMessage the sendVerticalPanMessage to set
+     */
+    public void setSendVerticalPanMessage(boolean sendVerticalPanMessage) {
+        this.sendVerticalPanMessage = sendVerticalPanMessage;
+    }
+
+    /**
+     * @return the verticalPanController
+     */
+    public int getVerticalPanController() { return verticalPanController; }
+
+    /**
+     * @param verticalPanController the panController to set
+     */
+    public void setVerticalPanController(int verticalPanController) {
+        this.verticalPanController = verticalPanController;
+    }
+
+    /**
+     * @return the verticalPanWithRelativeLocations
+     */
+    public boolean isVerticalPanWithRelativeLocations() { return verticalPanWithRelativeLocations; }
+
+    /**
+     * @param verticalPanWithRelativeLocations the panWithRelativeLocations to set
+     */
+    public void setVerticalPanWithRelativeLocations(boolean verticalPanWithRelativeLocations) {
+        this.verticalPanWithRelativeLocations = verticalPanWithRelativeLocations;
+    }
 
     /**
      * @param key      name of property being listened for

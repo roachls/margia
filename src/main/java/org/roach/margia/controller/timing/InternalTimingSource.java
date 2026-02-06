@@ -64,7 +64,8 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void start() {
-        if (isRunning()) return;
+        if (isRunning())
+            return;
         transport.start();
         startClock();
     }

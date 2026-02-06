@@ -163,7 +163,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
         var rangeLowLabel = createLabelFor("Low note", rangeLow);
         rangeHi = createSpinner("High note", 127d, 0d, 127d, 1d, Integer.class);
         var rangeHiLabel = createLabelFor("High note", rangeHi);
-        channel = createSpinner("MIDI channel", 0d, 0d, 16d, 1d, Integer.class);
+        channel = createSpinner("MIDI channel", 1d, 1d, 16d, 1d, Integer.class);
         var channelLabel = createLabelFor("MIDI Channel", channel);
         var availableDevices = new TreeSet<String>();
         availableDevices.add("");
@@ -322,8 +322,8 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             bus.setSelectedItem(musOpts.getBusName());
             busActionListener = _ -> musOpts.setBusName((String) bus.getSelectedItem());
             bus.addActionListener(busActionListener);
-            channel.setValue(musOpts.getChannel());
-            channelChangeListener = _ -> musOpts.setChannel((int) channel.getValue());
+            channel.setValue(musOpts.getChannel() + 1);
+            channelChangeListener = _ -> musOpts.setChannel((int) channel.getValue() - 1);
             channel.addChangeListener(channelChangeListener);
             radius.setValue(compOpts.getRadius());
             radiusChangeListener = _ -> compOpts.setRadius((int) radius.getValue());
@@ -433,7 +433,7 @@ public class MusicianOptionWindow extends JDialog implements VetoableChangeListe
             channel.removeChangeListener(channelChangeListener);
             channelChangeListener = null;
         }
-        channel.setValue(0);
+        channel.setValue(1);
         if (busActionListener != null) {
             bus.removeActionListener(busActionListener);
             busActionListener = null;
