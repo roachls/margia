@@ -6,6 +6,7 @@ import java.awt.event.ComponentEvent;
 
 import javax.swing.*;
 
+import org.roach.margia.model.MidiOptions;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
@@ -17,6 +18,13 @@ class OptionsWindow extends JDialog {
     private JSpinner edgeLength;
     private JCheckBox showIcons;
     private JCheckBox animateBackground;
+    private static JSpinner randomSeedSpinner;
+    private static JCheckBox external;
+    private static JCheckBox sendMidiTimecode;
+    private static JCheckBox autoStartOnNoteOn;
+    private static JCheckBox sendPanMessage;
+    private static JSpinner panController;
+    private static JCheckBox panWithRelativeLocations;
 
     OptionsWindow() {
         super((JFrame) null, "Options");
@@ -57,6 +65,8 @@ class OptionsWindow extends JDialog {
         tabPane.addTab("Graphics Options", createUiOptionsPanel());
         tabPane.addTab("Misc Options", createMiscPanel());
         tabPane.addTab("MIDI Options", createMidiPanel());
+
+        updateOptions();
 
         pack();
     }
@@ -135,7 +145,7 @@ class OptionsWindow extends JDialog {
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        var randomSeedSpinner = createSpinner("Random seed", 0d, (double) -Long.MAX_VALUE, (double) Long.MAX_VALUE, 1d,
+        randomSeedSpinner = createSpinner("Random seed", 0d, (double) -Long.MAX_VALUE, (double) Long.MAX_VALUE, 1d,
                 Long.class);
         JComponent editor = randomSeedSpinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor defEditor) {
@@ -143,7 +153,6 @@ class OptionsWindow extends JDialog {
             textField.setColumns(15); // Set width to 3 columns
         }
         var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
-        randomSeedSpinner.setValue((double) Options.getInstance().getRandomSeed());
         randomSeedSpinner.addChangeListener(
                 _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
@@ -165,23 +174,46 @@ class OptionsWindow extends JDialog {
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        var external = new JCheckBox("Use External MIDI");
+        external = new JCheckBox("Use External MIDI");
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
-        var sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
+        sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
         sendMidiTimecode.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
-        sendMidiTimecode.setSelected(Options.getInstance().getMidiOptions().isSendingMidiTimecode());
         sendMidiTimecode.setEnabled(external.isSelected());
-        var autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
+        autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
         autoStartOnNoteOn.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
-        autoStartOnNoteOn.setSelected(Options.getInstance().getMidiOptions().isAutoStartOnNoteOn());
         autoStartOnNoteOn.setEnabled(external.isSelected());
+
+        sendPanMessage = new JCheckBox("Send stereo panning");
+        sendPanMessage.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setSendPanMessage(sendPanMessage.isSelected()));
+        sendPanMessage.setEnabled(external.isSelected());
+
+        panController = createSpinner("Pan controller", (double) MidiOptions.DEFAULT_PAN_CONTROLLER, 0d, 127d, 1d,
+                Integer.class);
+        panController.addChangeListener(
+                _ -> Options.getInstance().getMidiOptions().setPanController((int) panController.getValue()));
+        panController.setEnabled(external.isSelected());
+        var panControllerLabel = createLabelFor("Pan controller", panController);
+
+        panWithRelativeLocations = new JCheckBox("Pan with relative locations");
+        panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
+        panWithRelativeLocations.setEnabled(external.isSelected());
 
         external.addActionListener(_ -> {
             Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
             sendMidiTimecode.setEnabled(external.isSelected());
             autoStartOnNoteOn.setEnabled(external.isSelected());
+            sendPanMessage.setEnabled(external.isSelected());
+            panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+        });
+
+        sendPanMessage.addActionListener(_ -> {
+            panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
         });
 
         c.gridx = 0;
@@ -191,6 +223,17 @@ class OptionsWindow extends JDialog {
         midiPanel.add(sendMidiTimecode, c);
         c.gridy++;
         midiPanel.add(autoStartOnNoteOn, c);
+        c.gridy++;
+        midiPanel.add(sendPanMessage, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(panControllerLabel, c);
+        c.gridx = 1;
+        midiPanel.add(panController, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(panWithRelativeLocations, c);
+
         return midiPanel;
     }
 
@@ -205,7 +248,7 @@ class OptionsWindow extends JDialog {
         SpinnerNumberModel model;
         if (type.equals(Integer.class))
             model = new SpinnerNumberModel(defValue.intValue(), min.intValue(), max.intValue(), step.intValue());
-        else if (type.equals(Long.class))
+        else if (type.equals(Long.class) || type.equals(long.class))
             model = new SpinnerNumberModel(defValue.longValue(), min.longValue(), max.longValue(), step.longValue());
         else
             model = new SpinnerNumberModel(defValue.doubleValue(), min.doubleValue(), max.doubleValue(),
@@ -221,5 +264,15 @@ class OptionsWindow extends JDialog {
         showIcons.setSelected(options.getUiOptions().isShowNumbers());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());
         windSpeed.setValue(options.getUiOptions().getWindSpeed());
+        animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
+
+        randomSeedSpinner.setValue((double) options.getRandomSeed());
+
+        external.setSelected(options.getMidiOptions().isUseExternalMidi());
+        sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
+        autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
+        sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
+        panController.setValue(options.getMidiOptions().getPanController());
+        panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
     }
 }

@@ -18,12 +18,17 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  * {@code foo(Foo f)} for a setter.
  */
 public class MidiOptions {
+    /**
+     * default pan controller
+     */
+    public static final int DEFAULT_PAN_CONTROLLER = 77;
+    
     private boolean useExternalMidi;
     private boolean sendingMidiTimecode;
     private boolean autoStartOnNoteOn = true;
     private int tempoController;
     private boolean sendPanMessage = true;
-    private int panController;
+    private int panController = DEFAULT_PAN_CONTROLLER;
     private boolean panWithRelativeLocations = true;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
