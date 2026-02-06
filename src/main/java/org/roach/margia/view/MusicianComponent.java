@@ -89,6 +89,21 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
                         musician.getChannel(), Options.getInstance().getMidiOptions().getPanController(), panValue);
             }
+            if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage() && !musician.isMuted()
+                    && e.getSource() instanceof ChangeSource(_, Point2D.Double pos)) {
+                double height;
+                int verticalPanValue;
+                if (Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
+                    height = Global.getMaxComponentY() - Global.getMinComponentY();
+                    verticalPanValue = height == 0 ? 63 : (int) (127d * (pos.y - Global.getMinComponentY()) / height);
+                } else {
+                    height = Global.getScreenHeight();
+                    verticalPanValue = height == 0 ? 63 : (int) (127d * pos.y / height);
+                }
+                MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
+                        musician.getChannel(), Options.getInstance().getMidiOptions().getVerticalPanController(),
+                        verticalPanValue);
+            }
         });
 
     }

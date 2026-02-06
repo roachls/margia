@@ -190,11 +190,13 @@ public class MidiController implements ChangeListener {
             if (MusicianOptions.ALL_BUSSES.equals(busName)) {
                 for (var bus : outputReceivers.entrySet()) {
                     immediateExecutor.submit(() -> bus.getValue().send(panMessage, -1));
-                    LOGGER.atTrace().log("Sending pan message on {}:{} with amount {}", bus.getKey(), channel, amount);
+                    LOGGER.atTrace().log("Sending pan message on {}:{} with controller {}, amount {}", bus.getKey(),
+                            channel + 1, controller, amount);
                 }
             } else if (outputReceivers.containsKey(busName)) {
                 immediateExecutor.submit(() -> outputReceivers.get(busName).send(panMessage, -1));
-                LOGGER.atTrace().log("Sending pan message on {}:{} with amount {}", busName, channel, amount);
+                LOGGER.atTrace().log("Sending control message on {}:{} with controller {}, amount {}", busName,
+                        channel + 1, controller, amount);
             }
         } catch (InvalidMidiDataException e) {
             LOGGER.atError().withThrowable(e).log("Invalid MIDI data");

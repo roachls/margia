@@ -102,6 +102,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             oldWidth = newWidth;
             oldHeight = newHeight;
             Global.setScreenWidth(newWidth);
+            Global.setScreenHeight(newHeight);
         }
     }
 
@@ -298,6 +299,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                     .min(Double::compare).ifPresent(Global::setMinComponentX);
             Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
                     .max(Double::compare).ifPresent(Global::setMaxComponentX);
+        }
+        if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()
+                && Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
+                    .min(Double::compare).ifPresent(Global::setMinComponentY);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
+                    .max(Double::compare).ifPresent(Global::setMaxComponentY);
         }
     }
 
