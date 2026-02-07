@@ -64,6 +64,9 @@ public class Main {
             } catch (BackingStoreException e) {
                 System.err.println("Error writing save directory to preferences: " + e.getMessage());
             }
+        } else {
+            MidiController.getInstance().scanForMidiInputDevices();
+            MidiController.getInstance().scanForMidiOutputDevices();
         }
         var musicians = MusicianList.getInstance().getMusicians();
 

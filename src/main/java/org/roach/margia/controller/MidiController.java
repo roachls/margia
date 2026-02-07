@@ -182,7 +182,7 @@ public class MidiController implements ChangeListener {
      */
     public void sendControlChange(String busName, int channel, int controller, int amount) {
         if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
-            LOGGER.atDebug().log("out of range, returning");
+            LOGGER.atDebug().log("out of range; amount: {}, channel: {}, controller: {}", amount, channel, controller);
             return;
         }
         try {
@@ -411,7 +411,7 @@ public class MidiController implements ChangeListener {
             // Process the incoming MIDI message
             if (message instanceof ShortMessage sm) {
                 var channel = sm.getChannel();
-                LOGGER.atTrace().log("Received a {} on channel {}", sm.getClass().getName(), channel);
+                LOGGER.atTrace().log("Received a {} command on channel {}", sm.getCommand(), channel);
                 for (var receiver : receivers) {
                     receiver.receive(sm);
                 }
