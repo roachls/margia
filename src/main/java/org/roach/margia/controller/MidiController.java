@@ -41,7 +41,7 @@ public class MidiController implements ChangeListener {
     private static MidiController instance;
     private static final Map<Integer, String> MIDI_COMMANDS = Map.of(NOTE_OFF, "NOTE_OFF", NOTE_ON, "NOTE_ON",
             POLY_PRESSURE, "POLY_PRESSURE", CONTROL_CHANGE, "CONTROL_CHANGE", PROGRAM_CHANGE, "PROGRAM_CHANGE",
-            CHANNEL_PRESSURE, "CHANNEL_PRESSURE", PITCH_BEND, "PITCH_BEND");
+            CHANNEL_PRESSURE, "CHANNEL_PRESSURE", PITCH_BEND, "PITCH_BEND", 240, "CLOCK_PULSE");
     private static final Map<Integer, String> MIDI_STATUSES = Map.ofEntries(
     // @formatter:off
             Map.entry(MIDI_TIME_CODE, "MIDI_TIME_CODE"),
