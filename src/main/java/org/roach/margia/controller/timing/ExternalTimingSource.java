@@ -77,6 +77,10 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
         case ShortMessage.STOP:
             stop();
             break;
+        case ShortMessage.SONG_POSITION_POINTER:
+            stop();
+            transport.reset();
+            break;
         default:
             break;
         }

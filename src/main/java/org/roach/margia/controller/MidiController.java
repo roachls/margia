@@ -39,6 +39,24 @@ public class MidiController implements ChangeListener {
     private final Map<String, Map<Integer, List<Chord>>> chordsToPlayNextPerBus = new HashMap<>();
     private final ShortMessage timingPulse;
     private static MidiController instance;
+    private static final Map<Integer, String> MIDI_COMMANDS = Map.of(NOTE_OFF, "NOTE_OFF", NOTE_ON, "NOTE_ON",
+            POLY_PRESSURE, "POLY_PRESSURE", CONTROL_CHANGE, "CONTROL_CHANGE", PROGRAM_CHANGE, "PROGRAM_CHANGE",
+            CHANNEL_PRESSURE, "CHANNEL_PRESSURE", PITCH_BEND, "PITCH_BEND");
+    private static final Map<Integer, String> MIDI_STATUSES = Map.ofEntries(
+    // @formatter:off
+            Map.entry(MIDI_TIME_CODE, "MIDI_TIME_CODE"),
+            Map.entry(SONG_POSITION_POINTER, "SONG_POSITION_POINTER"),
+            Map.entry(SONG_SELECT, "SONG_SELECT"), 
+            Map.entry(TUNE_REQUEST, "TUNE_REQUEST"),
+            Map.entry(END_OF_EXCLUSIVE, "END_OF_EXCLUSIVE"),
+            Map.entry(TIMING_CLOCK, "TIMING_CLOCK"),
+            Map.entry(START, "START"),
+            Map.entry(CONTINUE, "CONTINUE"),
+            Map.entry(STOP, "STOP"),
+            Map.entry(ACTIVE_SENSING, "ACTIVE_SENSING"), 
+            Map.entry(SYSTEM_RESET, "SYSTEM_RESET")
+            // @formatter:off
+     );
 
     /**
      * @return the singleton MIDI controller
@@ -412,8 +430,8 @@ public class MidiController implements ChangeListener {
             // Process the incoming MIDI message
             if (message instanceof ShortMessage sm) {
                 var channel = sm.getChannel();
-                LOGGER.atTrace().log("Received a {} command on channel {}: {}/{}, status={}", sm.getCommand(), channel,
-                        sm.getData1(), sm.getData2(), sm.getStatus());
+                LOGGER.atTrace().log("Received a {} command on channel {}: {}/{}, status={}",
+                        MIDI_COMMANDS.getOrDefault(sm.getCommand(), Integer.toString(sm.getCommand())), channel, sm.getData1(), sm.getData2(),MIDI_STATUSES.getOrDefault(sm.getStatus(), Integer.toString(message.getStatus())));
                 for (var receiver : receivers) {
                     receiver.receive(sm);
                 }

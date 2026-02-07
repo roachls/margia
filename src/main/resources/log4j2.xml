@@ -20,11 +20,11 @@
 			level="trace" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Logger name="org.roach.margia.Transport" level="info"
+		<Logger name="org.roach.margia.Transport" level="trace"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Logger name="org.roach.margia.controller.MidiController" level="trace"
+		<Logger name="org.roach.margia.controller.MidiController" level="debug"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
@@ -32,7 +32,7 @@
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Logger name="org.roach.margia.controller.timing.ExternalTimingSource" level="trace"
+		<Logger name="org.roach.margia.controller.timing.ExternalTimingSource" level="debug"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
