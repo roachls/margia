@@ -47,7 +47,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener, Ch
         add(tick);
 
         add(new JLabel("Tempo: "));
-        var tempoModel = new SpinnerNumberModel(timing.getTempo(), 1, 400, 1);
+        var tempoModel = new SpinnerNumberModel(Options.getInstance().getMusicOptions().getTempo(), 1, 400, 1);
         tempo = new JSpinner(tempoModel);
         tempo.setName("tempo");
         tempo.addChangeListener(_ -> Options.getInstance().getMusicOptions().setTempo((int) tempo.getValue()));
@@ -75,6 +75,10 @@ public class TransportPanel extends JPanel implements PropertyChangeListener, Ch
             startBtn.setIcon(startIcon);
         });
         add(rewindBtn);
+        
+        startBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
+        rewindBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
+        tempo.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
 
         Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }

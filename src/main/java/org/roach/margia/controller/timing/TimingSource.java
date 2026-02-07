@@ -17,12 +17,9 @@ public interface TimingSource {
     /**
      * re-read Options to get latest tempo
      */
-    void updateTempo();
-
-    /**
-     * @return the current tempo in beats-per-minute
-     */
-    int getTempo();
+    default void updateTempo() {
+        // implementation-specific
+    }
 
     /**
      * @return true if the clock is running

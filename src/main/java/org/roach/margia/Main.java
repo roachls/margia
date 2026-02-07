@@ -16,6 +16,7 @@ import org.pushingpixels.radiance.theming.api.skin.GeminiSkin;
 import org.roach.margia.MainParams.UiType;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
+import org.roach.margia.controller.timing.ExternalTimingSource;
 import org.roach.margia.controller.timing.InternalTimingSource;
 import org.roach.margia.model.Key;
 import org.roach.margia.storage.Options;
@@ -82,7 +83,9 @@ public class Main {
             DieRoller.reset();
         });
 
-        var timing = new InternalTimingSource(transport);
+        var timing = Options.getInstance().getMidiOptions().isUsingExternalTiming()
+                ? new ExternalTimingSource(transport)
+                :new InternalTimingSource(transport);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();

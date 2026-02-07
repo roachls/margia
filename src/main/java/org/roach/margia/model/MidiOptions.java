@@ -27,7 +27,7 @@ public class MidiOptions {
      */
     public static final int DEFAULT_VERTICAL_PAN_CONTROLLER = 78;
 
-    private boolean useExternalMidi;
+    private boolean usingExternalMidi;
     private boolean sendingMidiTimecode;
     private boolean autoStartOnNoteOn = true;
     private int tempoController;
@@ -37,6 +37,7 @@ public class MidiOptions {
     private boolean sendVerticalPanMessage = true;
     private int verticalPanController = DEFAULT_VERTICAL_PAN_CONTROLLER;
     private boolean verticalPanWithRelativeLocations = true;
+    private boolean usingExternalTiming;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -47,17 +48,17 @@ public class MidiOptions {
     /**
      * @return whether to use external MIDI devices
      */
-    public boolean isUseExternalMidi() { return useExternalMidi; }
+    public boolean isUsingExternalMidi() { return usingExternalMidi; }
 
     /**
-     * @param useExternalMidi whether to use external MIDI devices
+     * @param usingExternalMidi whether to use external MIDI devices
      */
-    public void setUseExternalMidi(boolean useExternalMidi) {
-        var oldUseExternalMidi = this.useExternalMidi;
-        this.useExternalMidi = useExternalMidi;
-        if (oldUseExternalMidi != this.useExternalMidi) {
+    public void setUsingExternalMidi(boolean usingExternalMidi) {
+        var oldUsingExternalMidi = this.usingExternalMidi;
+        this.usingExternalMidi = usingExternalMidi;
+        if (oldUsingExternalMidi != this.usingExternalMidi) {
             emitter.fireChangeEvent(EXTERNAL_MIDI_PROPERTY,
-                    new ChangeSource(EXTERNAL_MIDI_PROPERTY, this.useExternalMidi));
+                    new ChangeSource(EXTERNAL_MIDI_PROPERTY, this.usingExternalMidi));
             Options.getInstance().setDirty();
         }
     }
@@ -71,6 +72,8 @@ public class MidiOptions {
      * @param sendingMidiTimecode the sendingMidiTimecode to set
      */
     public void setSendingMidiTimecode(boolean sendingMidiTimecode) {
+        if (!usingExternalMidi && sendingMidiTimecode)
+            return; // can't send timecodes if not using external MIDI
         var oldControlDawTiming = this.sendingMidiTimecode;
         this.sendingMidiTimecode = sendingMidiTimecode;
         if (oldControlDawTiming != this.sendingMidiTimecode) {
@@ -87,6 +90,8 @@ public class MidiOptions {
      * @param autoStartOnNoteOn the autoStartOnNoteOn to set
      */
     public void setAutoStartOnNoteOn(boolean autoStartOnNoteOn) {
+        if (!usingExternalMidi && autoStartOnNoteOn)
+            return; // can't receive notes if not using external MIDI
         var oldAutoStartOnNoteOn = this.autoStartOnNoteOn;
         this.autoStartOnNoteOn = autoStartOnNoteOn;
         if (oldAutoStartOnNoteOn != this.autoStartOnNoteOn)
@@ -101,7 +106,12 @@ public class MidiOptions {
     /**
      * @param tempoController the tempoController to set
      */
-    public void setTempoController(int tempoController) { this.tempoController = tempoController; }
+    public void setTempoController(int tempoController) {
+        var oldTempoController = this.tempoController;
+        this.tempoController = tempoController;
+        if (oldTempoController != this.tempoController)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the sendPanMessage
@@ -111,7 +121,12 @@ public class MidiOptions {
     /**
      * @param sendPanMessage the sendPanMessage to set
      */
-    public void setSendPanMessage(boolean sendPanMessage) { this.sendPanMessage = sendPanMessage; }
+    public void setSendPanMessage(boolean sendPanMessage) {
+        var oldSendPanMessage = this.sendPanMessage;
+        this.sendPanMessage = sendPanMessage;
+        if (oldSendPanMessage != this.sendPanMessage)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the panController
@@ -121,7 +136,12 @@ public class MidiOptions {
     /**
      * @param panController the panController to set
      */
-    public void setPanController(int panController) { this.panController = panController; }
+    public void setPanController(int panController) {
+        var oldPanController = this.panController;
+        this.panController = panController;
+        if (oldPanController != this.panController)
+            Options.getInstance().setDirty();
+    }
 
     /**
      * @return the panWithRelativeLocations
@@ -132,7 +152,10 @@ public class MidiOptions {
      * @param panWithRelativeLocations the panWithRelativeLocations to set
      */
     public void setPanWithRelativeLocations(boolean panWithRelativeLocations) {
+        var oldPanWithRelativeLocations = this.panWithRelativeLocations;
         this.panWithRelativeLocations = panWithRelativeLocations;
+        if (oldPanWithRelativeLocations != this.panWithRelativeLocations)
+            Options.getInstance().setDirty();
     }
 
     /**
@@ -144,7 +167,10 @@ public class MidiOptions {
      * @param sendVerticalPanMessage the sendVerticalPanMessage to set
      */
     public void setSendVerticalPanMessage(boolean sendVerticalPanMessage) {
+        var oldSendVerticalPanMessage = this.sendVerticalPanMessage;
         this.sendVerticalPanMessage = sendVerticalPanMessage;
+        if (oldSendVerticalPanMessage != this.sendVerticalPanMessage)
+            Options.getInstance().setDirty();
     }
 
     /**
@@ -162,13 +188,36 @@ public class MidiOptions {
     /**
      * @return the verticalPanWithRelativeLocations
      */
-    public boolean isVerticalPanWithRelativeLocations() { return verticalPanWithRelativeLocations; }
+    public boolean isVerticalPanWithRelativeLocations() {
+        return verticalPanWithRelativeLocations;
+    }
 
     /**
      * @param verticalPanWithRelativeLocations the panWithRelativeLocations to set
      */
     public void setVerticalPanWithRelativeLocations(boolean verticalPanWithRelativeLocations) {
+        var old = this.verticalPanWithRelativeLocations;
         this.verticalPanWithRelativeLocations = verticalPanWithRelativeLocations;
+        if (old != this.verticalPanWithRelativeLocations)
+            Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return the usingExternalTiming
+     */
+    public boolean isUsingExternalTiming() { return usingExternalMidi && usingExternalTiming; }
+
+    /**
+     * @param usingExternalTiming the usingExternalTiming to set
+     */
+    public void setUsingExternalTiming(boolean usingExternalTiming) {
+        if (!usingExternalMidi && usingExternalTiming)
+            return;
+        var oldUsingExternalTiming = this.usingExternalTiming;
+        this.usingExternalTiming = usingExternalTiming;
+        if (oldUsingExternalTiming != this.usingExternalTiming) {
+            Options.getInstance().setDirty();
+        }
     }
 
     /**
@@ -181,13 +230,13 @@ public class MidiOptions {
 
     @Override
     public String toString() {
-        return "MidiOptions [useExternalMidi=" + useExternalMidi + ", sendingMidiTimecode=" + sendingMidiTimecode
+        return "MidiOptions [useExternalMidi=" + usingExternalMidi + ", sendingMidiTimecode=" + sendingMidiTimecode
                 + ", autoStartOnNoteOn=" + autoStartOnNoteOn + ", tempoController=" + tempoController + "]";
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(autoStartOnNoteOn, sendingMidiTimecode, tempoController, useExternalMidi);
+        return Objects.hash(autoStartOnNoteOn, sendingMidiTimecode, tempoController, usingExternalMidi);
     }
 
     @Override
@@ -200,6 +249,6 @@ public class MidiOptions {
             return false;
         MidiOptions other = (MidiOptions) obj;
         return autoStartOnNoteOn == other.autoStartOnNoteOn && sendingMidiTimecode == other.sendingMidiTimecode
-                && tempoController == other.tempoController && useExternalMidi == other.useExternalMidi;
+                && tempoController == other.tempoController && usingExternalMidi == other.usingExternalMidi;
     }
 }

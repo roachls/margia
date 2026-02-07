@@ -17,7 +17,7 @@ class MidiControllerTest {
     @SuppressWarnings({ "java:S2699", "java:S2925" })
     void testPlayNote() throws InterruptedException {
         Options.getInstance().getMusicOptions().setTempo(60);
-        Options.getInstance().getMidiOptions().setUseExternalMidi(false);
+        Options.getInstance().getMidiOptions().setUsingExternalMidi(false);
         var controller = MidiController.getInstance();
         controller.scanForMidiOutputDevices();
         for (var note = 48; note < 84; note++) {
