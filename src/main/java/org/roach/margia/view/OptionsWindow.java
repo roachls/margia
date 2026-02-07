@@ -178,7 +178,7 @@ class OptionsWindow extends JDialog {
         c.insets = new Insets(5, 5, 5, 5);
 
         external = new JCheckBox("Use External MIDI");
-        external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
+        external.setSelected(Options.getInstance().getMidiOptions().isUsingExternalMidi());
         sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
         sendMidiTimecode.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
@@ -227,7 +227,7 @@ class OptionsWindow extends JDialog {
         verticalPanWithRelativeLocations.setEnabled(external.isSelected());
 
         external.addActionListener(_ -> {
-            Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
+            Options.getInstance().getMidiOptions().setUsingExternalMidi(external.isSelected());
             sendMidiTimecode.setEnabled(external.isSelected());
             autoStartOnNoteOn.setEnabled(external.isSelected());
             sendPanMessage.setEnabled(external.isSelected());
@@ -309,7 +309,7 @@ class OptionsWindow extends JDialog {
 
         randomSeedSpinner.setValue((double) options.getRandomSeed());
 
-        external.setSelected(options.getMidiOptions().isUseExternalMidi());
+        external.setSelected(options.getMidiOptions().isUsingExternalMidi());
         sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
         autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
         sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());

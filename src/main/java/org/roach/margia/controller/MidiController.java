@@ -129,7 +129,7 @@ public class MidiController implements ChangeListener {
                 device = MidiSystem.getMidiDevice(info);
                 // Check if device has transmitters and isn't a software synthesizer
                 LOGGER.atTrace().log("Examining input device {}", info.getName());
-                if (device.getMaxTransmitters() > 0 && !(device instanceof Synthesizer)) {
+                if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)) {
                     LOGGER.atDebug().log("Found input device {}", info.getName());
                     var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
                     if (similarNameExists)
@@ -412,7 +412,8 @@ public class MidiController implements ChangeListener {
             // Process the incoming MIDI message
             if (message instanceof ShortMessage sm) {
                 var channel = sm.getChannel();
-                LOGGER.atTrace().log("Received a {} command on channel {}", sm.getCommand(), channel);
+                LOGGER.atTrace().log("Received a {} command on channel {}: {}/{}, status={}", sm.getCommand(), channel,
+                        sm.getData1(), sm.getData2(), sm.getStatus());
                 for (var receiver : receivers) {
                     receiver.receive(sm);
                 }

@@ -53,9 +53,6 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
         }
     }
 
-    @Override
-    public int getTempo() { return Options.getInstance().getMusicOptions().getTempo(); }
-
     private void startClock() {
         running.set(true);
         clockFuture = clockExecutor.scheduleAtFixedRate(transport::receiveClockPulse, 0,
@@ -99,7 +96,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void receive(ShortMessage message) {
-        if (!Options.getInstance().getMidiOptions().isUseExternalMidi())
+        if (!Options.getInstance().getMidiOptions().isUsingExternalMidi())
             return;
         switch (message.getCommand()) {
         case ShortMessage.START, ShortMessage.CONTINUE:
