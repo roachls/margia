@@ -80,7 +80,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         musicianOptionsWindow = new MusicianOptionWindow();
-        optionsWindow = new OptionsWindow();
+        optionsWindow = new OptionsWindow(this);
         updateTitle();
         Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);

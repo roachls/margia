@@ -3,8 +3,10 @@ package org.roach.margia.view;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 import org.roach.margia.model.MidiOptions;
 import org.roach.margia.model.UiOptions;
@@ -12,7 +14,12 @@ import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 
 class OptionsWindow extends JDialog {
+    private static final String HEIGHT_PROPERTY = "_height";
+    private static final String WIDTH_PROPERTY = "_width";
+    private static final String Y_PROPERTY = "_y";
+    private static final String X_PROPERTY = "_x";
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
+    
     private JSpinner gravity;
     private JSpinner windSpeed;
     private JSpinner edgeLength;
@@ -29,45 +36,76 @@ class OptionsWindow extends JDialog {
     private static JSpinner verticalPanController;
     private static JCheckBox verticalPanWithRelativeLocations;
 
-    OptionsWindow() {
-        super((JFrame) null, "Options");
+    OptionsWindow(JFrame parent) {
+        super(parent, "Options");
         setName(OPTIONS_WINDOW_NAME);
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentMoved(ComponentEvent e) {
                 if (isVisible()) {
                     var loc = getLocationOnScreen();
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_x", Integer.toString(loc.x));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_y", Integer.toString(loc.y));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_width",
+                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + X_PROPERTY, Integer.toString(loc.x));
+                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + Y_PROPERTY, Integer.toString(loc.y));
+                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY,
                             Integer.toString(getBounds().width));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_height",
+                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY,
                             Integer.toString(getBounds().height));
                 }
+            }
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY,
+                        Integer.toString(getBounds().width));
+                Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY,
+                        Integer.toString(getBounds().height));
             }
         });
 
         createUi();
-        var x = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + "_x", 100);
-        var y = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + "_y", 100);
-        var w = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + "_width", 100);
-        var h = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + "_height", 100);
+        var x = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + X_PROPERTY, 100);
+        var y = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + Y_PROPERTY, 100);
+        var w = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY, 100);
+        var h = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY, 100);
         this.setLocation(x, y);
         this.setSize(w, h);
         setVisible(Persistence.getInstance().getBoolean(OptionsWindow.OPTIONS_WINDOW_NAME + "_visible", false));
     }
 
     private void createUi() {
-        var tabPane = new JTabbedPane();
-        setPreferredSize(new Dimension(350, 300));
-        setAlwaysOnTop(true);
+        AtomicReference<JPanel> selectedPanel = new AtomicReference<>();
         setLayout(new BorderLayout());
-
-        add(tabPane, BorderLayout.CENTER);
-
-        tabPane.addTab("Graphics Options", createUiOptionsPanel());
-        tabPane.addTab("Misc Options", createMiscPanel());
-        tabPane.addTab("MIDI Options", createMidiPanel());
+        var root = new DefaultMutableTreeNode("root");
+        var uiOptions = new DefaultMutableTreeNode("UI");
+        var midiOptions = new DefaultMutableTreeNode("MIDI");
+        var miscOptions = new DefaultMutableTreeNode("Miscellaneous");
+        root.add(uiOptions);
+        root.add(midiOptions);
+        root.add(miscOptions);
+        var tree = new JTree(root);
+        var uiPanel = createUiOptionsPanel();
+        var miscPanel = createMiscPanel();
+        var midiPanel = createMidiPanel();
+        selectedPanel.set(uiPanel);
+        add(uiPanel, BorderLayout.CENTER);
+        tree.addTreeSelectionListener(e -> {
+            remove(selectedPanel.get());
+            var path = e.getPath().getLastPathComponent();
+            if (uiOptions.equals(path))
+                selectedPanel.set(uiPanel);
+            else if (miscOptions.equals(path))
+                selectedPanel.set(miscPanel);
+            else if (midiOptions.equals(path))
+                selectedPanel.set(midiPanel);
+            add(selectedPanel.get(), BorderLayout.CENTER);
+            revalidate();
+            repaint();
+        });
+        var treePane = new JPanel(new BorderLayout());
+        treePane.setBorder(BorderFactory.createEtchedBorder());
+        treePane.add(new JScrollPane(tree), BorderLayout.CENTER);
+        add(treePane, BorderLayout.WEST);
+        tree.setRootVisible(false);
 
         updateOptions();
 
@@ -82,13 +120,15 @@ class OptionsWindow extends JDialog {
 
     private JPanel createUiOptionsPanel() {
         var panel = new JPanel();
+        panel.setName("UI Options");
+        panel.setBorder(BorderFactory.createEtchedBorder());
         panel.setLayout(new GridBagLayout());
         var c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 0.0;
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(5, 5, 5, 5);
+        c.insets = new Insets(2, 2, 2, 2);
 
         gravity = createSpinner("Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1,
                 Double.class);
@@ -135,18 +175,30 @@ class OptionsWindow extends JDialog {
         c.gridy = row++;
         panel.add(animateBackground, c);
 
+        /*
+         * Add a "filler" component to absorb extra vertical space This pushes all
+         * previous components to the top of the container
+         */
+        c.gridx = 0;
+        c.gridy++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        panel.add(Box.createVerticalGlue(), c);
+
         return panel;
     }
 
     private static JPanel createMiscPanel() {
         var miscPanel = new JPanel();
+        miscPanel.setBorder(BorderFactory.createEtchedBorder());
+        miscPanel.setName("Misc Options");
         miscPanel.setLayout(new GridBagLayout());
         var c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 0.0;
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(5, 5, 5, 5);
+        c.insets = new Insets(2, 2, 2, 2);
 
         randomSeedSpinner = createSpinner("Random seed", 0d, (double) -Long.MAX_VALUE, (double) Long.MAX_VALUE, 1d,
                 Long.class);
@@ -164,18 +216,31 @@ class OptionsWindow extends JDialog {
         miscPanel.add(randomSeedLabel, c);
         c.gridx = 1;
         miscPanel.add(randomSeedSpinner, c);
+
+        /*
+         * Add a "filler" component to absorb extra vertical space This pushes all
+         * previous components to the top of the container
+         */
+        c.gridx = 0;
+        c.gridy++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        miscPanel.add(Box.createVerticalGlue(), c);
+
         return miscPanel;
     }
 
     private static JPanel createMidiPanel() {
         var midiPanel = new JPanel();
+        midiPanel.setBorder(BorderFactory.createEtchedBorder());
+        midiPanel.setName("MIDI Options");
         midiPanel.setLayout(new GridBagLayout());
         var c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 0.0;
         c.weighty = 0.0;
         c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(5, 5, 5, 5);
+        c.insets = new Insets(2, 2, 2, 2);
 
         external = new JCheckBox("Use External MIDI");
         external.setSelected(Options.getInstance().getMidiOptions().isUsingExternalMidi());
@@ -274,6 +339,16 @@ class OptionsWindow extends JDialog {
         c.gridx = 0;
         c.gridy++;
         midiPanel.add(verticalPanWithRelativeLocations, c);
+
+        /*
+         * Add a "filler" component to absorb extra vertical space This pushes all
+         * previous components to the top of the container
+         */
+        c.gridx = 0;
+        c.gridy++;
+        c.weighty = 1.0; // Give all extra vertical space to this row
+        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+        midiPanel.add(Box.createVerticalGlue(), c);
 
         return midiPanel;
     }
