@@ -8,7 +8,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Transport;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.MusicOptions;
 import org.roach.margia.storage.Options;

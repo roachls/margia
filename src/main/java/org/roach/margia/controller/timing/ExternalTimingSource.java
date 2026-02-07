@@ -2,9 +2,9 @@ package org.roach.margia.controller.timing;
 
 import javax.sound.midi.ShortMessage;
 
-import org.roach.margia.Transport;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.MidiController.MidiReceiver;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.model.MusicOptions;
 
 public class ExternalTimingSource implements TimingSource, MidiReceiver {

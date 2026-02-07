@@ -14,8 +14,10 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
+import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -44,6 +46,13 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = (boolean) ((ChangeSource) e.getSource())
             .newValue();
+    static final ChangeListener TEMPO_LISTENER = _ -> tickLengthMillis = Length
+            .getMillisForTempo(1, Options.getInstance().getMusicOptions().getTempo()).getValue().intValue();
+
+    static {
+        var tempo = Options.getInstance().getMusicOptions().getTempo();
+        tickLengthMillis = Length.getMillisForTempo(1, tempo).getValue().intValue();
+    }
 
     static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
 
@@ -60,11 +69,65 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
                 _ -> new MusicianComponentOptions());
         options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY, this);
+        options.addChangeListener(MusicianComponentOptions.POSITION_PROPERTY, new PositionChangeListener());
         updatePosition();
         this.setName("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
         this.color = Color.black;
         updateSize(options.getRadius());
+
+    }
+
+    private class PositionChangeListener implements ChangeListener {
+
+        @Override
+        public void stateChanged(ChangeEvent e) {
+            if (musician.isMuted())
+                return;
+            if (e.getSource() instanceof ChangeSource(_, Point2D.Double pos)) {
+                if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
+                    sendStereoPanning(pos);
+                }
+                if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()) {
+                    sendVerticalPanning(pos);
+                }
+            }
+        }
+
+        private void sendVerticalPanning(Point2D.Double pos) {
+            double height;
+            int verticalPanValue;
+            if (Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
+                height = Global.getMaxComponentY() - Global.getMinComponentY();
+                // get distance from max because we want the "top" (i.e., smaller y's) to send
+                // higher numbers
+                verticalPanValue = height == 0 ? 63
+                        : (int) (127d * (Global.getMaxComponentY() - pos.y) / height);
+            } else {
+                height = Global.getScreenHeight();
+                // use "height - pos.y" instead of just pos.y because we want the "top" (i.e.,
+                // smaller y's) to send higher numbers
+                verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.y) / height);
+            }
+            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
+                    musician.getChannel(), Options.getInstance().getMidiOptions().getVerticalPanController(),
+                    verticalPanValue);
+        }
+
+        private void sendStereoPanning(Point2D.Double pos) {
+            double width;
+            int panValue;
+            if (Options.getInstance().getMidiOptions().isPanWithRelativeLocations()) {
+                width = Global.getMaxComponentX() - Global.getMinComponentX();
+                panValue = width == 0 ? 63 : (int) (127d * (pos.x - Global.getMinComponentX()) / width);
+            } else {
+                width = Global.getScreenWidth();
+                panValue = width == 0 ? 63 : (int) (127d * pos.x / width);
+            }
+            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
+                    musician.getChannel(), Options.getInstance().getMidiOptions().getPanController(), panValue);
+        }
+
     }
 
     @Override
@@ -197,11 +260,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     @Override
     public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object newVal)) {
-            if (MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
-                this.updateSize((int) newVal);
-            } else if (MusicianComponentOptions.POSITION_PROPERTY.equals(property))
-                updatePosition();
+        if (e.getSource() instanceof
+
+        ChangeSource(String property, Object newVal) && MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
+            this.updateSize((int) newVal);
         }
     }
 
@@ -307,8 +369,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         var scaledForceVec = force.divide(getMass()).multiply(TIMESTEP);
         velocity = velocity.add(scaledForceVec).multiply(DAMPING);
         var scaledVelocity = velocity.multiply(TIMESTEP);
-        var position = options.getPosition();
-        position.setLocation(PointMath.movePoint(position, scaledVelocity));
+        options.setPosition(PointMath.movePoint(options.getPosition(), scaledVelocity));
     }
 
     /**

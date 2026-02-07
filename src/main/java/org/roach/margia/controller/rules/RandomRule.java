@@ -1,23 +1,29 @@
 package org.roach.margia.controller.rules;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.Chord;
+import org.roach.margia.model.RuleOptions;
+import org.roach.margia.storage.params.NumericParamDescription;
 import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
  * Random-note generator
  */
 public class RandomRule extends AbstractMusicianRule {
+    private int maxChordStringLength = 5;
+    private int restsBetweenChordStrings = 1;
 
     @Override
     public void calculateAction(long tick) {
-        if (musician.getChordsIvePlayed() >= 5) {
-            logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
-            actionsToTake.add(new RestOneTick(musician));
+        if (musician.getChordsIvePlayed() >= maxChordStringLength) {
+            logger.atDebug().log("{}: resting because I've played {} notes", musician.getId(),
+                    musician.getChordsIvePlayed());
+            for (int i = 0; i < restsBetweenChordStrings; i++) {
+                actionsToTake.add(new RestOneTick(musician));
+            }
             actionsToTake.add(new ResetPlayedChords(musician));
             return;
         }
@@ -56,5 +62,18 @@ public class RandomRule extends AbstractMusicianRule {
     }
 
     @Override
-    public List<SettableParamDescription> getSettableParameters() { return Collections.emptyList(); }
+    public List<SettableParamDescription> getSettableParameters() {
+        return List.of(
+                new NumericParamDescription("maxChordStringLength", "Max chords to play before resting", Integer.class,
+                        1d, (double) Integer.MAX_VALUE, 1d, 5d),
+                new NumericParamDescription("restsBetweenChordStrings", "Rest between chord strings", Integer.class, 0d,
+                        1000d, 1d, 1d));
+    }
+
+    @Override
+    public void restoreFromStorage(RuleOptions ruleOptions) {
+        super.restoreFromStorage(ruleOptions);
+        maxChordStringLength = (int) ruleOptions.getRuleSpecificOptionOrDefault("maxChordStringLength", 5);
+        restsBetweenChordStrings = (int) ruleOptions.getRuleSpecificOptionOrDefault("restsBetweenChordStrings", 1);
+    }
 }

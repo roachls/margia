@@ -3,7 +3,7 @@ package org.roach.margia.view;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
-import java.beans.PropertyVetoException;
+import java.beans.*;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.List;
@@ -17,9 +17,11 @@ import javax.swing.event.ChangeListener;
 
 import org.roach.margia.MusicianList;
 import org.roach.margia.controller.Musician;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.rules.RandomRule;
 import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
+import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -28,7 +30,7 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  * {@link JPanel}
  */
 @SuppressWarnings({ "java:S1948" })
-public class AgentPanel extends JPanel implements ActionListener, ChangeListener {
+public class AgentPanel extends JPanel implements ActionListener, ChangeListener, PropertyChangeListener {
     int numMusicians;
     private final Map<Integer, MusicianComponent> musicianComponents = new TreeMap<>();
     private List<Edge> edges = new ArrayList<>();
@@ -53,8 +55,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
             BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
 
-    private static final float[] GRAD_FRACTIONS = new float[] { 0f, 0.75f, 1f };
-    private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.black, Color.white };
+    private static final Object ANIMATE_LOCK = new Object();
+    private static final float ANIMATE_SPEED = 0.015f;
+    private static final float[] GRAD_FRACTIONS = new float[] { 0f, ANIMATE_SPEED, ANIMATE_SPEED * 4, 1f };
+    private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.gray, Color.blue, Color.white };
 
     /**
      * constructor
@@ -97,6 +101,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             });
             oldWidth = newWidth;
             oldHeight = newHeight;
+            Global.setScreenWidth(newWidth);
+            Global.setScreenHeight(newHeight);
         }
     }
 
@@ -141,10 +147,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // Enable anti-aliasing for shapes/lines
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        var gradient = new RadialGradientPaint(getWidth() / 2f, getHeight() / 2f, getWidth(), GRAD_FRACTIONS,
-                GRAD_COLORS);
-        g2d.setPaint(gradient);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
+        synchronized (ANIMATE_LOCK) {
+            var gradient = new RadialGradientPaint(getWidth() / 2f, getHeight() / 2f, getWidth(), GRAD_FRACTIONS,
+                    GRAD_COLORS);
+            g2d.setPaint(gradient);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+        }
         var transform = new AffineTransform();
         for (Edge edge : edges) {
             transform.setToIdentity();
@@ -185,6 +193,28 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             g2d.setStroke(SELECTION_LINE_STROKE);
             var rect = makeSelectionRectangle(dragStart, dragEnd);
             g2d.drawRect(rect.x, rect.y, rect.width, rect.height);
+        }
+    }
+
+    private static void animateBackground() {
+        boolean wrap = false;
+        synchronized (ANIMATE_LOCK) {
+            for (var i = 1; i < GRAD_FRACTIONS.length - 1; i++) {
+                if (GRAD_FRACTIONS[i] + ANIMATE_SPEED < 1f)
+                    GRAD_FRACTIONS[i] += ANIMATE_SPEED;
+                else
+                    wrap = true;
+            }
+        }
+        if (wrap) {
+            synchronized (ANIMATE_LOCK) {
+                for (var i = GRAD_COLORS.length - 1; i > 0; i--) {
+                    GRAD_COLORS[i] = GRAD_COLORS[i - 1];
+                }
+                GRAD_COLORS[0] = new Color((float) Math.random(), (float) Math.random(), (float) Math.random());
+                GRAD_FRACTIONS[2] = GRAD_FRACTIONS[1];
+                GRAD_FRACTIONS[1] = ANIMATE_SPEED;
+            }
         }
     }
 
@@ -263,6 +293,20 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             node.applyForces();
             node.clampPosition(getWidth(), getHeight());
         }
+
+        if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
+                    .min(Double::compare).ifPresent(Global::setMinComponentX);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
+                    .max(Double::compare).ifPresent(Global::setMaxComponentX);
+        }
+        if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()
+                && Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
+                    .min(Double::compare).ifPresent(Global::setMinComponentY);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
+                    .max(Double::compare).ifPresent(Global::setMaxComponentY);
+        }
     }
 
     private final MouseAdapter mouseAdapter = new MouseAdapter() {
@@ -335,7 +379,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 handleMultipleSelection(selectedComponents);
             } else {
                 leftMouseButtonReleasedSingleSelection(e);
-            } 
+            }
 
         }
 
@@ -829,5 +873,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
         var components = list.stream().map(this::addMusicianComponent).toList();
         createEdges(components);
+    }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (Transport.TICK_PROPERTY.equals(evt.getPropertyName())
+                && Options.getInstance().getUiOptions().isAnimateBackground())
+            animateBackground();
     }
 }

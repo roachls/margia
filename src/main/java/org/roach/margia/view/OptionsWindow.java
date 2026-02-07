@@ -6,6 +6,7 @@ import java.awt.event.ComponentEvent;
 
 import javax.swing.*;
 
+import org.roach.margia.model.MidiOptions;
 import org.roach.margia.model.UiOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
@@ -16,6 +17,17 @@ class OptionsWindow extends JDialog {
     private JSpinner windSpeed;
     private JSpinner edgeLength;
     private JCheckBox showIcons;
+    private JCheckBox animateBackground;
+    private static JSpinner randomSeedSpinner;
+    private static JCheckBox external;
+    private static JCheckBox sendMidiTimecode;
+    private static JCheckBox autoStartOnNoteOn;
+    private static JCheckBox sendPanMessage;
+    private static JSpinner panController;
+    private static JCheckBox panWithRelativeLocations;
+    private static JCheckBox sendVerticalPanMessage;
+    private static JSpinner verticalPanController;
+    private static JCheckBox verticalPanWithRelativeLocations;
 
     OptionsWindow() {
         super((JFrame) null, "Options");
@@ -57,6 +69,8 @@ class OptionsWindow extends JDialog {
         tabPane.addTab("Misc Options", createMiscPanel());
         tabPane.addTab("MIDI Options", createMidiPanel());
 
+        updateOptions();
+
         pack();
     }
 
@@ -94,6 +108,11 @@ class OptionsWindow extends JDialog {
         showIcons.setToolTipText("Show/hide additional information on musicians");
         showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
         showIcons.addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
+        animateBackground = new JCheckBox("Animate background");
+        animateBackground.setToolTipText("Animate background");
+        animateBackground.setSelected(Options.getInstance().getUiOptions().isAnimateBackground());
+        animateBackground.addActionListener(
+                _ -> Options.getInstance().getUiOptions().setAnimateBackground(animateBackground.isSelected()));
 
         var row = 0;
         c.gridx = 0;
@@ -113,6 +132,8 @@ class OptionsWindow extends JDialog {
         panel.add(edgeLength, c);
         c.gridy = row++;
         panel.add(showIcons, c);
+        c.gridy = row++;
+        panel.add(animateBackground, c);
 
         return panel;
     }
@@ -127,7 +148,7 @@ class OptionsWindow extends JDialog {
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        var randomSeedSpinner = createSpinner("Random seed", 0d, (double) -Long.MAX_VALUE, (double) Long.MAX_VALUE, 1d,
+        randomSeedSpinner = createSpinner("Random seed", 0d, (double) -Long.MAX_VALUE, (double) Long.MAX_VALUE, 1d,
                 Long.class);
         JComponent editor = randomSeedSpinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor defEditor) {
@@ -135,7 +156,6 @@ class OptionsWindow extends JDialog {
             textField.setColumns(15); // Set width to 3 columns
         }
         var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
-        randomSeedSpinner.setValue((double) Options.getInstance().getRandomSeed());
         randomSeedSpinner.addChangeListener(
                 _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
@@ -157,23 +177,74 @@ class OptionsWindow extends JDialog {
         c.anchor = GridBagConstraints.NORTHWEST;
         c.insets = new Insets(5, 5, 5, 5);
 
-        var external = new JCheckBox("Use External MIDI");
+        external = new JCheckBox("Use External MIDI");
         external.setSelected(Options.getInstance().getMidiOptions().isUseExternalMidi());
-        var sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
+        sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
         sendMidiTimecode.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
-        sendMidiTimecode.setSelected(Options.getInstance().getMidiOptions().isSendingMidiTimecode());
         sendMidiTimecode.setEnabled(external.isSelected());
-        var autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
+        autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
         autoStartOnNoteOn.addActionListener(
                 _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
-        autoStartOnNoteOn.setSelected(Options.getInstance().getMidiOptions().isAutoStartOnNoteOn());
         autoStartOnNoteOn.setEnabled(external.isSelected());
+
+        sendPanMessage = new JCheckBox("Send stereo panning");
+        sendPanMessage.addActionListener(
+                _ -> Options.getInstance().getMidiOptions().setSendPanMessage(sendPanMessage.isSelected()));
+        sendPanMessage.setEnabled(external.isSelected());
+
+        panController = createSpinner("Pan controller", (double) MidiOptions.DEFAULT_PAN_CONTROLLER, 0d, 127d, 1d,
+                Integer.class);
+        panController.addChangeListener(
+                _ -> Options.getInstance().getMidiOptions().setPanController((int) panController.getValue()));
+        panController.setEnabled(external.isSelected());
+        var panControllerLabel = createLabelFor("Pan controller", panController);
+
+        panWithRelativeLocations = new JCheckBox("Pan with relative locations");
+        panWithRelativeLocations.setToolTipText(
+                "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen");
+        panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
+        panWithRelativeLocations.setEnabled(external.isSelected());
+
+        sendVerticalPanMessage = new JCheckBox("Send vertical panning");
+        sendVerticalPanMessage.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setSendVerticalPanMessage(sendVerticalPanMessage.isSelected()));
+        sendVerticalPanMessage.setEnabled(external.isSelected());
+
+        verticalPanController = createSpinner("Vertical pan controller",
+                (double) MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER, 0d, 127d, 1d, Integer.class);
+        verticalPanController.addChangeListener(_ -> Options.getInstance().getMidiOptions()
+                .setVerticalPanController((int) verticalPanController.getValue()));
+        verticalPanController.setEnabled(external.isSelected());
+        var verticalPanControllerLabel = createLabelFor("Vertical pan controller", verticalPanController);
+
+        verticalPanWithRelativeLocations = new JCheckBox("Vertical pan with relative locations");
+        verticalPanWithRelativeLocations.setToolTipText(
+                "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen");
+        verticalPanWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                .setVerticalPanWithRelativeLocations(verticalPanWithRelativeLocations.isSelected()));
+        verticalPanWithRelativeLocations.setEnabled(external.isSelected());
 
         external.addActionListener(_ -> {
             Options.getInstance().getMidiOptions().setUseExternalMidi(external.isSelected());
             sendMidiTimecode.setEnabled(external.isSelected());
             autoStartOnNoteOn.setEnabled(external.isSelected());
+            sendPanMessage.setEnabled(external.isSelected());
+            panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            sendVerticalPanMessage.setEnabled(external.isSelected());
+            verticalPanController.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+        });
+
+        sendPanMessage.addActionListener(_ -> {
+            panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+        });
+        sendVerticalPanMessage.addActionListener(_ -> {
+            verticalPanControllerLabel.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
         });
 
         c.gridx = 0;
@@ -183,6 +254,27 @@ class OptionsWindow extends JDialog {
         midiPanel.add(sendMidiTimecode, c);
         c.gridy++;
         midiPanel.add(autoStartOnNoteOn, c);
+        c.gridy++;
+        midiPanel.add(sendPanMessage, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(panControllerLabel, c);
+        c.gridx = 1;
+        midiPanel.add(panController, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(panWithRelativeLocations, c);
+        c.gridy++;
+        midiPanel.add(sendVerticalPanMessage, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(verticalPanControllerLabel, c);
+        c.gridx = 1;
+        midiPanel.add(verticalPanController, c);
+        c.gridx = 0;
+        c.gridy++;
+        midiPanel.add(verticalPanWithRelativeLocations, c);
+
         return midiPanel;
     }
 
@@ -197,7 +289,7 @@ class OptionsWindow extends JDialog {
         SpinnerNumberModel model;
         if (type.equals(Integer.class))
             model = new SpinnerNumberModel(defValue.intValue(), min.intValue(), max.intValue(), step.intValue());
-        else if (type.equals(Long.class))
+        else if (type.equals(Long.class) || type.equals(long.class))
             model = new SpinnerNumberModel(defValue.longValue(), min.longValue(), max.longValue(), step.longValue());
         else
             model = new SpinnerNumberModel(defValue.doubleValue(), min.doubleValue(), max.doubleValue(),
@@ -213,5 +305,18 @@ class OptionsWindow extends JDialog {
         showIcons.setSelected(options.getUiOptions().isShowNumbers());
         edgeLength.setValue(options.getUiOptions().getEdgeLength());
         windSpeed.setValue(options.getUiOptions().getWindSpeed());
+        animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
+
+        randomSeedSpinner.setValue((double) options.getRandomSeed());
+
+        external.setSelected(options.getMidiOptions().isUseExternalMidi());
+        sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
+        autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
+        sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
+        panController.setValue(options.getMidiOptions().getPanController());
+        panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
+        sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
+        verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
+        verticalPanWithRelativeLocations.setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
     }
 }

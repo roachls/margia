@@ -10,8 +10,8 @@ import javax.sound.midi.ShortMessage;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.Transport;
 import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.MidiController.MidiReceiver;
 import org.roach.margia.model.MusicOptions;
 import org.roach.margia.storage.Options;
@@ -64,7 +64,8 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void start() {
-        if (isRunning()) return;
+        if (isRunning())
+            return;
         transport.start();
         startClock();
     }

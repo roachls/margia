@@ -20,30 +20,11 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
 public class UiOptions {
     final ChangeEmitter emitter = new ChangeEmitter();
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        UiOptions other = (UiOptions) obj;
-        return edgeLength == other.edgeLength
-                && Double.doubleToLongBits(gravity) == Double.doubleToLongBits(other.gravity)
-                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers
-                && Double.doubleToLongBits(windSpeed) == Double.doubleToLongBits(other.windSpeed);
-    }
-
     private boolean showNumbers = true;
     private double gravity = DEFAULT_GRAVITATIONAL_CONSTANT;
     private int edgeLength = DEFAULT_EDGE_LENGTH;
     private double windSpeed = DEFAULT_WINDSPEED;
+    private boolean animateBackground = false;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
     /**
      * property name of whether to show numbers
@@ -78,6 +59,22 @@ public class UiOptions {
         this.showNumbers = showNumbers;
         if (oldShowNumbers != showNumbers) {
             emitter.fireChangeEvent(SHOW_NUMBERS_PROPERTY, new ChangeSource(SHOW_NUMBERS_PROPERTY, this.showNumbers));
+            Options.getInstance().setDirty();
+        }
+    }
+    
+    /**
+     * @return {@code true} if the background should be animated
+     */
+    public boolean isAnimateBackground() { return this.animateBackground; }
+    
+    /**
+     * @param animateBackground {@code true} means that the background should be animated
+     */
+    public void setAnimateBackground(boolean animateBackground) {
+        var oldAnim = this.animateBackground;
+        this.animateBackground = animateBackground;
+        if (oldAnim != this.animateBackground) {
             Options.getInstance().setDirty();
         }
     }
@@ -130,6 +127,26 @@ public class UiOptions {
         if (oldWindSpeed != this.windSpeed) {
             Options.getInstance().setDirty();
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        UiOptions other = (UiOptions) obj;
+        return edgeLength == other.edgeLength
+                && Double.doubleToLongBits(gravity) == Double.doubleToLongBits(other.gravity)
+                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers
+                && Double.doubleToLongBits(windSpeed) == Double.doubleToLongBits(other.windSpeed);
     }
 
     @Override
