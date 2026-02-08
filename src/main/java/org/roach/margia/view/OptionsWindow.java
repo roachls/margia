@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.*;
 
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.rules.MusicianRule;
@@ -100,17 +100,35 @@ class OptionsWindow extends JDialog {
         root.add(musicianOptions);
         var tree = new JTree(root);
         tree.setShowsRootHandles(true);
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
         selectedPanel.set(uiPanel);
         add(uiPanel, BorderLayout.CENTER);
         tree.addTreeSelectionListener(e -> {
             remove(selectedPanel.get());
-            var path = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
-            var userObject = path.getUserObject();
-            if (userObject instanceof JPanel panel) {
-                selectedPanel.set(panel);
+            var selectedPathCount = tree.getSelectionCount();
+            final var warningPanel = new WarningPanel();
+            if (selectedPathCount == 1) {
+                var path = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
+                var userObject = path.getUserObject();
+                if (userObject instanceof JPanel panel) {
+                    selectedPanel.set(panel);
+                }
+                add(selectedPanel.get(), BorderLayout.CENTER);
+            } else if (selectedPathCount > 1) {
+                var selectedPaths = tree.getSelectionPaths();
+                var firstObjectType = ((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent()).getUserObject()
+                        .getClass();
+                var areAllPathsOfSameType = Arrays.stream(selectedPaths)
+                        .map(p -> (DefaultMutableTreeNode) p.getLastPathComponent()).map(p -> p.getUserObject())
+                        .map(Object::getClass).allMatch(firstObjectType::equals);
+                if (!areAllPathsOfSameType) {
+                    selectedPanel.set(warningPanel);
+                    add(warningPanel, BorderLayout.CENTER);
+                } else {
+                    setupMultipleSelection(selectedPaths, selectedPanel);
+                }
             }
-            add(selectedPanel.get(), BorderLayout.CENTER);
             revalidate();
             repaint();
         });
@@ -123,10 +141,67 @@ class OptionsWindow extends JDialog {
         pack();
     }
 
+    private void setupMultipleSelection(TreePath[] selectedPaths, AtomicReference<JPanel> selectedPanel) {
+        if (!(selectedPaths[0].getLastPathComponent() instanceof DefaultMutableTreeNode))
+            return;
+        var userObjects = Arrays.stream(selectedPaths)
+                .map(sp -> ((DefaultMutableTreeNode) sp.getLastPathComponent()).getUserObject()).toList();
+        if (userObjects.get(0) instanceof MusicianUiPanel) {
+            var mups = userObjects.stream().map(MusicianUiPanel.class::cast).toList();
+            setupMultipleMusicianUi(mups, selectedPanel);
+        } else if (userObjects.get(0) instanceof MusicianMusicalOptionsPanel) {
+            var mups = userObjects.stream().map(MusicianMusicalOptionsPanel.class::cast).toList();
+            setupMultipleMusicalOptions(mups, selectedPanel);
+        } else if (userObjects.get(0) instanceof MusicianRuleOptionsPanel) {
+            var mups = userObjects.stream().map(MusicianRuleOptionsPanel.class::cast).toList();
+            setupMultipleRulesOptions(mups, selectedPanel);
+        }
+    }
+
+    private void setupMultipleMusicianUi(List<MusicianUiPanel> mups, AtomicReference<JPanel> selectedPanel) {
+        var placeholder = new JPanel(new BorderLayout());
+        var label = new JLabel("Placeholder for editing multiple Musician UI's");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        placeholder.add(label, BorderLayout.CENTER);
+        selectedPanel.set(placeholder);
+        add(placeholder, BorderLayout.CENTER);
+    }
+
+    private void setupMultipleMusicalOptions(List<MusicianMusicalOptionsPanel> mups,
+            AtomicReference<JPanel> selectedPanel) {
+        var placeholder = new JPanel(new BorderLayout());
+        var label = new JLabel("Placeholder for editing multiple Musician Musical Options");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        placeholder.add(label, BorderLayout.CENTER);
+        selectedPanel.set(placeholder);
+        add(placeholder, BorderLayout.CENTER);
+    }
+
+    private void setupMultipleRulesOptions(List<MusicianRuleOptionsPanel> mups, AtomicReference<JPanel> selectedPanel) {
+        var placeholder = new JPanel(new BorderLayout());
+        var label = new JLabel("Placeholder for editing multiple Musician Rules");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        placeholder.add(label, BorderLayout.CENTER);
+        selectedPanel.set(placeholder);
+        add(placeholder, BorderLayout.CENTER);
+    }
+
     @Override
     public void setVisible(boolean b) {
         super.setVisible(b);
         Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_visible", Boolean.toString(this.isVisible()));
+    }
+
+    private static class WarningPanel extends JPanel {
+        WarningPanel() {
+            super(new BorderLayout());
+            var warning = new JLabel("All selected objects must be of same type");
+            warning.setHorizontalAlignment(SwingConstants.CENTER);
+            var font = warning.getFont();
+            var boldFont = font.deriveFont(Font.BOLD);
+            warning.setFont(boldFont);
+            add(warning, BorderLayout.CENTER);
+        }
     }
 
     private class UiOptionsPanel extends JPanel {
@@ -534,7 +609,7 @@ class OptionsWindow extends JDialog {
             var bl = new BorderLayout();
             bl.setVgap(5);
             setLayout(bl);
-            
+
             availableRules = new HashMap<>();
             ruleNames = new ArrayList<>();
             ServiceLoader.load(MusicianRule.class).forEach(r -> {
