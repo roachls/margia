@@ -16,7 +16,6 @@ import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 import org.roach.margia.storage.params.*;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 @SuppressWarnings("java:S1948")
 class OptionsWindow extends JDialog {
@@ -479,6 +478,7 @@ class OptionsWindow extends JDialog {
     private static class MusicianUiPanel extends JPanel {
         private final MusicianComponentOptions options;
         private final int id;
+        private final JSpinner radius;
 
         MusicianUiPanel(int id, MusicianComponentOptions options) {
             this.id = id;
@@ -492,9 +492,7 @@ class OptionsWindow extends JDialog {
             c.anchor = GridBagConstraints.NORTHWEST;
             c.insets = new Insets(2, 2, 2, 2);
 
-            var radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
-            options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY,
-                    e -> radius.setValue(((ChangeSource) e.getSource()).newValue()));
+            radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
             radius.addChangeListener(_ -> options.setRadius((int) radius.getValue()));
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
@@ -531,7 +529,7 @@ class OptionsWindow extends JDialog {
             c.anchor = GridBagConstraints.NORTHWEST;
             c.insets = new Insets(2, 2, 2, 2);
 
-            var radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
+            radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
             var normalRadiusBackground = radius.getBackground();
             if (!allRadiiSame) {
                 radius.setBackground(Color.red);
@@ -540,7 +538,7 @@ class OptionsWindow extends JDialog {
             }
             radius.addChangeListener(_ -> {
                 radius.setBackground(normalRadiusBackground);
-                optionsList.forEach(o -> o.setRadius((int) radius.getValue()));
+                others.forEach(o -> o.radius.setValue(radius.getValue()));
             });
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
