@@ -81,17 +81,11 @@ class OptionsWindow extends JDialog {
         for (var musicianId : Options.getInstance().getMusicians().keySet()) {
             var mcPanel = new MusicianUiPanel(musicianId,
                     Options.getInstance().getUiOptions().getMusicianComponents().get(musicianId));
-            var mcNode = new DefaultMutableTreeNode(mcPanel);
-
-            var musicianNode = new DefaultMutableTreeNode(MUSICIAN + musicianId);
-            musicianNode.add(mcNode);
             var musicPanel = new MusicianMusicalOptionsPanel(Options.getInstance().getMusicians().get(musicianId));
-            var musicNode = new DefaultMutableTreeNode(musicPanel);
-            musicianNode.add(musicNode);
             var rulePanel = new MusicianRuleOptionsPanel(musicianId,
                     Options.getInstance().getMusicians().get(musicianId).getRuleOptions());
-            var ruleNode = new DefaultMutableTreeNode(rulePanel, false);
-            musicianNode.add(ruleNode);
+            var optionsPanel = new MusicianOptionsPanel(mcPanel, musicPanel, rulePanel);
+            var musicianNode = new DefaultMutableTreeNode(optionsPanel);
             musicianOptions.add(musicianNode);
         }
 
@@ -147,35 +141,16 @@ class OptionsWindow extends JDialog {
             return;
         var userObjects = Arrays.stream(selectedPaths)
                 .map(sp -> ((DefaultMutableTreeNode) sp.getLastPathComponent()).getUserObject()).toList();
-        if (userObjects.get(0) instanceof MusicianUiPanel) {
-            var mups = userObjects.stream().map(MusicianUiPanel.class::cast).toList();
+        if (userObjects.get(0) instanceof MusicianOptionsPanel) {
+            var mups = userObjects.stream().map(MusicianOptionsPanel.class::cast).toList();
             setupMultipleMusicianUi(mups, selectedPanel);
-        } else if (userObjects.get(0) instanceof MusicianMusicalOptionsPanel) {
-            var mups = userObjects.stream().map(MusicianMusicalOptionsPanel.class::cast).toList();
-            setupMultipleMusicalOptions(mups, selectedPanel);
-        } else if (userObjects.get(0) instanceof MusicianRuleOptionsPanel) {
-            var mups = userObjects.stream().map(MusicianRuleOptionsPanel.class::cast).toList();
-            setupMultipleRulesOptions(mups, selectedPanel);
         }
     }
 
-    private void setupMultipleMusicianUi(List<MusicianUiPanel> mups, AtomicReference<JPanel> selectedPanel) {
-        var multipleEditor = new MusicianUiPanel(mups);
+    private void setupMultipleMusicianUi(List<MusicianOptionsPanel> mups, AtomicReference<JPanel> selectedPanel) {
+        var multipleEditor = new MusicianOptionsPanel(mups);
         selectedPanel.set(multipleEditor);
         add(multipleEditor, BorderLayout.CENTER);
-    }
-
-    private void setupMultipleMusicalOptions(List<MusicianMusicalOptionsPanel> mups,
-            AtomicReference<JPanel> selectedPanel) {
-        var multipleEditor = new MusicianMusicalOptionsPanel(mups);
-        selectedPanel.set(multipleEditor);
-        add(multipleEditor, BorderLayout.CENTER);
-    }
-
-    private void setupMultipleRulesOptions(List<MusicianRuleOptionsPanel> mups, AtomicReference<JPanel> selectedPanel) {
-        var placeholder = new MusicianRuleOptionsPanel(mups);
-        selectedPanel.set(placeholder);
-        add(placeholder, BorderLayout.CENTER);
     }
 
     @Override
@@ -463,6 +438,45 @@ class OptionsWindow extends JDialog {
         }
     }
 
+    private class MusicianOptionsPanel extends JPanel {
+        private final int id;
+        private final MusicianUiPanel musicianUiPanel;
+        private final MusicianMusicalOptionsPanel musicPanel;
+        private final MusicianRuleOptionsPanel rulePanel;
+
+        MusicianOptionsPanel(MusicianUiPanel uiPanel, MusicianMusicalOptionsPanel musicPanel,
+                MusicianRuleOptionsPanel rulePanel) {
+            super(new BorderLayout());
+            this.id = musicPanel.id;
+            this.musicianUiPanel = uiPanel;
+            this.musicPanel = musicPanel;
+            this.rulePanel = rulePanel;
+            var tabbedPane = new JTabbedPane();
+            tabbedPane.add(uiPanel);
+            tabbedPane.add(musicPanel);
+            tabbedPane.add(rulePanel);
+            add(tabbedPane, BorderLayout.CENTER);
+        }
+
+        public MusicianOptionsPanel(List<MusicianOptionsPanel> mups) {
+            super(new BorderLayout());
+            this.id = -1;
+            this.musicianUiPanel = new MusicianUiPanel(mups.stream().map(m -> m.musicianUiPanel).toList());
+            this.musicPanel = new MusicianMusicalOptionsPanel(mups.stream().map(m -> m.musicPanel).toList());
+            this.rulePanel = new MusicianRuleOptionsPanel(mups.stream().map(m -> m.rulePanel).toList());
+            var tabbedPane = new JTabbedPane();
+            tabbedPane.add(musicianUiPanel);
+            tabbedPane.add(musicPanel);
+            tabbedPane.add(rulePanel);
+            add(tabbedPane, BorderLayout.CENTER);
+        }
+
+        @Override
+        public String toString() {
+            return MUSICIAN + id;
+        }
+    }
+
     private static class MusicianUiPanel extends JPanel {
         private final MusicianComponentOptions options;
         private final int id;
@@ -471,6 +485,7 @@ class OptionsWindow extends JDialog {
         MusicianUiPanel(int id, MusicianComponentOptions options) {
             this.id = id;
             this.options = options;
+            setName("UI");
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " UI Options"));
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
@@ -502,6 +517,7 @@ class OptionsWindow extends JDialog {
         MusicianUiPanel(List<MusicianUiPanel> others) {
             this.id = -1; // not used
             this.options = new MusicianComponentOptions();
+            setName("UI");
             var idList = others.stream().map(p -> p.id).toList();
             var optionsList = others.stream().map(p -> p.options).toList();
             var firstRadius = optionsList.get(0).getRadius();
@@ -569,6 +585,7 @@ class OptionsWindow extends JDialog {
         MusicianMusicalOptionsPanel(MusicianOptions options) {
             this.id = options.getId();
             this.options = options;
+            setName("Musical");
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " musical options"));
             setLayout(new GridBagLayout());
 
@@ -647,6 +664,7 @@ class OptionsWindow extends JDialog {
         MusicianMusicalOptionsPanel(List<MusicianMusicalOptionsPanel> others) {
             this.id = -1; // unused
             this.options = new MusicianOptions();
+            setName("Musical");
 
             var idList = others.stream().map(p -> p.id).toList();
             var optionsList = others.stream().map(p -> p.options).toList();
@@ -809,6 +827,7 @@ class OptionsWindow extends JDialog {
         public MusicianRuleOptionsPanel(int id, RuleOptions options) {
             this.id = id;
             this.options = options;
+            setName("Rule");
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " rule options"));
             var bl = new BorderLayout();
             bl.setVgap(5);
@@ -845,6 +864,7 @@ class OptionsWindow extends JDialog {
         MusicianRuleOptionsPanel(List<MusicianRuleOptionsPanel> others) {
             this.id = -1; // unused
             this.options = new RuleOptions();
+            setName("Rule");
             availableRules = new HashMap<>();
             ruleNames = new ArrayList<>();
             ServiceLoader.load(MusicianRule.class).forEach(r -> {
@@ -903,7 +923,7 @@ class OptionsWindow extends JDialog {
             upperPanel.add(ruleLabel);
             upperPanel.add(rule);
             add(upperPanel, BorderLayout.NORTH);
-            
+
             populateRuleSpecificParams(options);
         }
 
