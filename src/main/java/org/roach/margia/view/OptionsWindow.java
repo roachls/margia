@@ -551,6 +551,8 @@ class OptionsWindow extends JDialog {
     }
 
     private class MusicianMusicalOptionsPanel extends JPanel {
+        private static final String LOW_NOTE = "Low note";
+        private static final String HIGH_NOTE = "High note";
         private final int id;
         private final MusicianOptions options;
         private final JComboBox<String> key;
@@ -581,12 +583,12 @@ class OptionsWindow extends JDialog {
             var keyLabel = new JLabel("Key");
             keyLabel.setLabelFor(key);
 
-            rangeLow = createSpinner("Low note", options.getRange().low(), 0, 127, 1);
+            rangeLow = createSpinner(LOW_NOTE, options.getRange().low(), 0, 127, 1);
             rangeLow.addChangeListener(_ -> options.setRange(options.getRange().withLow((int) rangeLow.getValue())));
-            var rangeLowLabel = createLabelFor("Low note", rangeLow);
-            rangeHi = createSpinner("High note", options.getRange().high(), 0, 127, 1);
+            var rangeLowLabel = createLabelFor(LOW_NOTE, rangeLow);
+            rangeHi = createSpinner(HIGH_NOTE, options.getRange().high(), 0, 127, 1);
             rangeHi.addChangeListener(_ -> options.setRange(options.getRange().withHigh((int) rangeHi.getValue())));
-            var rangeHiLabel = createLabelFor("High note", rangeHi);
+            var rangeHiLabel = createLabelFor(HIGH_NOTE, rangeHi);
             channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
             channel.addChangeListener(_ -> options.setChannel((int) channel.getValue() - 1));
             var channelLabel = createLabelFor("MIDI Channel", channel);
@@ -705,7 +707,7 @@ class OptionsWindow extends JDialog {
             var keyLabel = new JLabel("Key");
             keyLabel.setLabelFor(key);
 
-            rangeLow = createSpinner("Low note", options.getRange().low(), 0, 127, 1);
+            rangeLow = createSpinner(LOW_NOTE, options.getRange().low(), 0, 127, 1);
             var normalRangeLowBackground = rangeLow.getBackground();
             if (!allLowsSame)
                 rangeLow.setBackground(Color.red);
@@ -714,8 +716,8 @@ class OptionsWindow extends JDialog {
                 options.setRange(options.getRange().withLow((int) rangeLow.getValue()));
                 others.forEach(o -> o.rangeLow.setValue(rangeLow.getValue()));
             });
-            var rangeLowLabel = createLabelFor("Low note", rangeLow);
-            rangeHi = createSpinner("High note", options.getRange().high(), 0, 127, 1);
+            var rangeLowLabel = createLabelFor(LOW_NOTE, rangeLow);
+            rangeHi = createSpinner(HIGH_NOTE, options.getRange().high(), 0, 127, 1);
             var normalRangeHiBackground = rangeHi.getBackground();
             if (!allHighsSame)
                 rangeHi.setBackground(Color.red);
@@ -724,7 +726,7 @@ class OptionsWindow extends JDialog {
                 options.setRange(options.getRange().withHigh((int) rangeHi.getValue()));
                 others.forEach(o -> o.rangeHi.setValue(rangeHi.getValue()));
             });
-            var rangeHiLabel = createLabelFor("High note", rangeHi);
+            var rangeHiLabel = createLabelFor(HIGH_NOTE, rangeHi);
             channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
             var normalChannelBackground = channel.getBackground();
             if (!allChannelsSame)
