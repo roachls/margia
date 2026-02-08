@@ -3,7 +3,8 @@ package org.roach.margia.view;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
-import java.beans.*;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.List;
@@ -42,7 +43,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
-    private MusicianComponent selectedAgent;
     private int oldWidth;
     private int oldHeight;
     private Point dragStart;
@@ -363,9 +363,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         public void mouseReleased(MouseEvent e) {
             if (e.getButton() == MouseEvent.BUTTON1) {
                 leftMouseButtonReleased(e);
-            } else if (e.getButton() == MouseEvent.BUTTON3) {
-                var editingComponent = getComponentAt(e.getPoint());
-                handleMusicianSelectedForEditing(editingComponent);
             }
         }
 
@@ -450,20 +447,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 startSelection = null;
                 endSelection = null;
                 AgentPanel.this.setCursor(Cursor.getDefaultCursor());
-            }
-        }
-
-        private void handleMusicianSelectedForEditing(Component comp) {
-            try {
-                if (comp instanceof MusicianComponent mc) {
-                    fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, mc);
-                    selectedAgent = mc;
-                } else {
-                    fireVetoableChange(SELECTED_AGENT_PROPERTY, selectedAgent, null);
-                    selectedAgent = null;
-                }
-            } catch (PropertyVetoException e) {
-                e.printStackTrace();
             }
         }
 
@@ -627,7 +610,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
-        musicianComponents.values().forEach(mc -> mc.setEdited(false));
     }
 
     void muteSelected() {

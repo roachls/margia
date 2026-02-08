@@ -32,7 +32,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private static int tickLengthMillis;
     private Timer timer;
     private boolean selected;
-    private boolean edited;
 
     private Vector2D velocity = new Vector2D(0, 0);
     private Vector2D force = new Vector2D(0, 0);
@@ -101,17 +100,15 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 height = Global.getMaxComponentY() - Global.getMinComponentY();
                 // get distance from max because we want the "top" (i.e., smaller y's) to send
                 // higher numbers
-                verticalPanValue = height == 0 ? 63
-                        : (int) (127d * (Global.getMaxComponentY() - pos.y) / height);
+                verticalPanValue = height == 0 ? 63 : (int) (127d * (Global.getMaxComponentY() - pos.y) / height);
             } else {
                 height = Global.getScreenHeight();
                 // use "height - pos.y" instead of just pos.y because we want the "top" (i.e.,
                 // smaller y's) to send higher numbers
                 verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.y) / height);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
-                    musician.getChannel(), Options.getInstance().getMidiOptions().getVerticalPanController(),
-                    verticalPanValue);
+            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(), musician.getChannel(),
+                    Options.getInstance().getMidiOptions().getVerticalPanController(), verticalPanValue);
         }
 
         private void sendStereoPanning(Point2D.Double pos) {
@@ -124,8 +121,8 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 width = Global.getScreenWidth();
                 panValue = width == 0 ? 63 : (int) (127d * pos.x / width);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(),
-                    musician.getChannel(), Options.getInstance().getMidiOptions().getPanController(), panValue);
+            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(), musician.getChannel(),
+                    Options.getInstance().getMidiOptions().getPanController(), panValue);
         }
 
     }
@@ -224,11 +221,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
             g2d.setStroke(SELECTED_STROKE);
             g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
         }
-        if (edited) {
-            g2d.setColor(Color.blue.brighter());
-            g2d.setStroke(SELECTED_STROKE);
-            g2d.drawOval(0, 0, radius * 2, radius * 2);
-        }
     }
 
     private void updateLocation() {
@@ -307,16 +299,6 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     boolean isSelected() { return selected; }
 
     void setSelected(boolean selected) { this.selected = selected; }
-
-    /**
-     * @return the edited
-     */
-    public boolean isEdited() { return edited; }
-
-    /**
-     * @param edited the edited to set
-     */
-    public void setEdited(boolean edited) { this.edited = edited; }
 
     /**
      * Mass is ρ * 4/3 * πr^3, where ρ = density

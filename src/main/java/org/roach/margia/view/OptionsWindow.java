@@ -17,6 +17,7 @@ import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 import org.roach.margia.storage.params.*;
 
+@SuppressWarnings("java:S1948")
 class OptionsWindow extends JDialog {
     private static final String HEIGHT_PROPERTY = "_height";
     private static final String WIDTH_PROPERTY = "_width";
@@ -24,6 +25,7 @@ class OptionsWindow extends JDialog {
     private static final String X_PROPERTY = "_x";
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
 
+    private static final String MUSICIAN = "Musician ";
     private JSpinner gravity;
     private JSpinner windSpeed;
     private JSpinner edgeLength;
@@ -39,8 +41,8 @@ class OptionsWindow extends JDialog {
     private JCheckBox sendVerticalPanMessage;
     private JSpinner verticalPanController;
     private JCheckBox verticalPanWithRelativeLocations;
-    private final HashMap<String, MusicianRule> availableRules;
-    private final ArrayList<String> ruleNames;
+    private final Map<String, MusicianRule> availableRules;
+    private final List<String> ruleNames;
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -69,7 +71,7 @@ class OptionsWindow extends JDialog {
         });
 
         availableRules = new HashMap<>();
-        ruleNames = new ArrayList<String>();
+        ruleNames = new ArrayList<>();
         ServiceLoader.load(MusicianRule.class).forEach(r -> {
             availableRules.put(r.getName(), r);
             ruleNames.add(r.getName());
@@ -100,13 +102,15 @@ class OptionsWindow extends JDialog {
             var mcNode = new DefaultMutableTreeNode(mcPanel);
             musicianUiOptions.add(mcNode);
 
+            var musicianNode = new DefaultMutableTreeNode("Musician " + musicianId);
             var musicPanel = new MusicianMusicalOptionsPanel(Options.getInstance().getMusicians().get(musicianId));
             var musicNode = new DefaultMutableTreeNode(musicPanel);
+            musicianNode.add(musicNode);
             var rulePanel = new MusicianRuleOptionsPanel(musicianId,
                     Options.getInstance().getMusicians().get(musicianId).getRuleOptions());
             var ruleNode = new DefaultMutableTreeNode(rulePanel, false);
-            musicNode.add(ruleNode);
-            musicianOptions.add(musicNode);
+            musicianNode.add(ruleNode);
+            musicianOptions.add(musicianNode);
         }
         uiOptions.add(musicianUiOptions);
 
@@ -396,7 +400,7 @@ class OptionsWindow extends JDialog {
 
         MusicianUiPanel(int id, MusicianComponentOptions options) {
             this.id = id;
-            setBorder(BorderFactory.createTitledBorder("Musician " + options.getRadius()));
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + options.getRadius()));
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
             c.fill = GridBagConstraints.BOTH;
@@ -429,17 +433,17 @@ class OptionsWindow extends JDialog {
         }
     }
 
-    private static class MusicianMusicalOptionsPanel extends JPanel {
+    private class MusicianMusicalOptionsPanel extends JPanel {
         private final int id;
 
         @Override
         public String toString() {
-            return Integer.toString(id);
+            return "Music";
         }
 
         public MusicianMusicalOptionsPanel(MusicianOptions options) {
             this.id = options.getId();
-            setBorder(BorderFactory.createTitledBorder("Musician " + id + " musical options"));
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " musical options"));
             setLayout(new GridBagLayout());
 
             var keyList = new ArrayList<String>();
@@ -525,7 +529,7 @@ class OptionsWindow extends JDialog {
         }
 
         public MusicianRuleOptionsPanel(int id, RuleOptions options) {
-            setBorder(BorderFactory.createTitledBorder("Musician " + id + " rule options"));
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " rule options"));
             var bl = new BorderLayout();
             bl.setVgap(5);
             setLayout(bl);

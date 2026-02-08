@@ -383,7 +383,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.add(selectConnected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
-        toolbar.add(new JLabel("Show: "));
         toolbar.add(showUiOptions);
         toolbar.addSeparator();
         toolbar.add(new AddPanel());
