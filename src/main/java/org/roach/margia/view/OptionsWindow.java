@@ -16,6 +16,7 @@ import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 import org.roach.margia.storage.params.*;
+import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 @SuppressWarnings("java:S1948")
 class OptionsWindow extends JDialog {
@@ -159,13 +160,6 @@ class OptionsWindow extends JDialog {
     }
 
     private void setupMultipleMusicianUi(List<MusicianUiPanel> mups, AtomicReference<JPanel> selectedPanel) {
-//        var placeholder = new JPanel(new BorderLayout());
-//        var label = new JLabel("Placeholder for editing multiple Musician UI's");
-//        label.setHorizontalAlignment(SwingConstants.CENTER);
-//        placeholder.add(label, BorderLayout.CENTER);
-//        selectedPanel.set(placeholder);
-//        add(placeholder, BorderLayout.CENTER);
-
         var multipleEditor = new MusicianUiPanel(mups);
         selectedPanel.set(multipleEditor);
         add(multipleEditor, BorderLayout.CENTER);
@@ -173,19 +167,13 @@ class OptionsWindow extends JDialog {
 
     private void setupMultipleMusicalOptions(List<MusicianMusicalOptionsPanel> mups,
             AtomicReference<JPanel> selectedPanel) {
-        var placeholder = new JPanel(new BorderLayout());
-        var label = new JLabel("Placeholder for editing multiple Musician Musical Options");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        placeholder.add(label, BorderLayout.CENTER);
-        selectedPanel.set(placeholder);
-        add(placeholder, BorderLayout.CENTER);
+        var multipleEditor = new MusicianMusicalOptionsPanel(mups);
+        selectedPanel.set(multipleEditor);
+        add(multipleEditor, BorderLayout.CENTER);
     }
 
     private void setupMultipleRulesOptions(List<MusicianRuleOptionsPanel> mups, AtomicReference<JPanel> selectedPanel) {
-        var placeholder = new JPanel(new BorderLayout());
-        var label = new JLabel("Placeholder for editing multiple Musician Rules");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        placeholder.add(label, BorderLayout.CENTER);
+        var placeholder = new MusicianRuleOptionsPanel(mups);
         selectedPanel.set(placeholder);
         add(placeholder, BorderLayout.CENTER);
     }
@@ -519,6 +507,8 @@ class OptionsWindow extends JDialog {
             var firstRadius = optionsList.get(0).getRadius();
             var allRadiiSame = optionsList.stream().map(MusicianComponentOptions::getRadius)
                     .allMatch(r -> firstRadius == r);
+            if (allRadiiSame)
+                options.setRadius(firstRadius);
 
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " UI Options"));
             setLayout(new GridBagLayout());
@@ -533,8 +523,6 @@ class OptionsWindow extends JDialog {
             var normalRadiusBackground = radius.getBackground();
             if (!allRadiiSame) {
                 radius.setBackground(Color.red);
-            } else {
-                radius.setValue(firstRadius);
             }
             radius.addChangeListener(_ -> {
                 radius.setBackground(normalRadiusBackground);
@@ -564,14 +552,21 @@ class OptionsWindow extends JDialog {
 
     private class MusicianMusicalOptionsPanel extends JPanel {
         private final int id;
+        private final MusicianOptions options;
+        private final JComboBox<String> key;
+        private final JSpinner rangeLow;
+        private final JSpinner rangeHi;
+        private JSpinner channel;
+        private JComboBox<String> bus;
 
         @Override
         public String toString() {
             return "Music";
         }
 
-        public MusicianMusicalOptionsPanel(MusicianOptions options) {
+        MusicianMusicalOptionsPanel(MusicianOptions options) {
             this.id = options.getId();
+            this.options = options;
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " musical options"));
             setLayout(new GridBagLayout());
 
@@ -579,20 +574,20 @@ class OptionsWindow extends JDialog {
             keyList.add("");
             Key.BUILTIN_KEYS.keySet().forEach(keyList::add);
             var keyModel = new DefaultComboBoxModel<String>(keyList.toArray(new String[0]));
-            var key = new JComboBox<>(keyModel);
+            key = new JComboBox<>(keyModel);
             key.setSelectedItem(options.getKeyName());
             key.addActionListener(_ -> options.setKeyName((String) key.getSelectedItem()));
             key.setEditable(true);
             var keyLabel = new JLabel("Key");
             keyLabel.setLabelFor(key);
 
-            var rangeLow = createSpinner("Low note", options.getRange().low(), 0, 127, 1);
+            rangeLow = createSpinner("Low note", options.getRange().low(), 0, 127, 1);
             rangeLow.addChangeListener(_ -> options.setRange(options.getRange().withLow((int) rangeLow.getValue())));
             var rangeLowLabel = createLabelFor("Low note", rangeLow);
-            var rangeHi = createSpinner("High note", options.getRange().high(), 0, 127, 1);
+            rangeHi = createSpinner("High note", options.getRange().high(), 0, 127, 1);
             rangeHi.addChangeListener(_ -> options.setRange(options.getRange().withHigh((int) rangeHi.getValue())));
             var rangeHiLabel = createLabelFor("High note", rangeHi);
-            var channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
+            channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
             channel.addChangeListener(_ -> options.setChannel((int) channel.getValue() - 1));
             var channelLabel = createLabelFor("MIDI Channel", channel);
             var availableDevices = new TreeSet<String>();
@@ -600,7 +595,7 @@ class OptionsWindow extends JDialog {
             availableDevices.add(MusicianOptions.ALL_BUSSES);
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
             var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
-            var bus = new JComboBox<>(busModel);
+            bus = new JComboBox<>(busModel);
             bus.setSelectedItem(options.getBusName());
             bus.addActionListener(_ -> options.setBusName((String) bus.getSelectedItem()));
             var busLabel = new JLabel("MIDI Bus");
@@ -611,7 +606,154 @@ class OptionsWindow extends JDialog {
             c.weightx = 0.0;
             c.weighty = 0.0;
             c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(5, 5, 5, 5);
+            c.insets = new Insets(2, 2, 2, 2);
+
+            c.gridx = 0;
+            c.gridy = 0;
+            add(keyLabel, c);
+            c.gridx = 1;
+            add(key, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(rangeLowLabel, c);
+            c.gridx = 1;
+            add(rangeLow, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(rangeHiLabel, c);
+            c.gridx = 1;
+            add(rangeHi, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(channelLabel, c);
+            c.gridx = 1;
+            add(channel, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(busLabel, c);
+            c.gridx = 1;
+            add(bus, c);
+
+            // Add a "filler" component to absorb extra vertical space
+            // This pushes all previous components to the top of the container
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
+        }
+
+        MusicianMusicalOptionsPanel(List<MusicianMusicalOptionsPanel> others) {
+            this.id = -1; // unused
+            this.options = new MusicianOptions();
+
+            var idList = others.stream().map(p -> p.id).toList();
+            var optionsList = others.stream().map(p -> p.options).toList();
+            var firstKeyName = optionsList.get(0).getKeyName();
+            var allKeysSame = optionsList.stream().map(MusicianOptions::getKeyName).allMatch(firstKeyName::equals);
+            if (allKeysSame)
+                options.setKeyName(firstKeyName);
+            else
+                options.setKeyName("");
+            var firstLow = optionsList.get(0).getRange().low();
+            var allLowsSame = optionsList.stream().map(MusicianOptions::getRange).map(NoteRange::low)
+                    .allMatch(l -> firstLow == l);
+            if (allLowsSame)
+                options.setRange(options.getRange().withLow(firstLow));
+            var firstHigh = optionsList.get(0).getRange().high();
+            var allHighsSame = optionsList.stream().map(MusicianOptions::getRange).map(NoteRange::high)
+                    .allMatch(h -> firstHigh == h);
+            if (allHighsSame)
+                options.setRange(options.getRange().withHigh(firstHigh));
+            var firstChannel = optionsList.get(0).getChannel();
+            var allChannelsSame = optionsList.stream().map(MusicianOptions::getChannel)
+                    .allMatch(c -> firstChannel == c);
+            if (allChannelsSame)
+                options.setChannel(firstChannel);
+            var firstBusName = optionsList.get(0).getBusName();
+            var allBusNamesSame = optionsList.stream().map(MusicianOptions::getBusName).allMatch(firstBusName::equals);
+            if (allBusNamesSame)
+                options.setBusName(firstBusName);
+            else
+                options.setBusName("");
+
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " musical options"));
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
+
+            var keyList = new ArrayList<String>();
+            keyList.add("");
+            Key.BUILTIN_KEYS.keySet().forEach(keyList::add);
+            var keyModel = new DefaultComboBoxModel<String>(keyList.toArray(new String[0]));
+            key = new JComboBox<>(keyModel);
+            var normalKeyBackground = key.getBackground();
+            if (!allKeysSame)
+                key.setBackground(Color.red);
+            key.setSelectedItem(options.getKeyName());
+            key.addActionListener(_ -> {
+                if ("".equals(key.getSelectedItem()))
+                    return;
+                options.setKeyName((String) key.getSelectedItem());
+                key.setBackground(normalKeyBackground);
+                others.forEach(o -> o.key.setSelectedItem(key.getSelectedItem()));
+            });
+            key.setEditable(true);
+            var keyLabel = new JLabel("Key");
+            keyLabel.setLabelFor(key);
+
+            rangeLow = createSpinner("Low note", options.getRange().low(), 0, 127, 1);
+            var normalRangeLowBackground = rangeLow.getBackground();
+            if (!allLowsSame)
+                rangeLow.setBackground(Color.red);
+            rangeLow.addChangeListener(_ -> {
+                rangeLow.setBackground(normalRangeLowBackground);
+                options.setRange(options.getRange().withLow((int) rangeLow.getValue()));
+                others.forEach(o -> o.rangeLow.setValue(rangeLow.getValue()));
+            });
+            var rangeLowLabel = createLabelFor("Low note", rangeLow);
+            rangeHi = createSpinner("High note", options.getRange().high(), 0, 127, 1);
+            var normalRangeHiBackground = rangeHi.getBackground();
+            if (!allHighsSame)
+                rangeHi.setBackground(Color.red);
+            rangeHi.addChangeListener(_ -> {
+                rangeHi.setBackground(normalRangeHiBackground);
+                options.setRange(options.getRange().withHigh((int) rangeHi.getValue()));
+                others.forEach(o -> o.rangeHi.setValue(rangeHi.getValue()));
+            });
+            var rangeHiLabel = createLabelFor("High note", rangeHi);
+            channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
+            var normalChannelBackground = channel.getBackground();
+            if (!allChannelsSame)
+                channel.setBackground(Color.red);
+            channel.addChangeListener(_ -> {
+                channel.setBackground(normalChannelBackground);
+                options.setChannel((int) channel.getValue() - 1);
+                others.forEach(o -> o.channel.setValue(channel.getValue()));
+            });
+            var channelLabel = createLabelFor("MIDI Channel", channel);
+            var availableDevices = new TreeSet<String>();
+            availableDevices.add("");
+            availableDevices.add(MusicianOptions.ALL_BUSSES);
+            availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
+            var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
+            bus = new JComboBox<>(busModel);
+            var normalBusBackground = bus.getBackground();
+            if (!allBusNamesSame)
+                bus.setBackground(Color.red);
+            bus.setSelectedItem(options.getBusName());
+            bus.addActionListener(_ -> {
+                if ("".equals(bus.getSelectedItem()))
+                    return;
+                bus.setBackground(normalBusBackground);
+                options.setBusName((String) bus.getSelectedItem());
+                others.forEach(o -> o.bus.setSelectedItem(bus.getSelectedItem()));
+            });
+            var busLabel = new JLabel("MIDI Bus");
+            busLabel.setLabelFor(bus);
 
             c.gridx = 0;
             c.gridy = 0;
@@ -653,6 +795,9 @@ class OptionsWindow extends JDialog {
         private RuleSpecificOptionsPanel ruleSpecificOptionsPanel;
         private final Map<String, MusicianRule> availableRules;
         private final List<String> ruleNames;
+        private final int id;
+        private final RuleOptions options;
+        private final JComboBox<String> rule;
 
         @Override
         public String toString() {
@@ -660,6 +805,8 @@ class OptionsWindow extends JDialog {
         }
 
         public MusicianRuleOptionsPanel(int id, RuleOptions options) {
+            this.id = id;
+            this.options = options;
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " rule options"));
             var bl = new BorderLayout();
             bl.setVgap(5);
@@ -674,7 +821,7 @@ class OptionsWindow extends JDialog {
 
             var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
             ruleModel.setSelectedItem("");
-            var rule = new JComboBox<>(ruleModel);
+            rule = new JComboBox<>(ruleModel);
             rule.setSelectedItem(options.getName());
             rule.addActionListener(_ -> {
                 options.setName((String) rule.getSelectedItem());
@@ -691,11 +838,80 @@ class OptionsWindow extends JDialog {
             populateRuleSpecificParams(options);
         }
 
+        @SuppressWarnings("unchecked")
+        // multiple selection
+        MusicianRuleOptionsPanel(List<MusicianRuleOptionsPanel> others) {
+            this.id = -1; // unused
+            this.options = new RuleOptions();
+            availableRules = new HashMap<>();
+            ruleNames = new ArrayList<>();
+            ServiceLoader.load(MusicianRule.class).forEach(r -> {
+                availableRules.put(r.getName(), r);
+                ruleNames.add(r.getName());
+            });
+
+            var idList = others.stream().map(p -> p.id).toList();
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " rule options"));
+            var bl = new BorderLayout();
+            bl.setVgap(5);
+            setLayout(bl);
+
+            var optionsList = others.stream().map(p -> p.options).toList();
+            var firstName = optionsList.get(0).getName();
+            var allNamesSame = optionsList.stream().map(RuleOptions::getName).allMatch(firstName::equals);
+            if (allNamesSame)
+                options.setName(firstName);
+            else
+                options.setName("");
+            var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
+            ruleModel.setSelectedItem("");
+            rule = new JComboBox<>(ruleModel);
+            var normalRuleBackground = rule.getBackground();
+            if (!allNamesSame)
+                rule.setBackground(Color.red);
+            rule.setSelectedItem(options.getName());
+            rule.addActionListener(_ -> {
+                if ("".equals(rule.getSelectedItem()))
+                    return;
+                rule.setBackground(normalRuleBackground);
+                options.setName((String) rule.getSelectedItem());
+                others.forEach(o -> o.rule.setSelectedItem(rule.getSelectedItem()));
+                populateRuleSpecificParams(options);
+            });
+
+            options.addChangeListener(RuleOptions.RULE_SPECIFIC_OPTION_CHANGED_PROPERTY, e -> {
+                if (e.getSource() instanceof ChangeSource(_, Object val) && val instanceof Map.Entry<?, ?>) {
+                    var updatedOpts = (Map.Entry<String, Object>) val;
+                    others.forEach(o -> {
+                        var otherComp = o.ruleSpecificOptionsPanel.editableComponents.get(updatedOpts.getKey());
+                        if (otherComp instanceof JCheckBox cb) {
+                            cb.setSelected((boolean) updatedOpts.getValue());
+                        } else if (otherComp instanceof JSpinner spin) {
+                            spin.setValue(updatedOpts.getValue());
+                        } else if (otherComp instanceof JComboBox<?> cbo) {
+                            cbo.setSelectedItem(updatedOpts.getValue());
+                        }
+                    });
+                }
+            });
+
+            var ruleLabel = new JLabel("Rule");
+            ruleLabel.setLabelFor(rule);
+            var upperPanel = new JPanel(new GridLayout(1, 2));
+            upperPanel.add(ruleLabel);
+            upperPanel.add(rule);
+            add(upperPanel, BorderLayout.NORTH);
+            
+            populateRuleSpecificParams(options);
+        }
+
         private void populateRuleSpecificParams(RuleOptions ruleOpts) {
             SwingUtilities.invokeLater(() -> {
                 if (ruleSpecificOptionsPanel != null)
                     remove(ruleSpecificOptionsPanel);
                 var selectedRule = availableRules.get(ruleOpts.getName());
+                if (selectedRule == null)
+                    return;
                 var ruleParams = selectedRule.getSettableParameters();
                 ruleSpecificOptionsPanel = new RuleSpecificOptionsPanel(ruleOpts, ruleParams);
                 add(ruleSpecificOptionsPanel, BorderLayout.CENTER);
@@ -707,6 +923,8 @@ class OptionsWindow extends JDialog {
     }
 
     private static class RuleSpecificOptionsPanel extends JPanel {
+        private final Map<String, JComponent> editableComponents = new HashMap<>();
+
         RuleSpecificOptionsPanel(RuleOptions ruleOpts, List<SettableParamDescription> ruleParams) {
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
@@ -726,6 +944,7 @@ class OptionsWindow extends JDialog {
                     add(label, c);
                     c.gridx = 1;
                     add(comp, c);
+                    editableComponents.put(propertyName, comp);
                 }
                     break;
                 case BooleanParamDescription(String propertyName, String displayName, boolean defaultValue): {
@@ -735,6 +954,7 @@ class OptionsWindow extends JDialog {
                     add(new JLabel(""), c);
                     c.gridx = 1;
                     add(comp, c);
+                    editableComponents.put(propertyName, comp);
                 }
                     break;
                 case StringListParamDescription(String propertyName, String displayName, List<String> possibleValues, String defaultValue): {
@@ -747,6 +967,7 @@ class OptionsWindow extends JDialog {
                     add(label, c);
                     c.gridx = 1;
                     add(comp, c);
+                    editableComponents.put(propertyName, comp);
                 }
                     break;
                 case EnumParamDescription(String propertyName, String displayName, Enum<?> defaultValue): {
@@ -759,6 +980,7 @@ class OptionsWindow extends JDialog {
                     add(label, c);
                     c.gridx = 1;
                     add(comp, c);
+                    editableComponents.put(propertyName, comp);
                 }
                     break;
                 default:

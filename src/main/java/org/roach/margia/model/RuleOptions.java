@@ -27,9 +27,13 @@ public class RuleOptions {
      */
     public static final String RULE_NAME_PROPERTY = "ruleName";
     /**
-     * property fired when rule-specific options change
+     * property fired when any rule-specific options change
      */
     public static final String RULE_SPECIFIC_OPTIONS_PROPERTY = "rule-specific options";
+    /**
+     * property fired when a specific rule-specific options changes
+     */
+    public static final String RULE_SPECIFIC_OPTION_CHANGED_PROPERTY = "single value changed";
 
     /**
      * @return the name
@@ -78,6 +82,8 @@ public class RuleOptions {
             Options.getInstance().setDirty();
             emitter.fireChangeEvent(RULE_SPECIFIC_OPTIONS_PROPERTY,
                     new ChangeSource(RULE_SPECIFIC_OPTIONS_PROPERTY, this.ruleSpecificOptions));
+            emitter.fireChangeEvent(RULE_SPECIFIC_OPTION_CHANGED_PROPERTY,
+                    new ChangeSource(RULE_SPECIFIC_OPTION_CHANGED_PROPERTY, Map.entry(optionName, value)));
         }
     }
 
