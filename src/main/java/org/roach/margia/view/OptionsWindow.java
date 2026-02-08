@@ -26,23 +26,9 @@ class OptionsWindow extends JDialog {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
 
     private static final String MUSICIAN = "Musician ";
-    private JSpinner gravity;
-    private JSpinner windSpeed;
-    private JSpinner edgeLength;
-    private JCheckBox showIcons;
-    private JCheckBox animateBackground;
-    private JSpinner randomSeedSpinner;
-    private JCheckBox external;
-    private JCheckBox sendMidiTimecode;
-    private JCheckBox autoStartOnNoteOn;
-    private JCheckBox sendPanMessage;
-    private JSpinner panController;
-    private JCheckBox panWithRelativeLocations;
-    private JCheckBox sendVerticalPanMessage;
-    private JSpinner verticalPanController;
-    private JCheckBox verticalPanWithRelativeLocations;
-    private final Map<String, MusicianRule> availableRules;
-    private final List<String> ruleNames;
+    private UiOptionsPanel uiPanel;
+    private MiscPanel miscPanel;
+    private org.roach.margia.view.OptionsWindow.MidiPanel midiPanel;
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -70,13 +56,6 @@ class OptionsWindow extends JDialog {
             }
         });
 
-        availableRules = new HashMap<>();
-        ruleNames = new ArrayList<>();
-        ServiceLoader.load(MusicianRule.class).forEach(r -> {
-            availableRules.put(r.getName(), r);
-            ruleNames.add(r.getName());
-        });
-
         createUi();
         var x = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + X_PROPERTY, 100);
         var y = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + Y_PROPERTY, 100);
@@ -91,18 +70,20 @@ class OptionsWindow extends JDialog {
         AtomicReference<JPanel> selectedPanel = new AtomicReference<>();
         setLayout(new BorderLayout());
         var root = new DefaultMutableTreeNode("root");
-        var uiOptions = new DefaultMutableTreeNode("UI");
-        var midiOptions = new DefaultMutableTreeNode("MIDI");
-        var miscOptions = new DefaultMutableTreeNode("Miscellaneous");
-        var musicianUiOptions = new DefaultMutableTreeNode("Musician");
+        uiPanel = new UiOptionsPanel();
+        var uiOptions = new DefaultMutableTreeNode(uiPanel);
+        midiPanel = new MidiPanel();
+        var midiOptions = new DefaultMutableTreeNode(midiPanel);
+        miscPanel = new MiscPanel();
+        var miscOptions = new DefaultMutableTreeNode(miscPanel);
         var musicianOptions = new DefaultMutableTreeNode("Musicians");
         for (var musicianId : Options.getInstance().getMusicians().keySet()) {
             var mcPanel = new MusicianUiPanel(musicianId,
                     Options.getInstance().getUiOptions().getMusicianComponents().get(musicianId));
             var mcNode = new DefaultMutableTreeNode(mcPanel);
-            musicianUiOptions.add(mcNode);
 
-            var musicianNode = new DefaultMutableTreeNode("Musician " + musicianId);
+            var musicianNode = new DefaultMutableTreeNode(MUSICIAN + musicianId);
+            musicianNode.add(mcNode);
             var musicPanel = new MusicianMusicalOptionsPanel(Options.getInstance().getMusicians().get(musicianId));
             var musicNode = new DefaultMutableTreeNode(musicPanel);
             musicianNode.add(musicNode);
@@ -112,7 +93,6 @@ class OptionsWindow extends JDialog {
             musicianNode.add(ruleNode);
             musicianOptions.add(musicianNode);
         }
-        uiOptions.add(musicianUiOptions);
 
         root.add(uiOptions);
         root.add(midiOptions);
@@ -120,26 +100,15 @@ class OptionsWindow extends JDialog {
         root.add(musicianOptions);
         var tree = new JTree(root);
         tree.setShowsRootHandles(true);
-        var uiPanel = createUiOptionsPanel();
-        var miscPanel = createMiscPanel();
-        var midiPanel = createMidiPanel();
 
         selectedPanel.set(uiPanel);
         add(uiPanel, BorderLayout.CENTER);
         tree.addTreeSelectionListener(e -> {
             remove(selectedPanel.get());
             var path = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
-            if (uiOptions.equals(path))
-                selectedPanel.set(uiPanel);
-            else if (miscOptions.equals(path))
-                selectedPanel.set(miscPanel);
-            else if (midiOptions.equals(path))
-                selectedPanel.set(midiPanel);
-            else {
-                var userObject = path.getUserObject();
-                if (userObject instanceof JPanel panel) {
-                    selectedPanel.set(panel);
-                }
+            var userObject = path.getUserObject();
+            if (userObject instanceof JPanel panel) {
+                selectedPanel.set(panel);
             }
             add(selectedPanel.get(), BorderLayout.CENTER);
             revalidate();
@@ -151,8 +120,6 @@ class OptionsWindow extends JDialog {
         add(treePane, BorderLayout.WEST);
         tree.setRootVisible(false);
 
-        updateOptions();
-
         pack();
     }
 
@@ -162,245 +129,277 @@ class OptionsWindow extends JDialog {
         Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_visible", Boolean.toString(this.isVisible()));
     }
 
-    private JPanel createUiOptionsPanel() {
-        var panel = new JPanel();
-        panel.setName("UI Options");
-        panel.setBorder(BorderFactory.createEtchedBorder());
-        panel.setLayout(new GridBagLayout());
-        var c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 0.0;
-        c.weighty = 0.0;
-        c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(2, 2, 2, 2);
+    private class UiOptionsPanel extends JPanel {
+        private final JSpinner gravity;
+        private final JSpinner windSpeed;
+        private final JSpinner edgeLength;
+        private final JCheckBox showIcons;
+        private final JCheckBox animateBackground;
 
-        gravity = createSpinner("Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1);
-        gravity.addChangeListener(_ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
-        var gravityLabel = createLabelFor("Gravitational Constant", gravity);
-        windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(), -200.0,
-                200.0, 0.1);
-        windSpeed.addChangeListener(
-                _ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
-        var windSpeedLabel = createLabelFor("WindSpeed", windSpeed);
-        edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY, Options.getInstance().getUiOptions().getEdgeLength(),
-                20, 300, 1);
-        edgeLength.addChangeListener(
-                _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
-        var edgeLengthLabel = createLabelFor("Edge length", edgeLength);
-        showIcons = new JCheckBox("Show icons");
-        showIcons.setToolTipText("Show/hide additional information on musicians");
-        showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-        showIcons.addActionListener(_ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
-        animateBackground = new JCheckBox("Animate background");
-        animateBackground.setToolTipText("Animate background");
-        animateBackground.setSelected(Options.getInstance().getUiOptions().isAnimateBackground());
-        animateBackground.addActionListener(
-                _ -> Options.getInstance().getUiOptions().setAnimateBackground(animateBackground.isSelected()));
+        UiOptionsPanel() {
+            setName("UI Options");
+            setBorder(BorderFactory.createTitledBorder("UI Options"));
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
 
-        var row = 0;
-        c.gridx = 0;
-        c.gridy = row++;
-        panel.add(gravityLabel, c);
-        c.gridx = 1;
-        panel.add(gravity, c);
-        c.gridx = 0;
-        c.gridy = row++;
-        panel.add(windSpeedLabel, c);
-        c.gridx = 1;
-        panel.add(windSpeed, c);
-        c.gridx = 0;
-        c.gridy = row++;
-        panel.add(edgeLengthLabel, c);
-        c.gridx = 1;
-        panel.add(edgeLength, c);
-        c.gridy = row++;
-        panel.add(showIcons, c);
-        c.gridy = row++;
-        panel.add(animateBackground, c);
+            gravity = createSpinner("Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1);
+            gravity.addChangeListener(
+                    _ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
+            var gravityLabel = createLabelFor("Gravitational Constant", gravity);
+            windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(),
+                    -200.0, 200.0, 0.1);
+            windSpeed.addChangeListener(
+                    _ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
+            var windSpeedLabel = createLabelFor("WindSpeed", windSpeed);
+            edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
+                    Options.getInstance().getUiOptions().getEdgeLength(), 20, 300, 1);
+            edgeLength.addChangeListener(
+                    _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
+            var edgeLengthLabel = createLabelFor("Edge length", edgeLength);
+            showIcons = new JCheckBox("Show icons");
+            showIcons.setToolTipText("Show/hide additional information on musicians");
+            showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
+            showIcons.addActionListener(
+                    _ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
+            animateBackground = new JCheckBox("Animate background");
+            animateBackground.setToolTipText("Animate background");
+            animateBackground.setSelected(Options.getInstance().getUiOptions().isAnimateBackground());
+            animateBackground.addActionListener(
+                    _ -> Options.getInstance().getUiOptions().setAnimateBackground(animateBackground.isSelected()));
 
-        /*
-         * Add a "filler" component to absorb extra vertical space This pushes all
-         * previous components to the top of the container
-         */
-        c.gridx = 0;
-        c.gridy++;
-        c.weighty = 1.0; // Give all extra vertical space to this row
-        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-        panel.add(Box.createVerticalGlue(), c);
+            var row = 0;
+            c.gridx = 0;
+            c.gridy = row++;
+            add(gravityLabel, c);
+            c.gridx = 1;
+            add(gravity, c);
+            c.gridx = 0;
+            c.gridy = row++;
+            add(windSpeedLabel, c);
+            c.gridx = 1;
+            add(windSpeed, c);
+            c.gridx = 0;
+            c.gridy = row++;
+            add(edgeLengthLabel, c);
+            c.gridx = 1;
+            add(edgeLength, c);
+            c.gridy = row++;
+            add(showIcons, c);
+            c.gridy = row++;
+            add(animateBackground, c);
 
-        return panel;
-    }
-
-    private JPanel createMiscPanel() {
-        var miscPanel = new JPanel();
-        miscPanel.setBorder(BorderFactory.createEtchedBorder());
-        miscPanel.setName("Misc Options");
-        miscPanel.setLayout(new GridBagLayout());
-        var c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 0.0;
-        c.weighty = 0.0;
-        c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(2, 2, 2, 2);
-
-        randomSeedSpinner = createSpinner("Random seed", Options.getInstance().getRandomSeed(), -Long.MAX_VALUE,
-                Long.MAX_VALUE, 1L);
-        JComponent editor = randomSeedSpinner.getEditor();
-        if (editor instanceof JSpinner.DefaultEditor defEditor) {
-            JFormattedTextField textField = defEditor.getTextField();
-            textField.setColumns(15); // Set width to 3 columns
+            /*
+             * Add a "filler" component to absorb extra vertical space This pushes all
+             * previous components to the top of the container
+             */
+            c.gridx = 0;
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
         }
-        var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
-        randomSeedSpinner.addChangeListener(
-                _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
-        c.gridx = 0;
-        c.gridy = 0;
-        miscPanel.add(randomSeedLabel, c);
-        c.gridx = 1;
-        miscPanel.add(randomSeedSpinner, c);
-
-        /*
-         * Add a "filler" component to absorb extra vertical space This pushes all
-         * previous components to the top of the container
-         */
-        c.gridx = 0;
-        c.gridy++;
-        c.weighty = 1.0; // Give all extra vertical space to this row
-        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-        miscPanel.add(Box.createVerticalGlue(), c);
-
-        return miscPanel;
+        @Override
+        public String toString() {
+            return "UI";
+        }
     }
 
-    private JPanel createMidiPanel() {
-        var midiPanel = new JPanel();
-        midiPanel.setBorder(BorderFactory.createEtchedBorder());
-        midiPanel.setName("MIDI Options");
-        midiPanel.setLayout(new GridBagLayout());
-        var c = new GridBagConstraints();
-        c.fill = GridBagConstraints.BOTH;
-        c.weightx = 0.0;
-        c.weighty = 0.0;
-        c.anchor = GridBagConstraints.NORTHWEST;
-        c.insets = new Insets(2, 2, 2, 2);
+    private class MiscPanel extends JPanel {
+        private final JSpinner randomSeedSpinner;
 
-        external = new JCheckBox("Use External MIDI");
-        external.setSelected(Options.getInstance().getMidiOptions().isUsingExternalMidi());
-        sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
-        sendMidiTimecode.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
-        sendMidiTimecode.setEnabled(external.isSelected());
-        autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
-        autoStartOnNoteOn.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
-        autoStartOnNoteOn.setEnabled(external.isSelected());
+        MiscPanel() {
+            setBorder(BorderFactory.createTitledBorder("Miscellaneous Options"));
+            setName("Misc Options");
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
 
-        sendPanMessage = new JCheckBox("Send stereo panning");
-        sendPanMessage.addActionListener(
-                _ -> Options.getInstance().getMidiOptions().setSendPanMessage(sendPanMessage.isSelected()));
-        sendPanMessage.setEnabled(external.isSelected());
+            randomSeedSpinner = createSpinner("Random seed", Options.getInstance().getRandomSeed(), -Long.MAX_VALUE,
+                    Long.MAX_VALUE, 1L);
+            JComponent editor = randomSeedSpinner.getEditor();
+            if (editor instanceof JSpinner.DefaultEditor defEditor) {
+                JFormattedTextField textField = defEditor.getTextField();
+                textField.setColumns(15); // Set width to 3 columns
+            }
+            var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
+            randomSeedSpinner.addChangeListener(
+                    _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
-        panController = createSpinner("Pan controller", MidiOptions.DEFAULT_PAN_CONTROLLER, 0, 127, 1);
-        panController.addChangeListener(
-                _ -> Options.getInstance().getMidiOptions().setPanController((int) panController.getValue()));
-        panController.setEnabled(external.isSelected());
-        var panControllerLabel = createLabelFor("Pan controller", panController);
+            c.gridx = 0;
+            c.gridy = 0;
+            add(randomSeedLabel, c);
+            c.gridx = 1;
+            add(randomSeedSpinner, c);
 
-        panWithRelativeLocations = new JCheckBox("Pan with relative locations");
-        panWithRelativeLocations.setToolTipText(
-                "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen");
-        panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
-        panWithRelativeLocations.setEnabled(external.isSelected());
+            /*
+             * Add a "filler" component to absorb extra vertical space This pushes all
+             * previous components to the top of the container
+             */
+            c.gridx = 0;
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
+        }
 
-        sendVerticalPanMessage = new JCheckBox("Send vertical panning");
-        sendVerticalPanMessage.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                .setSendVerticalPanMessage(sendVerticalPanMessage.isSelected()));
-        sendVerticalPanMessage.setEnabled(external.isSelected());
+        @Override
+        public String toString() {
+            return "Miscellaneous";
+        }
+    }
 
-        verticalPanController = createSpinner("Vertical pan controller", MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER, 0,
-                127, 1);
-        verticalPanController.addChangeListener(_ -> Options.getInstance().getMidiOptions()
-                .setVerticalPanController((int) verticalPanController.getValue()));
-        verticalPanController.setEnabled(external.isSelected());
-        var verticalPanControllerLabel = createLabelFor("Vertical pan controller", verticalPanController);
+    private class MidiPanel extends JPanel {
+        private final JCheckBox external;
+        private final JCheckBox sendMidiTimecode;
+        private final JCheckBox autoStartOnNoteOn;
+        private final JCheckBox sendPanMessage;
+        private final JSpinner panController;
+        private final JCheckBox panWithRelativeLocations;
+        private final JCheckBox sendVerticalPanMessage;
+        private final JSpinner verticalPanController;
+        private final JCheckBox verticalPanWithRelativeLocations;
 
-        verticalPanWithRelativeLocations = new JCheckBox("Vertical pan with relative locations");
-        verticalPanWithRelativeLocations.setToolTipText(
-                "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen");
-        verticalPanWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                .setVerticalPanWithRelativeLocations(verticalPanWithRelativeLocations.isSelected()));
-        verticalPanWithRelativeLocations.setEnabled(external.isSelected());
+        MidiPanel() {
+            setBorder(BorderFactory.createTitledBorder("MIDI Options"));
+            setName("MIDI Options");
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
 
-        external.addActionListener(_ -> {
-            Options.getInstance().getMidiOptions().setUsingExternalMidi(external.isSelected());
+            external = new JCheckBox("Use External MIDI");
+            external.setSelected(Options.getInstance().getMidiOptions().isUsingExternalMidi());
+            sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
+            sendMidiTimecode.addActionListener(
+                    _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
             sendMidiTimecode.setEnabled(external.isSelected());
+            autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
+            autoStartOnNoteOn.addActionListener(
+                    _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
             autoStartOnNoteOn.setEnabled(external.isSelected());
+
+            sendPanMessage = new JCheckBox("Send stereo panning");
+            sendPanMessage.addActionListener(
+                    _ -> Options.getInstance().getMidiOptions().setSendPanMessage(sendPanMessage.isSelected()));
             sendPanMessage.setEnabled(external.isSelected());
-            panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+
+            panController = createSpinner("Pan controller", MidiOptions.DEFAULT_PAN_CONTROLLER, 0, 127, 1);
+            panController.addChangeListener(
+                    _ -> Options.getInstance().getMidiOptions().setPanController((int) panController.getValue()));
+            panController.setEnabled(external.isSelected());
+            var panControllerLabel = createLabelFor("Pan controller", panController);
+
+            panWithRelativeLocations = new JCheckBox("Pan with relative locations");
+            panWithRelativeLocations.setToolTipText(
+                    "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen");
+            panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                    .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
+            panWithRelativeLocations.setEnabled(external.isSelected());
+
+            sendVerticalPanMessage = new JCheckBox("Send vertical panning");
+            sendVerticalPanMessage.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                    .setSendVerticalPanMessage(sendVerticalPanMessage.isSelected()));
             sendVerticalPanMessage.setEnabled(external.isSelected());
-            verticalPanController.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-        });
 
-        sendPanMessage.addActionListener(_ -> {
-            panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-            panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-        });
-        sendVerticalPanMessage.addActionListener(_ -> {
-            verticalPanControllerLabel.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-            verticalPanWithRelativeLocations.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-        });
+            verticalPanController = createSpinner("Vertical pan controller",
+                    MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER, 0, 127, 1);
+            verticalPanController.addChangeListener(_ -> Options.getInstance().getMidiOptions()
+                    .setVerticalPanController((int) verticalPanController.getValue()));
+            verticalPanController.setEnabled(external.isSelected());
+            var verticalPanControllerLabel = createLabelFor("Vertical pan controller", verticalPanController);
 
-        c.gridx = 0;
-        c.gridy = 0;
-        midiPanel.add(external, c);
-        c.gridy++;
-        midiPanel.add(sendMidiTimecode, c);
-        c.gridy++;
-        midiPanel.add(autoStartOnNoteOn, c);
-        c.gridy++;
-        midiPanel.add(sendPanMessage, c);
-        c.gridx = 0;
-        c.gridy++;
-        midiPanel.add(panControllerLabel, c);
-        c.gridx = 1;
-        midiPanel.add(panController, c);
-        c.gridx = 0;
-        c.gridy++;
-        midiPanel.add(panWithRelativeLocations, c);
-        c.gridy++;
-        midiPanel.add(sendVerticalPanMessage, c);
-        c.gridx = 0;
-        c.gridy++;
-        midiPanel.add(verticalPanControllerLabel, c);
-        c.gridx = 1;
-        midiPanel.add(verticalPanController, c);
-        c.gridx = 0;
-        c.gridy++;
-        midiPanel.add(verticalPanWithRelativeLocations, c);
+            verticalPanWithRelativeLocations = new JCheckBox("Vertical pan with relative locations");
+            verticalPanWithRelativeLocations.setToolTipText(
+                    "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen");
+            verticalPanWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
+                    .setVerticalPanWithRelativeLocations(verticalPanWithRelativeLocations.isSelected()));
+            verticalPanWithRelativeLocations.setEnabled(external.isSelected());
 
-        /*
-         * Add a "filler" component to absorb extra vertical space This pushes all
-         * previous components to the top of the container
-         */
-        c.gridx = 0;
-        c.gridy++;
-        c.weighty = 1.0; // Give all extra vertical space to this row
-        c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-        midiPanel.add(Box.createVerticalGlue(), c);
+            external.addActionListener(_ -> {
+                Options.getInstance().getMidiOptions().setUsingExternalMidi(external.isSelected());
+                sendMidiTimecode.setEnabled(external.isSelected());
+                autoStartOnNoteOn.setEnabled(external.isSelected());
+                sendPanMessage.setEnabled(external.isSelected());
+                panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+                panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+                sendVerticalPanMessage.setEnabled(external.isSelected());
+                verticalPanController.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+                verticalPanWithRelativeLocations
+                        .setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            });
 
-        return midiPanel;
+            sendPanMessage.addActionListener(_ -> {
+                panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+                panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
+            });
+            sendVerticalPanMessage.addActionListener(_ -> {
+                verticalPanControllerLabel.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+                verticalPanWithRelativeLocations
+                        .setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
+            });
+
+            c.gridx = 0;
+            c.gridy = 0;
+            add(external, c);
+            c.gridy++;
+            add(sendMidiTimecode, c);
+            c.gridy++;
+            add(autoStartOnNoteOn, c);
+            c.gridy++;
+            add(sendPanMessage, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(panControllerLabel, c);
+            c.gridx = 1;
+            add(panController, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(panWithRelativeLocations, c);
+            c.gridy++;
+            add(sendVerticalPanMessage, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(verticalPanControllerLabel, c);
+            c.gridx = 1;
+            add(verticalPanController, c);
+            c.gridx = 0;
+            c.gridy++;
+            add(verticalPanWithRelativeLocations, c);
+
+            /*
+             * Add a "filler" component to absorb extra vertical space This pushes all
+             * previous components to the top of the container
+             */
+            c.gridx = 0;
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
+        }
+
+        @Override
+        public String toString() {
+            return "MIDI";
+        }
     }
 
     private static class MusicianUiPanel extends JPanel {
-        private final int id;
 
         MusicianUiPanel(int id, MusicianComponentOptions options) {
-            this.id = id;
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + options.getRadius()));
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " UI Options"));
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
             c.fill = GridBagConstraints.BOTH;
@@ -429,7 +428,7 @@ class OptionsWindow extends JDialog {
 
         @Override
         public String toString() {
-            return Integer.toString(id);
+            return "UI";
         }
     }
 
@@ -522,7 +521,9 @@ class OptionsWindow extends JDialog {
 
     private class MusicianRuleOptionsPanel extends JPanel {
         private RuleSpecificOptionsPanel ruleSpecificOptionsPanel;
-        
+        private final Map<String, MusicianRule> availableRules;
+        private final List<String> ruleNames;
+
         @Override
         public String toString() {
             return "Rule";
@@ -533,6 +534,13 @@ class OptionsWindow extends JDialog {
             var bl = new BorderLayout();
             bl.setVgap(5);
             setLayout(bl);
+            
+            availableRules = new HashMap<>();
+            ruleNames = new ArrayList<>();
+            ServiceLoader.load(MusicianRule.class).forEach(r -> {
+                availableRules.put(r.getName(), r);
+                ruleNames.add(r.getName());
+            });
 
             var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
             ruleModel.setSelectedItem("");
@@ -567,14 +575,14 @@ class OptionsWindow extends JDialog {
         }
 
     }
-    
+
     private static class RuleSpecificOptionsPanel extends JPanel {
         RuleSpecificOptionsPanel(RuleOptions ruleOpts, List<SettableParamDescription> ruleParams) {
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
             c.insets = new Insets(2, 2, 2, 2);
             c.anchor = GridBagConstraints.NORTHWEST;
-            
+
             for (var ruleParam : ruleParams) {
                 c.gridx = 0;
                 c.gridy++;
@@ -603,8 +611,7 @@ class OptionsWindow extends JDialog {
                     var model = new DefaultComboBoxModel<String>(possibleValues.toArray(new String[0]));
                     var comp = new JComboBox<String>(model);
                     comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
-                    comp.addActionListener(
-                            _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
+                    comp.addActionListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
                     var label = new JLabel(displayName);
                     label.setLabelFor(comp);
                     add(label, c);
@@ -616,8 +623,7 @@ class OptionsWindow extends JDialog {
                     @SuppressWarnings("unchecked")
                     var comp = createEnumComboBox(defaultValue.getClass());
                     comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
-                    comp.addActionListener(
-                            _ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
+                    comp.addActionListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
                     var label = new JLabel(displayName);
                     label.setLabelFor(comp);
                     add(label, c);
@@ -641,7 +647,7 @@ class OptionsWindow extends JDialog {
             add(Box.createVerticalGlue(), c);
 
         }
-        
+
         private static <E extends Enum<E>> JComboBox<E> createEnumComboBox(Class<E> clazz) {
             var model = new DefaultComboBoxModel<E>(clazz.getEnumConstants());
             return new JComboBox<>(model);
@@ -678,22 +684,23 @@ class OptionsWindow extends JDialog {
 
     void updateOptions() {
         var options = Options.getInstance();
-        gravity.setValue(options.getUiOptions().getGravity());
-        showIcons.setSelected(options.getUiOptions().isShowNumbers());
-        edgeLength.setValue(options.getUiOptions().getEdgeLength());
-        windSpeed.setValue(options.getUiOptions().getWindSpeed());
-        animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
+        uiPanel.gravity.setValue(options.getUiOptions().getGravity());
+        uiPanel.showIcons.setSelected(options.getUiOptions().isShowNumbers());
+        uiPanel.edgeLength.setValue(options.getUiOptions().getEdgeLength());
+        uiPanel.windSpeed.setValue(options.getUiOptions().getWindSpeed());
+        uiPanel.animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
 
-        randomSeedSpinner.setValue((double) options.getRandomSeed());
+        miscPanel.randomSeedSpinner.setValue((double) options.getRandomSeed());
 
-        external.setSelected(options.getMidiOptions().isUsingExternalMidi());
-        sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
-        autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
-        sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
-        panController.setValue(options.getMidiOptions().getPanController());
-        panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
-        sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
-        verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
-        verticalPanWithRelativeLocations.setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
+        midiPanel.external.setSelected(options.getMidiOptions().isUsingExternalMidi());
+        midiPanel.sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
+        midiPanel.autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
+        midiPanel.sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
+        midiPanel.panController.setValue(options.getMidiOptions().getPanController());
+        midiPanel.panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
+        midiPanel.sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
+        midiPanel.verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
+        midiPanel.verticalPanWithRelativeLocations
+                .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
     }
 }
