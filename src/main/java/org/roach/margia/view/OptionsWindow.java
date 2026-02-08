@@ -3,6 +3,8 @@ package org.roach.margia.view;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -11,6 +13,7 @@ import javax.swing.*;
 import javax.swing.tree.*;
 
 import org.roach.margia.controller.MidiController;
+import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.MusicianRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
@@ -19,7 +22,7 @@ import org.roach.margia.storage.params.*;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 @SuppressWarnings("java:S1948")
-class OptionsWindow extends JDialog {
+class OptionsWindow extends JDialog implements PropertyChangeListener {
     private static final String HEIGHT_PROPERTY = "_height";
     private static final String WIDTH_PROPERTY = "_width";
     private static final String Y_PROPERTY = "_y";
@@ -29,7 +32,11 @@ class OptionsWindow extends JDialog {
     private static final String MUSICIAN = "Musician ";
     private UiOptionsPanel uiPanel;
     private MiscPanel miscPanel;
-    private org.roach.margia.view.OptionsWindow.MidiPanel midiPanel;
+    private MidiPanel midiPanel;
+    private JTree tree;
+    private DefaultMutableTreeNode root;
+    private DefaultMutableTreeNode musiciansNode;
+    private final Map<Integer, DefaultMutableTreeNode> musicianNodes = new HashMap<>();
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -70,14 +77,14 @@ class OptionsWindow extends JDialog {
     private void createUi() {
         AtomicReference<JPanel> selectedPanel = new AtomicReference<>();
         setLayout(new BorderLayout());
-        var root = new DefaultMutableTreeNode("root");
+        root = new DefaultMutableTreeNode("root");
         uiPanel = new UiOptionsPanel();
         var uiOptions = new DefaultMutableTreeNode(uiPanel);
         midiPanel = new MidiPanel();
         var midiOptions = new DefaultMutableTreeNode(midiPanel);
         miscPanel = new MiscPanel();
         var miscOptions = new DefaultMutableTreeNode(miscPanel);
-        var musicianOptions = new DefaultMutableTreeNode("Musicians");
+        musiciansNode = new DefaultMutableTreeNode("Musicians");
         for (var musicianId : Options.getInstance().getMusicians().keySet()) {
             var mcPanel = new MusicianUiPanel(musicianId,
                     Options.getInstance().getUiOptions().getMusicianComponents().get(musicianId));
@@ -86,14 +93,15 @@ class OptionsWindow extends JDialog {
                     Options.getInstance().getMusicians().get(musicianId).getRuleOptions());
             var optionsPanel = new MusicianOptionsPanel(mcPanel, musicPanel, rulePanel);
             var musicianNode = new DefaultMutableTreeNode(optionsPanel);
-            musicianOptions.add(musicianNode);
+            musicianNodes.put(musicianId, musicianNode);
+            musiciansNode.add(musicianNode);
         }
 
         root.add(uiOptions);
         root.add(midiOptions);
         root.add(miscOptions);
-        root.add(musicianOptions);
-        var tree = new JTree(root);
+        root.add(musiciansNode);
+        tree = new JTree(root);
         tree.setShowsRootHandles(true);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
@@ -134,6 +142,18 @@ class OptionsWindow extends JDialog {
         tree.setRootVisible(false);
 
         pack();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void propertyChange(PropertyChangeEvent e) {
+        tree.clearSelection();
+        var selectedMusicians = (List<Musician>) e.getNewValue();
+        var paths = selectedMusicians.stream().map(Musician::getId)
+                .map(id -> new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) })).toList();
+        tree.setSelectionPaths(paths.toArray(new TreePath[0]));
+        if (!paths.isEmpty())
+            tree.scrollPathToVisible(paths.get(0));
     }
 
     private void setupMultipleSelection(TreePath[] selectedPaths, AtomicReference<JPanel> selectedPanel) {
