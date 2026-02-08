@@ -86,6 +86,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 MusicianComponent.TEMPO_LISTENER);
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
+        agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
         agentPanel.setBounds(0, 0, 1000, 1000);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 

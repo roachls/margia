@@ -353,6 +353,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 default:
                     break;
                 }
+                notifyListenersOfSelection();
             } else {
                 deselectAllMusicians();
                 dragStart = e.getPoint();
@@ -382,6 +383,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         private void handleMultipleSelection(List<MusicianComponent> selectedMusicians) {
             selectedMusicians.forEach(mc -> mc.setSelected(true));
+            notifyListenersOfSelection();
         }
 
         private void leftMouseButtonReleasedSingleSelection(MouseEvent e) {
@@ -400,8 +402,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             case SELECT:
                 if (!e.isControlDown())
                     deselectAll();
-                if (comp instanceof MusicianComponent mc)
+                if (comp instanceof MusicianComponent mc) {
                     mc.setSelected(true);
+                    notifyListenersOfSelection();
+                }
                 break;
             default:
                 break;
@@ -505,6 +509,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         private void deselectAllMusicians() {
             musicianComponents.values().forEach(mc -> mc.setSelected(false));
+            notifyListenersOfSelection();
         }
 
     };
@@ -606,10 +611,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void selectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(true));
+        notifyListenersOfSelection();
+    }
+    
+    private void notifyListenersOfSelection() {
+        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).map(MusicianComponent::getMusician).toList();
+        firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
     }
 
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
+        notifyListenersOfSelection();
     }
 
     void muteSelected() {
@@ -700,6 +712,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             peer.setSelected(true);
             _selectConnected(seen, peer);
         }
+        notifyListenersOfSelection();
     }
 
     void paste() {
