@@ -16,6 +16,7 @@ import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 import org.roach.margia.storage.params.*;
+import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 @SuppressWarnings("java:S1948")
 class OptionsWindow extends JDialog {
@@ -159,12 +160,16 @@ class OptionsWindow extends JDialog {
     }
 
     private void setupMultipleMusicianUi(List<MusicianUiPanel> mups, AtomicReference<JPanel> selectedPanel) {
-        var placeholder = new JPanel(new BorderLayout());
-        var label = new JLabel("Placeholder for editing multiple Musician UI's");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        placeholder.add(label, BorderLayout.CENTER);
-        selectedPanel.set(placeholder);
-        add(placeholder, BorderLayout.CENTER);
+//        var placeholder = new JPanel(new BorderLayout());
+//        var label = new JLabel("Placeholder for editing multiple Musician UI's");
+//        label.setHorizontalAlignment(SwingConstants.CENTER);
+//        placeholder.add(label, BorderLayout.CENTER);
+//        selectedPanel.set(placeholder);
+//        add(placeholder, BorderLayout.CENTER);
+
+        var multipleEditor = new MusicianUiPanel(mups);
+        selectedPanel.set(multipleEditor);
+        add(multipleEditor, BorderLayout.CENTER);
     }
 
     private void setupMultipleMusicalOptions(List<MusicianMusicalOptionsPanel> mups,
@@ -472,8 +477,12 @@ class OptionsWindow extends JDialog {
     }
 
     private static class MusicianUiPanel extends JPanel {
+        private final MusicianComponentOptions options;
+        private final int id;
 
         MusicianUiPanel(int id, MusicianComponentOptions options) {
+            this.id = id;
+            this.options = options;
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " UI Options"));
             setLayout(new GridBagLayout());
             var c = new GridBagConstraints();
@@ -484,7 +493,55 @@ class OptionsWindow extends JDialog {
             c.insets = new Insets(2, 2, 2, 2);
 
             var radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
+            options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY,
+                    e -> radius.setValue(((ChangeSource) e.getSource()).newValue()));
             radius.addChangeListener(_ -> options.setRadius((int) radius.getValue()));
+            var radiusLabel = createLabelFor("Radius", radius);
+            c.gridx = 0;
+            c.gridy = 0;
+            add(radiusLabel, c);
+            c.gridx = 1;
+            add(radius, c);
+
+            // Add a "filler" component to absorb extra vertical space
+            // This pushes all previous components to the top of the container
+            c.gridx = 0;
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
+        }
+
+        // called for multiple edits
+        MusicianUiPanel(List<MusicianUiPanel> others) {
+            this.id = -1; // not used
+            this.options = new MusicianComponentOptions();
+            var idList = others.stream().map(p -> p.id).toList();
+            var optionsList = others.stream().map(p -> p.options).toList();
+            var firstRadius = optionsList.get(0).getRadius();
+            var allRadiiSame = optionsList.stream().map(MusicianComponentOptions::getRadius)
+                    .allMatch(r -> firstRadius == r);
+
+            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " UI Options"));
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
+
+            var radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
+            var normalRadiusBackground = radius.getBackground();
+            if (!allRadiiSame) {
+                radius.setBackground(Color.red);
+            } else {
+                radius.setValue(firstRadius);
+            }
+            radius.addChangeListener(_ -> {
+                radius.setBackground(normalRadiusBackground);
+                optionsList.forEach(o -> o.setRadius((int) radius.getValue()));
+            });
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
             c.gridy = 0;
