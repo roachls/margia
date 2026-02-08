@@ -6,7 +6,7 @@ import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.Chord;
 import org.roach.margia.model.RuleOptions;
-import org.roach.margia.storage.params.NumericParamDescription;
+import org.roach.margia.storage.params.IntegerParamDescription;
 import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
@@ -64,10 +64,9 @@ public class RandomRule extends AbstractMusicianRule {
     @Override
     public List<SettableParamDescription> getSettableParameters() {
         return List.of(
-                new NumericParamDescription("maxChordStringLength", "Max chords to play before resting", Integer.class,
-                        1d, (double) Integer.MAX_VALUE, 1d, 5d),
-                new NumericParamDescription("restsBetweenChordStrings", "Rest between chord strings", Integer.class, 0d,
-                        1000d, 1d, 1d));
+                new IntegerParamDescription("maxChordStringLength", "Max chords to play before resting", 1,
+                        Integer.MAX_VALUE, 1, 5),
+                new IntegerParamDescription("restsBetweenChordStrings", "Rest between chord strings", 0, 1000, 1, 1));
     }
 
     @Override

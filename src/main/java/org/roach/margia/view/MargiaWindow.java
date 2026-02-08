@@ -42,7 +42,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <a href="https://github.com/roachls/margia">https://github.com/roachls/margia</a>
             </html>
             """;
-    private MusicianOptionWindow musicianOptionsWindow;
     private OptionsWindow optionsWindow;
     private AgentPanel agentPanel;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
@@ -79,8 +78,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         var transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        musicianOptionsWindow = new MusicianOptionWindow();
-        optionsWindow = new OptionsWindow();
+        optionsWindow = new OptionsWindow(this);
         updateTitle();
         Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
                 MusicianComponent.SHOW_NUMBERS_LISTENER);
@@ -89,7 +87,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
         agentPanel.setBounds(0, 0, 1000, 1000);
-        agentPanel.addVetoableChangeListener(musicianOptionsWindow);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 
         var palette1 = createToolPalette();
@@ -366,20 +363,6 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             }
         });
 
-        var showMusicianOptions = new JToggleButton("Musician");
-        showMusicianOptions.addActionListener(_ -> musicianOptionsWindow.setVisible(true));
-        musicianOptionsWindow.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                showMusicianOptions.setSelected(false);
-            }
-
-            @Override
-            public void windowDeactivated(WindowEvent e) {
-                showMusicianOptions.setSelected(false);
-            }
-        });
-
         toolbar.add(selectAll);
         toolbar.add(deselectAll);
         toolbar.addSeparator();
@@ -400,9 +383,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.add(selectConnected);
         setupModesToolbar(toolbar);
         toolbar.addSeparator();
-        toolbar.add(new JLabel("Show: "));
         toolbar.add(showUiOptions);
-        toolbar.add(showMusicianOptions);
         toolbar.addSeparator();
         toolbar.add(new AddPanel());
         return toolbar;

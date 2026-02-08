@@ -10,9 +10,10 @@ import javax.swing.event.ChangeListener;
 import org.roach.margia.actions.PlayChord;
 import org.roach.margia.actions.PlayChordUpInterval;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.model.*;
+import org.roach.margia.model.Chord;
+import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.params.NumericParamDescription;
+import org.roach.margia.storage.params.IntegerParamDescription;
 import org.roach.margia.storage.params.SettableParamDescription;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -177,8 +178,8 @@ public class UpFourthRule extends AbstractMusicianRule implements ChangeListener
     public List<SettableParamDescription> getSettableParameters() {
         return List.of(
         // @formatter:off
-            new NumericParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", Integer.class, 0d, 100d, 1d, 0d),
-            new NumericParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", Integer.class, 1d, 1000d, 1d, 1d)
+            new IntegerParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", 0, 100, 1, 0),
+            new IntegerParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", 1, 1000, 1, 1)
             // @formatter:on
         );
     }
