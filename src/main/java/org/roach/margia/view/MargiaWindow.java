@@ -44,6 +44,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             """;
     private OptionsWindow optionsWindow;
     private AgentPanel agentPanel;
+    private boolean fullScreen;
     private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
@@ -58,11 +59,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <tr><td>Ctrl+S</td><td>save</td></tr>
             <tr><td>Ctrl+O</td><td>open</td></tr>
             <tr><td>Ctrl+A</td><td>select all musicians</td></tr>
-            <tr><td>Del</td><td>delete selected musicians</td></tr>
+            <tr><td>Del</td><td>Delete selected musicians</td></tr>
             <tr><td>Esc</td><td>Deselect all musicians</td></tr>
+            <tr><td>F11</td><td>Toggle full-screen</td></tr>
             </table>
             </html>
             """;
+    private JMenuBar menubar;
+    private JToolBar toolbar;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -155,6 +159,19 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     complete = true;
                 }
                 break;
+            case KeyEvent.VK_F11:
+                if (e.getID() == KeyEvent.KEY_RELEASED) {
+                    if (fullScreen) {
+                        MargiaWindow.this.setJMenuBar(menubar);
+                        toolbar.setVisible(true);
+                    } else {
+                        MargiaWindow.this.setJMenuBar(null);
+                        toolbar.setVisible(false);
+                    }
+                    MargiaWindow.this.revalidate();
+                    fullScreen = !fullScreen;
+                }
+                break;
             default:
                 break;
             }
@@ -164,7 +181,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private void setupMenu() {
-        var menubar = new JMenuBar();
+        menubar = new JMenuBar();
 
         setupFileMenu(menubar);
         setupEditMenu(menubar);
@@ -305,7 +322,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     }
 
     private JToolBar createToolPalette() {
-        var toolbar = new JToolBar("Palette");
+        toolbar = new JToolBar("Palette");
         toolbar.setFloatable(true);
         var copyBtn = new JButton(getMenuIcon(COPY));
         copyBtn.setToolTipText("Copy selected");
