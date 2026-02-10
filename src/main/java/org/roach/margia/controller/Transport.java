@@ -6,9 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.*;
-import org.roach.margia.MusicianList;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.Length;
+import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
 
 /**
@@ -105,9 +105,13 @@ public class Transport {
                 tickActions.remove(tick).run();
             }
             // each musician calculate their next action
-            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().calculateAction(tick));
+            for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                m.getValue().calculateAction(tick);
+            }
             // each musician perform the action they just calculated
-            MusicianList.getInstance().getMusicians().entrySet().forEach(m -> m.getValue().doAction());
+            for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                m.getValue().doAction();
+            }
             // controller actually play notes from each musician
             MidiController.getInstance().playChordsThisTick();
         }

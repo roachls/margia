@@ -74,7 +74,7 @@ public class MusicianOptions {
      */
     public void setChannel(int channel) {
         var oldChannel = this.channel;
-        this.channel = RangeCheck.check("MIDI channel", channel, 0, 16);
+        this.channel = RangeCheck.check("MIDI channel", channel, 0, 15);
         if (oldChannel != this.channel)
             Options.getInstance().setDirty();
     }

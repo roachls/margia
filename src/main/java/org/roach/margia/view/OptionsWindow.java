@@ -37,6 +37,9 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private DefaultMutableTreeNode root;
     private DefaultMutableTreeNode musiciansNode;
     private final Map<Integer, DefaultMutableTreeNode> musicianNodes = new HashMap<>();
+    
+    private static final double leftColumnWeight = 0.2;
+    private static final double rightColumnWeight = 1.0 - leftColumnWeight;
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -85,17 +88,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         miscPanel = new MiscPanel();
         var miscOptions = new DefaultMutableTreeNode(miscPanel);
         musiciansNode = new DefaultMutableTreeNode("Musicians");
-        for (var musicianId : Options.getInstance().getMusicians().keySet()) {
-            var mcPanel = new MusicianUiPanel(musicianId,
-                    Options.getInstance().getUiOptions().getMusicianComponents().get(musicianId));
-            var musicPanel = new MusicianMusicalOptionsPanel(Options.getInstance().getMusicians().get(musicianId));
-            var rulePanel = new MusicianRuleOptionsPanel(musicianId,
-                    Options.getInstance().getMusicians().get(musicianId).getRuleOptions());
-            var optionsPanel = new MusicianOptionsPanel(mcPanel, musicPanel, rulePanel);
-            var musicianNode = new DefaultMutableTreeNode(optionsPanel);
-            musicianNodes.put(musicianId, musicianNode);
-            musiciansNode.add(musicianNode);
-        }
 
         root.add(uiOptions);
         root.add(midiOptions);
@@ -141,19 +133,46 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         add(treePane, BorderLayout.WEST);
         tree.setRootVisible(false);
 
+        add(treePane, BorderLayout.WEST);
         pack();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        tree.clearSelection();
-        var selectedMusicians = (List<Musician>) e.getNewValue();
-        var paths = selectedMusicians.stream().map(Musician::getId)
-                .map(id -> new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) })).toList();
-        tree.setSelectionPaths(paths.toArray(new TreePath[0]));
-        if (!paths.isEmpty())
-            tree.scrollPathToVisible(paths.get(0));
+        if (AgentPanel.AGENT_ADDED_PROPERTY.equals(e.getPropertyName())) {
+            var mc = (MusicianComponent) e.getNewValue();
+            var id = mc.getMusician().getId();
+            var newUiPanel = new MusicianUiPanel(id, mc.getOptions());
+            var newMusicianPanel = new MusicianMusicalOptionsPanel(mc.getMusician().getOptions());
+            var newRulePanel = new MusicianRuleOptionsPanel(id, mc.getMusician().getOptions().getRuleOptions());
+            var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
+            var newNode = new DefaultMutableTreeNode(newOptionsPanel);
+            var model = ((DefaultTreeModel) tree.getModel());
+            model.insertNodeInto(newNode, musiciansNode, musiciansNode.getChildCount());
+            musicianNodes.put(id, newNode);
+            revalidate();
+            repaint();
+        } else if (AgentPanel.AGENT_REMOVED_PROPERTY.equals(e.getPropertyName())) {
+            var mc = (MusicianComponent) e.getNewValue();
+            var id = mc.getMusician().getId();
+            if (musicianNodes.containsKey(id)) {
+                var path = new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) });
+                var model = ((DefaultTreeModel) tree.getModel());
+                model.removeNodeFromParent((DefaultMutableTreeNode) path.getLastPathComponent());
+            }
+            musicianNodes.remove(id);
+            revalidate();
+            repaint();
+        } else if (AgentPanel.SELECTED_AGENT_PROPERTY.equals(e.getPropertyName())) {
+            tree.clearSelection();
+            var selectedMusicians = (List<Musician>) e.getNewValue();
+            var paths = selectedMusicians.stream().map(Musician::getId).filter(musicianNodes::containsKey)
+                    .map(id -> new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) })).toList();
+            tree.setSelectionPaths(paths.toArray(new TreePath[0]));
+            if (!paths.isEmpty())
+                tree.scrollPathToVisible(paths.get(0));
+        }
     }
 
     private void setupMultipleSelection(TreePath[] selectedPaths, AtomicReference<JPanel> selectedPanel) {
@@ -236,19 +255,25 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             var row = 0;
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy = row++;
             add(gravityLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(gravity, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy = row++;
             add(windSpeedLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(windSpeed, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy = row++;
             add(edgeLengthLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(edgeLength, c);
             c.gridy = row++;
             add(showIcons, c);
@@ -299,8 +324,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             c.gridx = 0;
             c.gridy = 0;
+            c.weightx = leftColumnWeight;
             add(randomSeedLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(randomSeedSpinner, c);
 
             /*
@@ -415,6 +442,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             c.gridx = 0;
             c.gridy = 0;
+            c.weightx = 1;
             add(external, c);
             c.gridy++;
             add(sendMidiTimecode, c);
@@ -423,21 +451,27 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.gridy++;
             add(sendPanMessage, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(panControllerLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(panController, c);
             c.gridx = 0;
+            c.weightx = 1;
             c.gridy++;
             add(panWithRelativeLocations, c);
             c.gridy++;
             add(sendVerticalPanMessage, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(verticalPanControllerLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(verticalPanController, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(verticalPanWithRelativeLocations, c);
 
@@ -520,8 +554,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
             c.gridy = 0;
+            c.weightx = leftColumnWeight;
             add(radiusLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(radius, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -567,8 +603,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
             c.gridy = 0;
+            c.weightx = leftColumnWeight;
             add(radiusLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(radius, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -649,28 +687,38 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             c.gridx = 0;
             c.gridy = 0;
+            c.weightx = leftColumnWeight;
             add(keyLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(key, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(rangeLowLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(rangeLow, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(rangeHiLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(rangeHi, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(channelLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(channel, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(busLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(bus, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -796,29 +844,39 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             busLabel.setLabelFor(bus);
 
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy = 0;
             add(keyLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(key, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(rangeLowLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(rangeLow, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(rangeHiLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(rangeHi, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(channelLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(channel, c);
             c.gridx = 0;
+            c.weightx = leftColumnWeight;
             c.gridy++;
             add(busLabel, c);
             c.gridx = 1;
+            c.weightx = rightColumnWeight;
             add(bus, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -871,9 +929,17 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             var ruleLabel = new JLabel("Rule");
             ruleLabel.setLabelFor(rule);
-            var upperPanel = new JPanel(new GridLayout(1, 2));
-            upperPanel.add(ruleLabel);
-            upperPanel.add(rule);
+            var upperPanel = new JPanel(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
+            c.weightx = leftColumnWeight;
+            c.gridx = 0;
+            upperPanel.add(ruleLabel, c);
+            c.gridx = 1;
+            c.weightx = rightColumnWeight;
+            upperPanel.add(rule, c);
             add(upperPanel, BorderLayout.NORTH);
 
             populateRuleSpecificParams(options);
@@ -900,9 +966,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             var optionsList = others.stream().map(p -> p.options).toList();
             var firstName = optionsList.get(0).getName();
-            var allNamesSame = optionsList.stream().map(RuleOptions::getName).allMatch(firstName::equals);
+            var allNamesSame = optionsList.stream().map(RuleOptions::getName)
+                    .allMatch(name -> Objects.equals(firstName, name));
             if (allNamesSame)
-                options.setName(firstName);
+                options.setName(firstName == null ? "" : firstName);
             else
                 options.setName("");
             var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
@@ -975,6 +1042,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             for (var ruleParam : ruleParams) {
                 c.gridx = 0;
+                c.weightx = leftColumnWeight;
                 c.gridy++;
                 switch (ruleParam) {
                 case IntegerParamDescription(String propertyName, String displayName, int minValue, int maxValue, int step, int defaultValue): {
@@ -985,6 +1053,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     var label = createLabelFor(displayName, comp);
                     add(label, c);
                     c.gridx = 1;
+                    c.weightx = rightColumnWeight;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -995,6 +1064,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.isSelected()));
                     add(new JLabel(""), c);
                     c.gridx = 1;
+                    c.weightx = rightColumnWeight;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1008,6 +1078,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     label.setLabelFor(comp);
                     add(label, c);
                     c.gridx = 1;
+                    c.weightx = rightColumnWeight;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1021,6 +1092,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     label.setLabelFor(comp);
                     add(label, c);
                     c.gridx = 1;
+                    c.weightx = rightColumnWeight;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }

@@ -19,6 +19,7 @@ import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.ExternalTimingSource;
 import org.roach.margia.controller.timing.InternalTimingSource;
 import org.roach.margia.model.Key;
+import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
 import org.roach.margia.view.MargiaWindow;

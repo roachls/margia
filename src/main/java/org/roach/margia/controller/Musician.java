@@ -10,8 +10,7 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.controller.rules.AbstractMusicianRule;
-import org.roach.margia.controller.rules.MusicianRule;
+import org.roach.margia.controller.rules.*;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
@@ -162,14 +161,18 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     public void calculateAction(long tick) {
         this.currentTick = tick;
         logger.atDebug().log("{}: tick={} calculateAction", id, tick);
-        rule.calculateAction(tick);
+        if (rule != null)
+            rule.calculateAction(tick);
+        else
+            logger.atTrace().log("{} rule is null", id);
     }
 
     /**
-     * Actually perform the actions calculaated in {@link #calculateAction(long)}
+     * Actually perform the actions calculated in {@link #calculateAction(long)}
      */
     public void doAction() {
-        rule.doAction();
+        if (rule != null)
+            rule.doAction();
     }
 
     /**
@@ -383,6 +386,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         return m;
     }
 
+    /**
+     * assigns the rule given by a {@link RuleOptions}
+     * 
+     * @param m        musician to assign rule
+     * @param ruleOpts rule options
+     * @param ruleName name of rule
+     */
     private static void findRuleFromName(Musician m, RuleOptions ruleOpts, String ruleName) {
         if (ruleName != null) {
             var availableRules = ServiceLoader.load(MusicianRule.class);

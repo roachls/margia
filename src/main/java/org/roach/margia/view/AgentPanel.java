@@ -16,10 +16,8 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.MusicianList;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.Transport;
-import org.roach.margia.controller.rules.RandomRule;
 import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
@@ -43,6 +41,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
+    static final String AGENT_ADDED_PROPERTY = "agent_added";
+    static final String AGENT_REMOVED_PROPERTY = "agent_removed";
     private int oldWidth;
     private int oldHeight;
     private Point dragStart;
@@ -131,6 +131,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         musicianComponents.put(musician.getId(), n);
         add(n);
         numMusicians = musicianComponents.size();
+        firePropertyChange(AGENT_ADDED_PROPERTY, null, n);
         return n;
     }
 
@@ -457,7 +458,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private void handleAdd(MouseEvent e) {
             var musician = Musician.newInstance();
             var musOpts = musician.getOptions();
-            musOpts.getRuleOptions().setName(new RandomRule().getName());
+            musOpts.setChannel(15);
             musOpts.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
             numMusicians = MusicianList.getInstance().numMusicians();
@@ -465,6 +466,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             musicianComponents.put(musician.getId(), musicianComponent);
             musicianComponent.getOptions().setPosition(new Point2D.Double(e.getX(), e.getY()));
             add(musicianComponent);
+            firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
             Options.getInstance().setDirty();
         }
 
@@ -602,6 +604,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             Options.getInstance().getMusicians().remove(id);
             Options.getInstance().getUiOptions().getMusicianComponents().remove(id);
             Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(Integer.valueOf(id)));
+            firePropertyChange(AGENT_REMOVED_PROPERTY, null, mc);
         }
     }
 
@@ -613,9 +616,10 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         musicianComponents.values().forEach(mc -> mc.setSelected(true));
         notifyListenersOfSelection();
     }
-    
+
     private void notifyListenersOfSelection() {
-        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).map(MusicianComponent::getMusician).toList();
+        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                .map(MusicianComponent::getMusician).toList();
         firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
     }
 
@@ -753,10 +757,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         if (numToAdd < 3)
             return;
         var list = IntStream.range(0, numToAdd).mapToObj(_ -> Musician.newInstance()).toList();
-        list.forEach(m -> {
-            m.getOptions().getRuleOptions().setName(new StateBasedRule().getName());
-            MusicianList.getInstance().addMusician(m);
-        });
+        list.forEach(m -> MusicianList.getInstance().addMusician(m));
         for (int i = 0; i < list.size() - 1; i++) {
             list.get(i).addPeer(list.get(i + 1));
         }
@@ -864,7 +865,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             return;
         var list = new ArrayList<Musician>();
         for (var i = 0; i < n; i++) {
-            list.add(Musician.newInstance());
+            var m = Musician.newInstance();
+            list.add(m);
+            MusicianList.getInstance().addMusician(m);
         }
         var components = list.stream().map(this::addMusicianComponent).toList();
         createEdges(components);

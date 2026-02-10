@@ -44,9 +44,11 @@ public class RuleOptions {
      * @param name the name to set
      */
     public void setName(String name) {
+        if (name == null)
+            return;
         var oldName = this.name;
         this.name = name;
-        if (oldName != null && !oldName.equals(this.name)) {
+        if (!this.name.equals(oldName)) {
             emitter.fireChangeEvent(RULE_NAME_PROPERTY, new ChangeSource(RULE_NAME_PROPERTY, this.name));
             Options.getInstance().setDirty();
             this.ruleSpecificOptions.clear();

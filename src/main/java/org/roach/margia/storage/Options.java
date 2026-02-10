@@ -9,7 +9,6 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.roach.margia.MusicianList;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
