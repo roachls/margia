@@ -133,10 +133,6 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
         case ShortMessage.PITCH_BEND:
 //            System.out.printf("pitch bend: %d %d%n", message.getData1(), message.getData2());
             break;
-        case ShortMessage.NOTE_ON:
-            if (Options.getInstance().getMidiOptions().isAutoStartOnNoteOn())
-                start();
-            break;
         default:
 //            System.out.println("Received: " + message.getCommand());
             break;

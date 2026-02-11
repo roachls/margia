@@ -38,8 +38,8 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private DefaultMutableTreeNode musiciansNode;
     private final Map<Integer, DefaultMutableTreeNode> musicianNodes = new HashMap<>();
     
-    private static final double leftColumnWeight = 0.2;
-    private static final double rightColumnWeight = 1.0 - leftColumnWeight;
+    private static final double LEFT_COLUMN_WEIGHT = 0.2;
+    private static final double RIGHT_COLUMN_WEIGHT = 1.0 - LEFT_COLUMN_WEIGHT;
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -75,6 +75,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         this.setLocation(x, y);
         this.setSize(w, h);
         setVisible(Persistence.getInstance().getBoolean(OptionsWindow.OPTIONS_WINDOW_NAME + "_visible", false));
+        updateOptions();
     }
 
     private void createUi() {
@@ -255,25 +256,25 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             var row = 0;
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy = row++;
             add(gravityLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(gravity, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy = row++;
             add(windSpeedLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(windSpeed, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy = row++;
             add(edgeLengthLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(edgeLength, c);
             c.gridy = row++;
             add(showIcons, c);
@@ -324,10 +325,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             c.gridx = 0;
             c.gridy = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             add(randomSeedLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(randomSeedSpinner, c);
 
             /*
@@ -350,7 +351,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private class MidiPanel extends JPanel {
         private final JCheckBox external;
         private final JCheckBox sendMidiTimecode;
-        private final JCheckBox autoStartOnNoteOn;
         private final JCheckBox sendPanMessage;
         private final JSpinner panController;
         private final JCheckBox panWithRelativeLocations;
@@ -375,10 +375,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             sendMidiTimecode.addActionListener(
                     _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
             sendMidiTimecode.setEnabled(external.isSelected());
-            autoStartOnNoteOn = new JCheckBox("Auto-start on NOTE_ON event");
-            autoStartOnNoteOn.addActionListener(
-                    _ -> Options.getInstance().getMidiOptions().setAutoStartOnNoteOn(autoStartOnNoteOn.isSelected()));
-            autoStartOnNoteOn.setEnabled(external.isSelected());
 
             sendPanMessage = new JCheckBox("Send stereo panning");
             sendPanMessage.addActionListener(
@@ -420,7 +416,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             external.addActionListener(_ -> {
                 Options.getInstance().getMidiOptions().setUsingExternalMidi(external.isSelected());
                 sendMidiTimecode.setEnabled(external.isSelected());
-                autoStartOnNoteOn.setEnabled(external.isSelected());
                 sendPanMessage.setEnabled(external.isSelected());
                 panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
                 panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
@@ -447,15 +442,13 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.gridy++;
             add(sendMidiTimecode, c);
             c.gridy++;
-            add(autoStartOnNoteOn, c);
-            c.gridy++;
             add(sendPanMessage, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(panControllerLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(panController, c);
             c.gridx = 0;
             c.weightx = 1;
@@ -464,14 +457,14 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.gridy++;
             add(sendVerticalPanMessage, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(verticalPanControllerLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(verticalPanController, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(verticalPanWithRelativeLocations, c);
 
@@ -554,10 +547,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
             c.gridy = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             add(radiusLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(radius, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -603,10 +596,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var radiusLabel = createLabelFor("Radius", radius);
             c.gridx = 0;
             c.gridy = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             add(radiusLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(radius, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -687,38 +680,38 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             c.gridx = 0;
             c.gridy = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             add(keyLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(key, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(rangeLowLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(rangeLow, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(rangeHiLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(rangeHi, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(channelLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(channel, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(busLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(bus, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -844,39 +837,39 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             busLabel.setLabelFor(bus);
 
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy = 0;
             add(keyLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(key, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(rangeLowLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(rangeLow, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(rangeHiLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(rangeHi, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(channelLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(channel, c);
             c.gridx = 0;
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
             add(busLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             add(bus, c);
 
             // Add a "filler" component to absorb extra vertical space
@@ -934,11 +927,11 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.fill = GridBagConstraints.HORIZONTAL;
             c.anchor = GridBagConstraints.NORTHWEST;
             c.insets = new Insets(2, 2, 2, 2);
-            c.weightx = leftColumnWeight;
+            c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridx = 0;
             upperPanel.add(ruleLabel, c);
             c.gridx = 1;
-            c.weightx = rightColumnWeight;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
             upperPanel.add(rule, c);
             add(upperPanel, BorderLayout.NORTH);
 
@@ -1042,7 +1035,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
             for (var ruleParam : ruleParams) {
                 c.gridx = 0;
-                c.weightx = leftColumnWeight;
+                c.weightx = LEFT_COLUMN_WEIGHT;
                 c.gridy++;
                 switch (ruleParam) {
                 case IntegerParamDescription(String propertyName, String displayName, int minValue, int maxValue, int step, int defaultValue): {
@@ -1053,7 +1046,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     var label = createLabelFor(displayName, comp);
                     add(label, c);
                     c.gridx = 1;
-                    c.weightx = rightColumnWeight;
+                    c.weightx = RIGHT_COLUMN_WEIGHT;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1064,7 +1057,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.isSelected()));
                     add(new JLabel(""), c);
                     c.gridx = 1;
-                    c.weightx = rightColumnWeight;
+                    c.weightx = RIGHT_COLUMN_WEIGHT;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1078,7 +1071,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     label.setLabelFor(comp);
                     add(label, c);
                     c.gridx = 1;
-                    c.weightx = rightColumnWeight;
+                    c.weightx = RIGHT_COLUMN_WEIGHT;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1092,7 +1085,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     label.setLabelFor(comp);
                     add(label, c);
                     c.gridx = 1;
-                    c.weightx = rightColumnWeight;
+                    c.weightx = RIGHT_COLUMN_WEIGHT;
                     add(comp, c);
                     editableComponents.put(propertyName, comp);
                 }
@@ -1160,7 +1153,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
         midiPanel.external.setSelected(options.getMidiOptions().isUsingExternalMidi());
         midiPanel.sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
-        midiPanel.autoStartOnNoteOn.setSelected(options.getMidiOptions().isAutoStartOnNoteOn());
         midiPanel.sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
         midiPanel.panController.setValue(options.getMidiOptions().getPanController());
         midiPanel.panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
