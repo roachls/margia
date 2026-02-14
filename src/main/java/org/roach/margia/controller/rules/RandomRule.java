@@ -15,6 +15,7 @@ import org.roach.margia.storage.params.SettableParamDescription;
 public class RandomRule extends AbstractMusicianRule {
     private int maxChordStringLength = 5;
     private int restsBetweenChordStrings = 1;
+    private int chordSize = 1;
 
     @Override
     public void calculateAction(long tick) {
@@ -29,7 +30,7 @@ public class RandomRule extends AbstractMusicianRule {
         }
         if (musician.getQueueSize() == 0) {
             logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomChord(musician, 17, 15, 1));
+            actionsToTake.add(new PlayPseudoRandomChord(musician, 17, 15, chordSize));
             return;
         }
 
@@ -66,7 +67,8 @@ public class RandomRule extends AbstractMusicianRule {
         return List.of(
                 new IntegerParamDescription("maxChordStringLength", "Max chords to play before resting", 1,
                         Integer.MAX_VALUE, 1, 5),
-                new IntegerParamDescription("restsBetweenChordStrings", "Rest between chord strings", 0, 1000, 1, 1));
+                new IntegerParamDescription("restsBetweenChordStrings", "Rest between chord strings", 0, 1000, 1, 1),
+                new IntegerParamDescription("chordSize", "Number of notes per chord", 1, 5, 1, 1));
     }
 
     @Override
@@ -74,5 +76,6 @@ public class RandomRule extends AbstractMusicianRule {
         super.restoreFromStorage(ruleOptions);
         maxChordStringLength = (int) ruleOptions.getRuleSpecificOptionOrDefault("maxChordStringLength", 5);
         restsBetweenChordStrings = (int) ruleOptions.getRuleSpecificOptionOrDefault("restsBetweenChordStrings", 1);
+        chordSize = (int) ruleOptions.getRuleSpecificOptionOrDefault("chordSize", 1);
     }
 }
