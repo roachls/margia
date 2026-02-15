@@ -21,11 +21,17 @@ public class MusicOptions {
     private int tempo = DEFAULT_TEMPO;
     private int tempoMinimum = 1;
     private int tempoMaximum = 300;
+    private int maxQueueSize = DEFAULT_MAX_QUEUE_SIZE;
+
     private final ChangeEmitter emitter = new ChangeEmitter();
     /**
      * Default tempo
      */
     public static final int DEFAULT_TEMPO = 60;
+    /**
+     * default maximum queue size
+     */
+    public static final int DEFAULT_MAX_QUEUE_SIZE = 12;
     /**
      * the property fired when the tempo changes
      */
@@ -79,6 +85,19 @@ public class MusicOptions {
     }
 
     /**
+     * @return the maximum size that a musician's queue is allowed to grow to; old
+     *         events past this size will be replaced by new events
+     */
+    public int getMaxQueueSize() { return maxQueueSize; }
+
+    /**
+     * @param maxQueueSize the maximum size that a musician's queue is allowed to
+     *                     grow to; old events past this size will be replaced by
+     *                     new events
+     */
+    public void setMaxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; }
+
+    /**
      * @param property name of property
      * @param listener listener of property
      */
@@ -89,12 +108,12 @@ public class MusicOptions {
     @Override
     public String toString() {
         return "MusicOptions [tempo=" + tempo + ", tempoMinimum=" + tempoMinimum + ", tempoMaximum=" + tempoMaximum
-                + "]";
+                + ", maxQueueSize=" + maxQueueSize + "]";
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tempo, tempoMaximum, tempoMinimum);
+        return Objects.hash(maxQueueSize, tempo, tempoMaximum, tempoMinimum);
     }
 
     @Override
@@ -106,6 +125,7 @@ public class MusicOptions {
         if (getClass() != obj.getClass())
             return false;
         MusicOptions other = (MusicOptions) obj;
-        return tempo == other.tempo && tempoMaximum == other.tempoMaximum && tempoMinimum == other.tempoMinimum;
+        return maxQueueSize == other.maxQueueSize && tempo == other.tempo && tempoMaximum == other.tempoMaximum
+                && tempoMinimum == other.tempoMinimum;
     }
 }

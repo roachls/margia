@@ -537,8 +537,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 edges.forEach(edge -> edge.idealLength = len);
                 break;
             case MusicOptions.TEMPO_PROPERTY:
-                this.tickLengthMillis = 60000 / ((int) newValue * 24);
-                MusicianComponent.setTickLengthMillis(tickLengthMillis);
+                var diff = (int) newValue;
+                if (diff != 0) {
+                    this.tickLengthMillis = 60000 / ((int) newValue * 24);
+                    MusicianComponent.setTickLengthMillis(tickLengthMillis);
+                }
                 break;
             default:
                 break;

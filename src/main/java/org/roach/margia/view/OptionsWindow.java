@@ -33,6 +33,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private UiOptionsPanel uiPanel;
     private MiscPanel miscPanel;
     private MidiPanel midiPanel;
+    private MusicPanel globalMusicPanel;
     private JTree tree;
     private DefaultMutableTreeNode root;
     private DefaultMutableTreeNode musiciansNode;
@@ -86,6 +87,8 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         var uiOptions = new DefaultMutableTreeNode(uiPanel);
         midiPanel = new MidiPanel();
         var midiOptions = new DefaultMutableTreeNode(midiPanel);
+        globalMusicPanel = new MusicPanel();
+        var musicOptions = new DefaultMutableTreeNode(globalMusicPanel);
         miscPanel = new MiscPanel();
         var miscOptions = new DefaultMutableTreeNode(miscPanel);
         musiciansNode = new DefaultMutableTreeNode("Musicians");
@@ -93,6 +96,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         root.add(uiOptions);
         root.add(midiOptions);
         root.add(miscOptions);
+        root.add(musicOptions);
         root.add(musiciansNode);
         tree = new JTree(root);
         tree.setShowsRootHandles(true);
@@ -482,6 +486,51 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         @Override
         public String toString() {
             return "MIDI";
+        }
+    }
+
+    private class MusicPanel extends JPanel {
+        private static final String GLOBAL_MUSIC_OPTIONS = "Global Music Options";
+        private final JSpinner maxQueueSize;
+
+        MusicPanel() {
+            setBorder(BorderFactory.createTitledBorder(GLOBAL_MUSIC_OPTIONS));
+            setName(GLOBAL_MUSIC_OPTIONS);
+            setLayout(new GridBagLayout());
+            var c = new GridBagConstraints();
+            c.fill = GridBagConstraints.BOTH;
+            c.weightx = 0.0;
+            c.weighty = 0.0;
+            c.anchor = GridBagConstraints.NORTHWEST;
+            c.insets = new Insets(2, 2, 2, 2);
+
+            maxQueueSize = createSpinner("Max Queue Size", MusicOptions.DEFAULT_MAX_QUEUE_SIZE, 1, 120, 1);
+            maxQueueSize.addChangeListener(
+                    _ -> Options.getInstance().getMusicOptions().setMaxQueueSize((int) maxQueueSize.getValue()));
+            var maxQueueSizeLabel = createLabelFor("Max Queue Size", maxQueueSize);
+
+            c.gridx = 0;
+            c.gridy = 0;
+            c.weightx = LEFT_COLUMN_WEIGHT;
+            add(maxQueueSizeLabel, c);
+            c.gridx = 1;
+            c.weightx = RIGHT_COLUMN_WEIGHT;
+            add(maxQueueSize, c);
+
+            /*
+             * Add a "filler" component to absorb extra vertical space This pushes all
+             * previous components to the top of the container
+             */
+            c.gridx = 0;
+            c.gridy++;
+            c.weighty = 1.0; // Give all extra vertical space to this row
+            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
+            add(Box.createVerticalGlue(), c);
+        }
+
+        @Override
+        public String toString() {
+            return GLOBAL_MUSIC_OPTIONS;
         }
     }
 
@@ -1160,5 +1209,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         midiPanel.verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
         midiPanel.verticalPanWithRelativeLocations
                 .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
+        
+        globalMusicPanel.maxQueueSize.setValue(options.getMusicOptions().getMaxQueueSize());
     }
 }

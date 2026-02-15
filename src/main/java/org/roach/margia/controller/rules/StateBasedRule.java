@@ -171,22 +171,6 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         this.sequenceLength++;
     }
 
-    /**
-     * @return the current sequence length
-     */
-    public int getSequenceLength() { return sequenceLength; }
-
-    /**
-     * @param sequenceLength the sequence length
-     */
-    public void setSequenceLength(int sequenceLength) {
-        if (sequenceLength < 1)
-            throw new IllegalArgumentException("Sequence length must be at least 1");
-        this.sequenceLength = sequenceLength;
-        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
-                .setRuleSpecificOption(SEQUENCE_LENGTH_PROPERTY, this.sequenceLength);
-    }
-
     @Override
     public String getName() { return "statebased"; }
 
@@ -196,25 +180,9 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         sequenceCountdown = 0;
         state = DIRECT_REPEAT;
         tickCountdown = 0;
-        initialTickDelay = 0;
+        initialTickDelay = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0);
         delayQueue.clear();
-    }
-
-    /**
-     * @return the initialTickDelay
-     */
-    public int getInitialTickDelay() { return initialTickDelay; }
-
-    /**
-     * @param initialTickDelay the initialTickDelay to set
-     */
-    public void setInitialTickDelay(int initialTickDelay) {
-        if (initialTickDelay < 0)
-            throw new IllegalArgumentException("Tick delay must be at least 0");
-        this.initialTickDelay = initialTickDelay;
-        this.sequenceCountdown = sequenceLength + initialTickDelay;
-        Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
-                .setRuleSpecificOption(INITIAL_TICK_DELAY_PROPERTY, this.initialTickDelay);
     }
 
     @Override

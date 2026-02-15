@@ -39,10 +39,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     public static final int START_VELOCITY = 64;
     /**
-     * maximum size the queue is allowed to reach before new notes are ignored
-     */
-    public static final int MAX_QUEUE_SIZE = 12;
-    /**
      * a rest of 1 tick
      */
     public static final Chord REST = new Chord(Collections.emptySet(), 1, 0);
@@ -53,7 +49,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     private AbstractMusicianRule rule;
     private int chordsIvePlayed;
     private Chord myLastChord;
-    private final Logger logger;
+    private final Logger logger = LogManager.getLogger(getClass());
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private MusicianOptions musicianOptions;
@@ -79,7 +75,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
 
     private Musician() {
         propertyChange = new PropertyChangeSupport(this);
-        this.logger = LogManager.getLogger("Musician_" + id);
         this.controller = MidiController.getInstance();
 
     }
@@ -187,7 +182,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 logger.atDebug().log("{}: heard {}, queue size = {}", id, heardChord, messageQueue.size());
             else
                 logger.atDebug().log("{}: received message: {}", id, message);
-            if (messageQueue.size() > MAX_QUEUE_SIZE) {
+            if (messageQueue.size() > Options.getInstance().getMusicOptions().getMaxQueueSize()) {
                 logger.atDebug().log("{}: pulling old message to make room for new", id);
                 messageQueue.poll();
             }
