@@ -54,8 +54,6 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         var message = musician.getNextMessageReceived();
         if (message != null && message instanceof Chord heardChord) {
             delayQueue.offer(heardChord);
-        } else {
-            delayQueue.offer(Musician.REST);
         }
 
         var chord = delayQueue.poll();
