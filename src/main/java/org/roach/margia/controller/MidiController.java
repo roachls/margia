@@ -358,7 +358,10 @@ public class MidiController implements ChangeListener {
         }
     }
 
-    private void allNotesOff() {
+    /**
+     * Send MIDI ALL_NOTES_OFF command
+     */
+    public void allNotesOff() {
         LOGGER.atInfo().log("**** All notes off");
         try {
             for (var receiver : outputReceivers.values()) {

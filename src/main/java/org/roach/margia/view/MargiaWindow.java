@@ -317,8 +317,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             MidiController.getInstance().scanForMidiOutputDevices();
             MidiController.getInstance().scanForMidiInputDevices();
         });
+        var midiPanic = new JMenuItem("MIDI Panic (All Notes Off");
+        midiPanic.addActionListener(_ -> MidiController.getInstance().allNotesOff());
 
         midiMenu.add(rescanMidi);
+        midiMenu.add(midiPanic);
 
         menubar.add(midiMenu);
     }
