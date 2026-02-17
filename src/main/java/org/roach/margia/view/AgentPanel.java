@@ -167,7 +167,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var vector = new Vector2D(sCenter, tCenter);
             var angle = vector.angle();
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
-            var line = new Line2D.Double(0, 0, 0, dist);
+            var line = new QuadCurve2D.Double(0, 0, 5, dist / 2d, 0, dist);
             var path = new Path2D.Double();
             path.moveTo(0, dist - 5);
             path.lineTo(3, dist - 5);
