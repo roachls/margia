@@ -361,12 +361,14 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * @param height
      */
     void clampPosition(int width, int height) {
+        var radius = options.getRadius();
+        if (width <= radius * 4d || height <= radius * 4d)
+            return;
         /*
          * Note that the position is the upper-left corner of the bounding rectangle,
          * not the center, which is why we multiply radius by 3 for the bounds.
          */
         var position = options.getPosition();
-        var radius = options.getRadius();
         options.setPosition(new Point2D.Double(Math.clamp(position.getX(), radius, width - radius * 3.0),
                 Math.clamp(position.getY(), radius, height - radius * 3.0)));
         updatePosition();

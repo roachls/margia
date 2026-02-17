@@ -102,6 +102,7 @@ public class Main {
                 JFrame.setDefaultLookAndFeelDecorated(true);
                 var ui = new MargiaWindow(timing, transport);
                 ui.setExtendedState(Frame.MAXIMIZED_BOTH);
+                ui.setResizable(false);
                 ui.setVisible(true);
             });
         } else {
