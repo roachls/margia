@@ -238,8 +238,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // Calculate repulsive forces between ALL pairs of nodes (O(N^2))
         for (var n1 : musicianComponents.values()) {
             for (var n2 : musicianComponents.values().stream().filter(n -> !n.equals(n1)).toList()) {
-                var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
-                double distance = n1.getPosition().distance(n2.getPosition());
+                var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
+                double distance = n1.getCenter().distance(n2.getCenter());
                 if (distance == 0) // prevent division by 0
                     continue;
 
@@ -255,8 +255,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         for (Edge edge : edges) {
             MusicianComponent n1 = edge.source;
             MusicianComponent n2 = edge.target;
-            var unitVec = PointMath.unitVector(n2.getPosition(), n1.getPosition());
-            double distance = n1.getPosition().distance(n2.getPosition());
+            var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
+            double distance = n1.getCenter().distance(n2.getCenter());
 
             // Spring force (Hooke's law analog)
             double displacement = distance - edge.idealLength;
@@ -270,8 +270,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         // apply gravity and wind
         var center = new Point2D.Double(getWidth() / 2d, getHeight() / 2d);
         for (var n1 : musicianComponents.values()) {
-            var vec = new Vector2D(center, n1.getPosition());
-            var dist = n1.getPosition().distance(center);
+            var vec = new Vector2D(center, n1.getCenter());
+            var dist = n1.getCenter().distance(center);
             if (dist == 0.0) // prevent division by zero
                 continue;
 
