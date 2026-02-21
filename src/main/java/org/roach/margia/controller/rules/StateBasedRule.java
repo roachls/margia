@@ -8,7 +8,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.actions.*;
-import org.roach.margia.controller.Musician;
+import org.roach.margia.controller.rules.states.*;
 import org.roach.margia.model.Chord;
 import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
@@ -23,16 +23,10 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
     private int sequenceLength = 1;
-    private final MusicianState directRepeat;
-    private final MusicianState upFourth;
-    private final MusicianState downFourth;
-    private final MusicianState doubleSpeed;
-    private final MusicianState halfSpeed;
-    private final MusicianState increaseVelocity;
-    private final MusicianState decreaseVelocity;
 
     private int sequenceCountdown;
     private MusicianState state;
+    private final MusicianState startingState;
     private int tickCountdown;
     private int initialTickDelay;
     private final BlockingQueue<Chord> delayQueue = new LinkedBlockingQueue<>();
@@ -41,28 +35,38 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
      * Constructor
      */
     public StateBasedRule() {
-        directRepeat = new MusicianStateImpl("direct repeat", List.of(c -> new PlayChord(this.musician, c)));
-        upFourth = new MusicianStateImpl("up 4th", List.of(c -> {
-            if (!Musician.REST.equals(c)) { // note a rest
-                return new PlayChordUpInterval(this.musician, c, 5);
-            } else {
-                return new PlayChord(this.musician, c);
-            }
-        }));
-        downFourth = new MusicianStateImpl("down 4th", List.of(c -> {
-            if (!Musician.REST.equals(c)) { // not a rest
-                return new PlayChordDownInterval(musician, c, 5);
-            } else {
-                return new PlayChord(musician, c);
-            }
-        }));
-        doubleSpeed = new MusicianStateImpl("double speed", List.of(c -> new PlayChordTwiceLength(musician, c)));
-        halfSpeed = new MusicianStateImpl("half speed", List.of(c -> new PlayChordHalfLength(musician, c)));
-        increaseVelocity = new MusicianStateImpl("increase velocity",
-                List.of(c -> new PlayChordUpVelocity(musician, c, 15)));
-        decreaseVelocity = new MusicianStateImpl("decrease velocity",
-                List.of(c -> new PlayChordDownVelocity(musician, c, 15)));
+        MusicianState directRepeat = null;
+        // @formatter:off
+        AlwaysTransitionMusicianState upFourth = new AlwaysTransitionMusicianState("up 4th")
+                .setActions(List.of(c -> new PlayChord(this.musician, c)
+        ));
+        var downFourth = new AlwaysTransitionMusicianState("down 4th")
+                .setActions(List.of(c -> new PlayChordDownInterval(musician, c, 5)));
+        var doubleSpeed = new AlwaysTransitionMusicianState("double speed")
+                .setActions(List.of(c -> new PlayChordTwiceLength(musician, c)));
+        var halfSpeed = new AlwaysTransitionMusicianState("half speed")
+                .setActions(List.of(c -> new PlayChordHalfLength(musician, c)));
+        var increaseVelocity = new AlwaysTransitionMusicianState("increase velocity")
+                .setActions(List.of(c -> new PlayChordUpVelocity(musician, c, 15)));
+        var decreaseVelocity = new AlwaysTransitionMusicianState("decrease velocity")
+                .setActions(List.of(c -> new PlayChordDownVelocity(musician, c, 15)));
+        directRepeat = new PseudoRandomMusicianState("direct repeat")
+                .withAction(c -> new PlayChord(musician, c))
+                .withStateTransition(new NumericRange(1, 3), upFourth)
+                .withStateTransition(new NumericRange(4, 6), downFourth)
+                .withStateTransition(new NumericRange(7, 8), increaseVelocity)
+                .withStateTransition(new NumericRange(9, 10), decreaseVelocity)
+                .withStateTransition(new NumericRange(11, 12), halfSpeed)
+                .withStateTransition(new NumericRange(13, 14), doubleSpeed);
+        // @formatter:on
+        upFourth.setToState(directRepeat);
+        downFourth.setToState(directRepeat);
+        increaseVelocity.setToState(directRepeat);
+        decreaseVelocity.setToState(directRepeat);
+        halfSpeed.setToState(directRepeat);
+        doubleSpeed.setToState(directRepeat);
         this.state = directRepeat;
+        this.startingState = directRepeat;
     }
 
     @Override
@@ -104,35 +108,9 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
             actionsToTake.add(action.apply(chord));
         }
         if (sequenceCountdown <= 0) {
-            MusicianState newState;
-            if (directRepeat.equals(state)) {
-                var rand = tick + musician.getId();
-                if (lastChord != null) {
-                    for (var lastNote : lastChord.getNotes()) {
-                        rand += lastNote;
-                    }
-                }
-                rand %= 30;
-                logger.atDebug().log("{}: 'random' number: {}", musician.getId(), rand);
-                if (rand >= 1 && rand <= 3)
-                    newState = upFourth;
-                else if (rand >= 4 && rand <= 6)
-                    newState = downFourth;
-                else if (rand >= 7 && rand <= 8)
-                    newState = halfSpeed;
-                else if (rand >= 9 && rand <= 10)
-                    newState = doubleSpeed;
-                else if (rand >= 11 && rand <= 12)
-                    newState = increaseVelocity;
-                else if (rand >= 13 && rand <= 14)
-                    newState = decreaseVelocity;
-                else
-                    newState = directRepeat;
-            } else {
-                newState = directRepeat;
-            }
+            MusicianState newState = state.transition(musician);
             if (!state.equals(newState))
-                logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
+                logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
             state = newState;
             sequenceCountdown = sequenceLength;
         } else {
@@ -163,7 +141,7 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
     public void reset() {
         sequenceLength = 0;
         sequenceCountdown = 0;
-        state = directRepeat;
+        state = startingState;
         tickCountdown = 0;
         initialTickDelay = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
                 .getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0);

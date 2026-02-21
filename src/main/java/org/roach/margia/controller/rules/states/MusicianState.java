@@ -1,9 +1,10 @@
-package org.roach.margia.controller.rules;
+package org.roach.margia.controller.rules.states;
 
 import java.util.List;
 import java.util.function.Function;
 
 import org.roach.margia.actions.MusicalAction;
+import org.roach.margia.controller.Musician;
 import org.roach.margia.model.Chord;
 
 /**
@@ -19,4 +20,12 @@ public interface MusicianState {
      * @return name of this state
      */
     String name();
+
+    /**
+     * Transition to a new state (which could be this state)
+     * 
+     * @param musician musician that is transitioning
+     * @return a new state
+     */
+    MusicianState transition(Musician musician);
 }

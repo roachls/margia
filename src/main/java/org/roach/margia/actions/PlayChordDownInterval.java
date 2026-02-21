@@ -16,6 +16,8 @@ public record PlayChordDownInterval(Musician musician, Chord chord, int interval
 
     @Override
     public void perform() {
+        if (Musician.REST.equals(chord))
+            return;
         var noteList = chord.getNotes().stream().map(n -> musician.getKey().down(n, interval)).toList();
         musician.playChord(chord.withNotes(noteList));
     }
