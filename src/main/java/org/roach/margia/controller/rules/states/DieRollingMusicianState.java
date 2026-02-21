@@ -14,7 +14,7 @@ import org.roach.margia.util.DieRoller;
  * transition will be applied by default (i.e., a transition back to the same
  * state).
  */
-public class DieRollingMusicianState extends NumberBasedMusicianState<DieRollingMusicianState> {
+public class DieRollingMusicianState extends NumberRangeBasedMusicianState<DieRollingMusicianState> {
     private final String diceDescription;
 
     /**

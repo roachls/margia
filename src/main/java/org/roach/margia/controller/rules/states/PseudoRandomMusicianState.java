@@ -15,13 +15,17 @@ import org.roach.margia.controller.rules.NumericRange;
  * transition will be applied by default (i.e., a transition back to the same
  * state).
  */
-public class PseudoRandomMusicianState extends NumberBasedMusicianState<PseudoRandomMusicianState> {
+public class PseudoRandomMusicianState extends NumberRangeBasedMusicianState<PseudoRandomMusicianState> {
+    private final int maxValue;
 
     /**
-     * @param name Name of this state
+     * @param name     Name of this state
+     * @param maxValue max value of pseudo-random number; calculated number will be
+     *                 modded with this value
      */
-    public PseudoRandomMusicianState(String name) {
+    public PseudoRandomMusicianState(String name, int maxValue) {
         super(name);
+        this.maxValue = maxValue;
     }
 
     /**
@@ -34,6 +38,8 @@ public class PseudoRandomMusicianState extends NumberBasedMusicianState<PseudoRa
      */
     public PseudoRandomMusicianState withStateTransition(NumericRange range, MusicianState toState) {
         Objects.requireNonNull(range);
+        if (range.min() > maxValue || range.max() > maxValue)
+            throw new IllegalArgumentException("Range %s goes above max value of %d".formatted(range, maxValue));
         Objects.requireNonNull(toState);
         try {
             checkForOverlap(range);
@@ -47,12 +53,11 @@ public class PseudoRandomMusicianState extends NumberBasedMusicianState<PseudoRa
     @Override
     public MusicianState transition(Musician musician) {
         final var prn = calculatePseudoRandomNumber(musician);
-        var appropriateTransition = stateMap.entrySet().stream()
-                .filter(t -> t.getKey().isInRange(prn)).findFirst();
+        var appropriateTransition = stateMap.entrySet().stream().filter(t -> t.getKey().isInRange(prn)).findFirst();
         return appropriateTransition.map(Entry::getValue).orElse(this);
     }
 
-    private static int calculatePseudoRandomNumber(Musician musician) {
+    private int calculatePseudoRandomNumber(Musician musician) {
         var prn = musician.getCurrentTick() + musician.getId();
         var lastChord = musician.getMyLastChord();
         if (lastChord != null) {
@@ -60,7 +65,7 @@ public class PseudoRandomMusicianState extends NumberBasedMusicianState<PseudoRa
                 prn += lastNote;
             }
         }
-        prn %= 30;
+        prn %= maxValue;
         return (int) prn;
     }
 

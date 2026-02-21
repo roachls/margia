@@ -1,5 +1,7 @@
 package org.roach.margia.controller.rules.states;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -45,8 +47,19 @@ class PseudoRandomMusicianStateTest {
     @Test
     void testWithStateTransition() {
         var throwawayState = new AlwaysTransitionMusicianState("hmm");
-        var baseState = new PseudoRandomMusicianState("test");
+        var baseState = new PseudoRandomMusicianState("test", 30);
         assumeTrue(baseState.getStateMap().isEmpty());
+        var minTooHigh = new NumericRange(31, 40);
+        var ex = assertThrows(IllegalArgumentException.class,
+                () -> baseState.withStateTransition(minTooHigh, throwawayState));
+        assertTrue(baseState.getStateMap().isEmpty());
+        assertThat(ex, isA(IllegalArgumentException.class));
+        ex = null;
+        var maxTooHigh = new NumericRange(15, 40);
+        ex = assertThrows(IllegalArgumentException.class,
+                () -> baseState.withStateTransition(maxTooHigh, throwawayState));
+        assertTrue(baseState.getStateMap().isEmpty());
+        assertThat(ex, isA(IllegalArgumentException.class));
         baseState.withStateTransition(new NumericRange(1, 5), throwawayState);
         assertEquals(1, baseState.getStateMap().size());
         assertTrue(appender.events.isEmpty());

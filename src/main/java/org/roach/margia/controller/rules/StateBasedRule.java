@@ -50,14 +50,14 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
                 .setActions(List.of(c -> new PlayChordUpVelocity(musician, c, 15)));
         var decreaseVelocity = new AlwaysTransitionMusicianState("decrease velocity")
                 .setActions(List.of(c -> new PlayChordDownVelocity(musician, c, 15)));
-        directRepeat = new PseudoRandomMusicianState("direct repeat")
+        directRepeat = new PseudoRandomMusicianState("direct repeat", 20)
                 .withAction(c -> new PlayChord(musician, c))
-                .withStateTransition(new NumericRange(1, 3), upFourth)
-                .withStateTransition(new NumericRange(4, 6), downFourth)
-                .withStateTransition(new NumericRange(7, 8), increaseVelocity)
-                .withStateTransition(new NumericRange(9, 10), decreaseVelocity)
-                .withStateTransition(new NumericRange(11, 12), halfSpeed)
-                .withStateTransition(new NumericRange(13, 14), doubleSpeed);
+                .withStateTransition(new NumericRange(0, 2), upFourth)
+                .withStateTransition(new NumericRange(3, 5), downFourth)
+                .withStateTransition(new NumericRange(6, 8), increaseVelocity)
+                .withStateTransition(new NumericRange(9, 11), decreaseVelocity)
+                .withStateTransition(new NumericRange(12, 14), halfSpeed)
+                .withStateTransition(new NumericRange(15, 17), doubleSpeed);
         // @formatter:on
         upFourth.setToState(directRepeat);
         downFourth.setToState(directRepeat);
@@ -89,13 +89,6 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         }
 
         var chord = delayQueue.poll();
-        // never play the same note twice
-        var lastChord = musician.getMyLastChord();
-        if (lastChord != null) {
-            while (lastChord.equals(chord)) {
-                chord = delayQueue.poll();
-            }
-        }
         sequenceCountdown--;
         if (chord == null) {
             logger.atDebug().log("{}: note heard was null, returning", musician.getId());

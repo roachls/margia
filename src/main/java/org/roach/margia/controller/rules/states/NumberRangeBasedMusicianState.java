@@ -11,11 +11,11 @@ import org.roach.margia.controller.rules.NumericRange;
  * 
  * @param <T> type of subclass
  */
-public abstract class NumberBasedMusicianState<T extends NumberBasedMusicianState<T>> extends AbstractMusicianState<T> {
+public abstract class NumberRangeBasedMusicianState<T extends NumberRangeBasedMusicianState<T>> extends AbstractMusicianState<T> {
     protected final Map<NumericRange, MusicianState> stateMap = new TreeMap<>(
             (range1, range2) -> Integer.compare(range1.min(), range2.min()));
 
-    protected NumberBasedMusicianState(String name) {
+    protected NumberRangeBasedMusicianState(String name) {
         super(name);
     }
 
