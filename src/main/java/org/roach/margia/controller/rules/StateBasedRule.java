@@ -81,7 +81,7 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         MusicianState newState = state.transition(musician);
         if (!state.equals(newState)) {
             logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
-            if (musician.getId() == 13)
+            if (musician.getId() == 0)
                 System.out.printf("Switching to %s%n", newState.name());
         }
         state = newState;
