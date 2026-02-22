@@ -12,8 +12,6 @@ import org.roach.margia.storage.Options;
 public class StateBasedRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
-    private MusicianState state;
-    private MusicianState startingState;
 
     @Override
     public void initActionsAfterMusicianAssigned() {
@@ -68,27 +66,10 @@ public class StateBasedRule extends AbstractMusicianRule {
     }
 
     @Override
-    @SuppressWarnings({ "java:S899", "java:S3776" })
-    public void calculateAction(long tick) {
-        var message = musician.getNextMessageReceived();
-        state.doActions(musician, this, message);
-        MusicianState newState = state.transition(musician);
-        if (!state.equals(newState)) {
-            logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
-        }
-        state = newState;
-    }
-
-    @Override
     public String getName() { return "statebased"; }
 
     @Override
-    public void reset() {
-        state = startingState;
-    }
-
-    @Override
-    public StateBasedRule copy() {
+    public AbstractMusicianRule copy() {
         return new StateBasedRule();
     }
 

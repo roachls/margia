@@ -5,7 +5,6 @@ import java.util.function.Function;
 
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.controller.rules.states.MusicianState;
 import org.roach.margia.controller.rules.states.NeverTransitionState;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.params.IntegerParamDescription;
@@ -18,19 +17,6 @@ public class RandomRule extends AbstractMusicianRule {
     private int maxChordStringLength = 5;
     private int restsBetweenChordStrings = 1;
     private int chordSize = 1;
-    private MusicianState state;
-    private MusicianState startingState;
-
-    @Override
-    public void calculateAction(long tick) {
-        var message = musician.getNextMessageReceived();
-        state.doActions(musician, this, message);
-        MusicianState newState = state.transition(musician);
-        if (!state.equals(newState)) {
-            logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
-        }
-        state = newState;
-    }
 
     private class RandomTransition implements Function<MusicianMessage, List<MusicalAction>> {
 
@@ -78,11 +64,6 @@ public class RandomRule extends AbstractMusicianRule {
 
     @Override
     public String getName() { return "random"; }
-
-    @Override
-    public void reset() {
-        state = startingState;
-    }
 
     @Override
     public RandomRule copy() {
