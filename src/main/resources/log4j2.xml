@@ -6,11 +6,11 @@
 	</Appenders>
 	<Loggers>
 		<Logger name="org.roach.margia.controller.Musician"
-			level="trace" additivity="false">
+			level="warn" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.StateBasedRule"
-			level="debug" additivity="false">
+			level="warn" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.RandomRule"
