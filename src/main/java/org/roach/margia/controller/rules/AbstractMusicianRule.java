@@ -57,4 +57,8 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
         // to be implemented by children
     }
 
+    public void addActionToTake(MusicalAction action) {
+        actionsToTake.add(action);
+    }
+
 }

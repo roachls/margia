@@ -1,7 +1,6 @@
 package org.roach.margia.controller.rules.states;
 
 import org.roach.margia.controller.Musician;
-import org.roach.margia.controller.rules.AbstractMusicianState;
 
 /**
  * A {@link MusicianState} that always transitions to the same other state

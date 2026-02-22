@@ -5,6 +5,7 @@ import java.util.function.Function;
 
 import org.roach.margia.actions.MusicalAction;
 import org.roach.margia.controller.Musician;
+import org.roach.margia.controller.rules.AbstractMusicianRule;
 import org.roach.margia.model.Chord;
 
 /**
@@ -28,4 +29,6 @@ public interface MusicianState {
      * @return a new state
      */
     MusicianState transition(Musician musician);
+
+    void doActions(Musician musician, AbstractMusicianRule rule, Chord chord);
 }

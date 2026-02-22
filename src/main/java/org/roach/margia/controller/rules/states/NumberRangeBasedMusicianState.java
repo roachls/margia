@@ -2,7 +2,6 @@ package org.roach.margia.controller.rules.states;
 
 import java.util.*;
 
-import org.roach.margia.controller.rules.AbstractMusicianState;
 import org.roach.margia.controller.rules.NumericRange;
 
 /**

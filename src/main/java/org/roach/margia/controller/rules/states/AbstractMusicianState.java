@@ -1,4 +1,4 @@
-package org.roach.margia.controller.rules;
+package org.roach.margia.controller.rules.states;
 
 import java.util.*;
 import java.util.function.Function;
@@ -6,7 +6,8 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.roach.margia.actions.MusicalAction;
-import org.roach.margia.controller.rules.states.MusicianState;
+import org.roach.margia.controller.Musician;
+import org.roach.margia.controller.rules.AbstractMusicianRule;
 import org.roach.margia.model.Chord;
 
 /**
@@ -15,7 +16,7 @@ import org.roach.margia.model.Chord;
  * @param <T> The subclass of this class to return for various methods
  * 
  */
-public abstract class AbstractMusicianState<T extends AbstractMusicianState<?>> implements MusicianState {
+public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> implements MusicianState {
     protected final String name;
     protected final List<Function<Chord, MusicalAction>> actions = new ArrayList<>();
     protected final Logger logger = LogManager.getLogger(getClass());
@@ -53,6 +54,16 @@ public abstract class AbstractMusicianState<T extends AbstractMusicianState<?>> 
     @Override
     public List<Function<Chord, MusicalAction>> actions() {
         return Collections.unmodifiableList(actions);
+    }
+    
+    @Override
+    public void doActions(Musician musician, AbstractMusicianRule rule, Chord chord) {
+        if (chord != null) {
+            for (var action : actions()) {
+                logger.atDebug().log("{} ({}): {}", musician.getId(), name(), chord);
+                rule.addActionToTake(action.apply(chord));
+            }
+        }
     }
 
     @Override

@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 import org.roach.margia.controller.Musician;
-import org.roach.margia.controller.rules.AbstractMusicianState;
 
 /**
  * A {@link MusicianState} that transitions based on a function
