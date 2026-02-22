@@ -146,8 +146,11 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
                 DIRECT_REPEAT;
             default -> throw new IllegalStateException("No such state: " + state);
             };
-            if (!state.equals(newState))
+            if (!state.equals(newState)) {
                 logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
+                if (musician.getId() == 0)
+                    System.out.println("Switching to " + newState);
+            }
             state = newState;
             sequenceCountdown = sequenceLength;
         } else {
