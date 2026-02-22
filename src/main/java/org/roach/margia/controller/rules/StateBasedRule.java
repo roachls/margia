@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.rules.states.*;
-import org.roach.margia.model.Chord;
 import org.roach.margia.storage.Options;
 
 /**
@@ -20,31 +19,34 @@ public class StateBasedRule extends AbstractMusicianRule {
     public void initActionsAfterMusicianAssigned() {
         var sequenceLength = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
                 .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 1);
-        var upFourth = new AlwaysTransitionMusicianState("up 4th")
-                .setActions(List.of(c -> new PlayChord(this.musician, c)));
-        var upFourthDelayed = new DelayedTransitionState("up 4th delayed", sequenceLength, upFourth);
-        var downFourth = new AlwaysTransitionMusicianState("down 4th")
-                .setActions(List.of(c -> new PlayChordDownInterval(musician, c, 5)));
-        var downFourthDelayed = new DelayedTransitionState("down 4th delayed", sequenceLength, downFourth);
-        var doubleSpeed = new AlwaysTransitionMusicianState("double speed")
-                .setActions(List.of(c -> new PlayChordTwiceLength(musician, c)));
-        var doubleSpeedDelayed = new DelayedTransitionState("double speed delayed", sequenceLength, doubleSpeed);
-        var halfSpeed = new AlwaysTransitionMusicianState("half speed")
-                .setActions(List.of(c -> new PlayChordHalfLength(musician, c)));
-        var halfSpeedDelayed = new DelayedTransitionState("half speed delayed", sequenceLength, halfSpeed);
-        var increaseVelocity = new AlwaysTransitionMusicianState("increase velocity")
-                .setActions(List.of(c -> new PlayChordUpVelocity(musician, c, 15)));
-        var increaseVelocityDelayed = new DelayedTransitionState("increase velocity delayed", sequenceLength,
-                increaseVelocity);
-        var decreaseVelocity = new AlwaysTransitionMusicianState("decrease velocity")
-                .setActions(List.of(c -> new PlayChordDownVelocity(musician, c, 15)));
-        var decreaseVelocityDelayed = new DelayedTransitionState("decrease velocity delayed", sequenceLength,
-                decreaseVelocity);
-        var directRepeat = new PseudoRandomMusicianState("direct repeat", 30)
-                .withAction(c -> new PlayChord(musician, c));
+        var upFourth = new AlwaysTransitionState("up 4th").withAction(c -> List.of(new PlayChord(this.musician, c)));
+        var upFourthDelayed = new DelayedTransitionState("up 4th delayed", sequenceLength).withWrappedState(upFourth);
+        var downFourth = new AlwaysTransitionState("down 4th")
+                .withAction(c -> List.of(new PlayChordDownInterval(musician, c, 5)));
+        var downFourthDelayed = new DelayedTransitionState("down 4th delayed", sequenceLength)
+                .withWrappedState(downFourth);
+        var doubleSpeed = new AlwaysTransitionState("double speed")
+                .withAction(c -> List.of(new PlayChordTwiceLength(musician, c)));
+        var doubleSpeedDelayed = new DelayedTransitionState("double speed delayed", sequenceLength)
+                .withWrappedState(doubleSpeed);
+        var halfSpeed = new AlwaysTransitionState("half speed")
+                .withAction(c -> List.of(new PlayChordHalfLength(musician, c)));
+        var halfSpeedDelayed = new DelayedTransitionState("half speed delayed", sequenceLength)
+                .withWrappedState(halfSpeed);
+        var increaseVelocity = new AlwaysTransitionState("increase velocity")
+                .withAction(c -> List.of(new PlayChordUpVelocity(musician, c, 15)));
+        var increaseVelocityDelayed = new DelayedTransitionState("increase velocity delayed", sequenceLength)
+                .withWrappedState(increaseVelocity);
+        var decreaseVelocity = new AlwaysTransitionState("decrease velocity")
+                .withAction(c -> List.of(new PlayChordDownVelocity(musician, c, 15)));
+        var decreaseVelocityDelayed = new DelayedTransitionState("decrease velocity delayed", sequenceLength)
+                .withWrappedState(decreaseVelocity);
+        var directRepeat = new PseudoRandomState("direct repeat", 30)
+                .withAction(c -> List.of(new PlayChord(musician, c)));
 
         super.initActionsAfterMusicianAssigned();
-        var sequenceCountdownState = new DelayedTransitionState("sequenceCountdown", sequenceLength, directRepeat);
+        var sequenceCountdownState = new DelayedTransitionState("sequenceCountdown", sequenceLength)
+                .withWrappedState(directRepeat);
         var tickCountdownState = new CountdownState("tickDelay", (int) Options.getInstance().getMusicians()
                 .get(musician.getId()).getRuleOptions().getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0),
                 sequenceCountdownState);
@@ -69,8 +71,7 @@ public class StateBasedRule extends AbstractMusicianRule {
     @SuppressWarnings({ "java:S899", "java:S3776" })
     public void calculateAction(long tick) {
         var message = musician.getNextMessageReceived();
-        if (message instanceof Chord chord)
-            state.doActions(musician, this, chord);
+        state.doActions(musician, this, message);
         MusicianState newState = state.transition(musician);
         if (!state.equals(newState)) {
             logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());

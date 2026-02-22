@@ -8,14 +8,14 @@ import org.roach.margia.controller.Musician;
 /**
  * A {@link MusicianState} that transitions based on a function
  */
-public class FunctionBasedMusicianState extends AbstractMusicianState<FunctionBasedMusicianState> {
+public class FunctionBasedState extends AbstractMusicianState<FunctionBasedState> {
     private final BiFunction<MusicianState, Musician, MusicianState> function;
 
     /**
      * @param name     The name of this state
      * @param function the function that controls the transition
      */
-    public FunctionBasedMusicianState(String name, BiFunction<MusicianState, Musician, MusicianState> function) {
+    public FunctionBasedState(String name, BiFunction<MusicianState, Musician, MusicianState> function) {
         super(name);
         this.function = Objects.requireNonNull(function);
     }

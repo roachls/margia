@@ -14,7 +14,7 @@ import org.roach.margia.util.DieRoller;
  * transition will be applied by default (i.e., a transition back to the same
  * state).
  */
-public class DieRollingMusicianState extends NumberRangeBasedMusicianState<DieRollingMusicianState> {
+public class DieRollingState extends NumberRangeBasedState<DieRollingState> {
     private final String diceDescription;
 
     /**
@@ -22,7 +22,7 @@ public class DieRollingMusicianState extends NumberRangeBasedMusicianState<DieRo
      * @param diceDescription description of dice (see
      *                        {@link DieRoller#rollDice(String)}
      */
-    public DieRollingMusicianState(String name, String diceDescription) {
+    public DieRollingState(String name, String diceDescription) {
         super(name);
         this.diceDescription = diceDescription;
     }
@@ -33,9 +33,9 @@ public class DieRollingMusicianState extends NumberRangeBasedMusicianState<DieRo
      * @param range   range of numbers (inclusive) for the die roll that will
      *                trigger the transition
      * @param toState the transition state
-     * @return this {@link DieRollingMusicianState}
+     * @return this {@link DieRollingState}
      */
-    public DieRollingMusicianState withStateTransition(NumericRange range, MusicianState toState) {
+    public DieRollingState withStateTransition(NumericRange range, MusicianState toState) {
         try {
             checkForOverlap(range);
             this.stateMap.put(range, toState);

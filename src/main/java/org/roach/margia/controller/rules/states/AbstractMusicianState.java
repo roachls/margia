@@ -9,6 +9,7 @@ import org.roach.margia.actions.MusicalAction;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.AbstractMusicianRule;
 import org.roach.margia.model.Chord;
+import org.roach.margia.model.MusicianMessage;
 
 /**
  * Implementation of {@link MusicianState}
@@ -18,7 +19,7 @@ import org.roach.margia.model.Chord;
  */
 public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> implements MusicianState {
     protected final String name;
-    protected final List<Function<Chord, MusicalAction>> actions = new ArrayList<>();
+    protected final List<Function<MusicianMessage, List<MusicalAction>>> actions = new ArrayList<>();
     protected final Logger logger = LogManager.getLogger(getClass());
 
     protected AbstractMusicianState(final String name) {
@@ -29,11 +30,12 @@ public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> 
      * Adds a list of actions
      * 
      * @param actions a list of actions, where an action is a {@link Function} that
-     *                takes a {@link Chord} and returns a {@link MusicalAction}
+     *                takes a {@link Chord} and returns one or more
+     *                {@link MusicalAction MusicalActions}
      * @return this state
      */
     @SuppressWarnings("unchecked")
-    public T setActions(List<Function<Chord, MusicalAction>> actions) {
+    public T withActions(@SuppressWarnings("hiding") List<Function<MusicianMessage, List<MusicalAction>>> actions) {
         this.actions.addAll(actions);
         return (T) this;
     }
@@ -46,22 +48,22 @@ public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> 
      * @return this state
      */
     @SuppressWarnings("unchecked")
-    public T withAction(Function<Chord, MusicalAction> action) {
+    public T withAction(Function<MusicianMessage, List<MusicalAction>> action) {
         this.actions.add(action);
         return (T) this;
     }
 
     @Override
-    public List<Function<Chord, MusicalAction>> actions() {
+    public List<Function<MusicianMessage, List<MusicalAction>>> actions() {
         return Collections.unmodifiableList(actions);
     }
-    
+
     @Override
-    public void doActions(Musician musician, AbstractMusicianRule rule, Chord chord) {
-        if (chord != null) {
-            for (var action : actions()) {
-                logger.atDebug().log("{} ({}): {}", musician.getId(), name(), chord);
-                rule.addActionToTake(action.apply(chord));
+    public void doActions(Musician musician, AbstractMusicianRule rule, MusicianMessage message) {
+        for (var action : actions()) {
+            logger.atDebug().log("{} ({}): {}", musician.getId(), name(), message);
+            for (var musicianAction : action.apply(message)) {
+                rule.addActionToTake(musicianAction);
             }
         }
     }

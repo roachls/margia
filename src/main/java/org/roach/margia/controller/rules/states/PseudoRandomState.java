@@ -15,7 +15,7 @@ import org.roach.margia.controller.rules.NumericRange;
  * transition will be applied by default (i.e., a transition back to the same
  * state).
  */
-public class PseudoRandomMusicianState extends NumberRangeBasedMusicianState<PseudoRandomMusicianState> {
+public class PseudoRandomState extends NumberRangeBasedState<PseudoRandomState> {
     private final int maxValue;
 
     /**
@@ -23,7 +23,7 @@ public class PseudoRandomMusicianState extends NumberRangeBasedMusicianState<Pse
      * @param maxValue max value of pseudo-random number; calculated number will be
      *                 modded with this value
      */
-    public PseudoRandomMusicianState(String name, int maxValue) {
+    public PseudoRandomState(String name, int maxValue) {
         super(name);
         this.maxValue = maxValue;
     }
@@ -36,7 +36,7 @@ public class PseudoRandomMusicianState extends NumberRangeBasedMusicianState<Pse
      * @param toState the state to transition to
      * @return this state
      */
-    public PseudoRandomMusicianState withStateTransition(NumericRange range, MusicianState toState) {
+    public PseudoRandomState withStateTransition(NumericRange range, MusicianState toState) {
         Objects.requireNonNull(range);
         if (range.min() > maxValue || range.max() > maxValue)
             throw new IllegalArgumentException("Range %s goes above max value of %d".formatted(range, maxValue));

@@ -1,11 +1,13 @@
 package org.roach.margia.controller.rules;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.model.Chord;
-import org.roach.margia.model.RuleOptions;
+import org.roach.margia.controller.rules.states.MusicianState;
+import org.roach.margia.controller.rules.states.NeverTransitionState;
+import org.roach.margia.model.*;
 import org.roach.margia.storage.params.IntegerParamDescription;
 import org.roach.margia.storage.params.SettableParamDescription;
 
@@ -16,37 +18,62 @@ public class RandomRule extends AbstractMusicianRule {
     private int maxChordStringLength = 5;
     private int restsBetweenChordStrings = 1;
     private int chordSize = 1;
+    private MusicianState state;
+    private MusicianState startingState;
 
     @Override
     public void calculateAction(long tick) {
-        if (musician.getChordsIvePlayed() >= maxChordStringLength) {
-            logger.atDebug().log("{}: resting because I've played {} notes", musician.getId(),
-                    musician.getChordsIvePlayed());
-            for (int i = 0; i < restsBetweenChordStrings; i++) {
-                actionsToTake.add(new RestOneTick(musician));
-            }
-            actionsToTake.add(new ResetPlayedChords(musician));
-            return;
+        var message = musician.getNextMessageReceived();
+        state.doActions(musician, this, message);
+        MusicianState newState = state.transition(musician);
+        if (!state.equals(newState)) {
+            logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
         }
-        if (musician.getQueueSize() == 0) {
-            logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomChord(musician, 17, 15, chordSize));
-            return;
-        }
+        state = newState;
+    }
 
-        var heardNote = musician.getNextMessageReceived();
-        // never play the same note twice
-        var lastNote = musician.getMyLastChord();
-        if (lastNote != null) {
-            while (lastNote.equals(heardNote)) {
-                heardNote = musician.getNextMessageReceived();
-            }
-        }
-        logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
-        if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
-            logger.atDebug().log("{}: heard null or rest, returning");
-        }
+    private class RandomTransition implements Function<MusicianMessage, List<MusicalAction>> {
 
+        @Override
+        public List<MusicalAction> apply(MusicianMessage t) {
+            var list = new ArrayList<MusicalAction>();
+            if (musician.getChordsIvePlayed() >= maxChordStringLength) {
+                logger.atDebug().log("{}: resting because I've played {} notes", musician.getId(),
+                        musician.getChordsIvePlayed());
+                for (var i = 0; i < restsBetweenChordStrings; i++) {
+                    list.add(new RestOneTick(musician));
+                }
+                list.add(new ResetPlayedChords(musician));
+                return list;
+            }
+            if (musician.getQueueSize() == 0) {
+                logger.atDebug().log("{} queue is empty", musician.getId());
+                list.add(new PlayPseudoRandomChord(musician, 17, 15, chordSize));
+                return list;
+            }
+
+            var heardNote = musician.getNextMessageReceived();
+            // never play the same note twice
+            var lastNote = musician.getMyLastChord();
+            if (lastNote != null) {
+                while (lastNote.equals(heardNote)) {
+                    heardNote = musician.getNextMessageReceived();
+                }
+            }
+            logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
+            if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
+                logger.atDebug().log("{}: heard null or rest, returning");
+            }
+            return Collections.emptyList();
+        }
+        
+    }
+
+    @Override
+    public void initActionsAfterMusicianAssigned() {
+        super.initActionsAfterMusicianAssigned();
+        var randomState = new NeverTransitionState("random").withAction(new RandomTransition());
+        this.startingState = this.state = randomState;
     }
 
     @Override
@@ -54,7 +81,7 @@ public class RandomRule extends AbstractMusicianRule {
 
     @Override
     public void reset() {
-        // nothing to do
+        state = startingState;
     }
 
     @Override

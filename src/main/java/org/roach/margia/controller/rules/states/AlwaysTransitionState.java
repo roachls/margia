@@ -5,13 +5,13 @@ import org.roach.margia.controller.Musician;
 /**
  * A {@link MusicianState} that always transitions to the same other state
  */
-public class AlwaysTransitionMusicianState extends AbstractMusicianState<AlwaysTransitionMusicianState> {
+public class AlwaysTransitionState extends AbstractMusicianState<AlwaysTransitionState> {
     private MusicianState toState;
 
     /**
      * @param name The name of this state
      */
-    public AlwaysTransitionMusicianState(String name) {
+    public AlwaysTransitionState(String name) {
         super(name);
     }
 

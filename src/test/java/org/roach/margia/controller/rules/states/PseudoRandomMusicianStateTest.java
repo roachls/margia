@@ -36,7 +36,7 @@ class PseudoRandomMusicianStateTest {
 
     @BeforeAll
     static void setup() {
-        Logger logger = (Logger) LogManager.getLogger(PseudoRandomMusicianState.class);
+        Logger logger = (Logger) LogManager.getLogger(PseudoRandomState.class);
         Configuration configuration = ((LoggerContext) LogManager.getContext()).getConfiguration();
         appender = new CapturingAppender();
         appender.start();
@@ -46,8 +46,8 @@ class PseudoRandomMusicianStateTest {
 
     @Test
     void testWithStateTransition() {
-        var throwawayState = new AlwaysTransitionMusicianState("hmm");
-        var baseState = new PseudoRandomMusicianState("test", 30);
+        var throwawayState = new AlwaysTransitionState("hmm");
+        var baseState = new PseudoRandomState("test", 30);
         assumeTrue(baseState.getStateMap().isEmpty());
         var minTooHigh = new NumericRange(31, 40);
         var ex = assertThrows(IllegalArgumentException.class,

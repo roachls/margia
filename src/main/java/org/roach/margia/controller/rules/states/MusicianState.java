@@ -6,16 +6,17 @@ import java.util.function.Function;
 import org.roach.margia.actions.MusicalAction;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.AbstractMusicianRule;
-import org.roach.margia.model.Chord;
+import org.roach.margia.model.MusicianMessage;
 
 /**
  * A state that a musician can be in
  */
 public interface MusicianState {
     /**
-     * @return list of actions that a musician in this state takes on a chord
+     * @return list of actions that a musician in this state takes on a
+     *         {@link MusicianMessage}
      */
-    List<Function<Chord, MusicalAction>> actions();
+    List<Function<MusicianMessage, List<MusicalAction>>> actions();
 
     /**
      * @return name of this state
@@ -30,5 +31,12 @@ public interface MusicianState {
      */
     MusicianState transition(Musician musician);
 
-    void doActions(Musician musician, AbstractMusicianRule rule, Chord chord);
+    /**
+     * Add actions to the musician's to-do list
+     * 
+     * @param musician musician doing the performing
+     * @param rule     the rule that owns this state
+     * @param message  the message received that is being acted on
+     */
+    void doActions(Musician musician, AbstractMusicianRule rule, MusicianMessage message);
 }
