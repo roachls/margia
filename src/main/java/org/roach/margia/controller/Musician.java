@@ -112,9 +112,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
                 adjustedNotes.add(adjustedNote);
             }
         }
-        if (id == 0) {
-            System.out.println(chord);
-        }
         controller.playChord(musicianOptions.getBusName(), musicianOptions.getChannel(),
                 chord.withNotes(adjustedNotes));
         propertyChange.firePropertyChange(LAST_CHORD_PROPERTY, myLastChord, chord);

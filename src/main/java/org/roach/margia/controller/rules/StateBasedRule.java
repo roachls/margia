@@ -2,22 +2,15 @@ package org.roach.margia.controller.rules;
 
 import java.util.List;
 
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.rules.states.*;
 import org.roach.margia.model.Chord;
-import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.params.IntegerParamDescription;
-import org.roach.margia.storage.params.SettableParamDescription;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * A state-machine based agent
  */
-public class StateBasedRule extends AbstractMusicianRule implements ChangeListener {
+public class StateBasedRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
     private MusicianState state;
@@ -81,8 +74,6 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         MusicianState newState = state.transition(musician);
         if (!state.equals(newState)) {
             logger.atInfo().log("{} ({}): switching to {}", musician.getId(), state.name(), newState.name());
-            if (musician.getId() == 0)
-                System.out.printf("Switching to %s%n", newState.name());
         }
         state = newState;
     }
@@ -100,37 +91,4 @@ public class StateBasedRule extends AbstractMusicianRule implements ChangeListen
         return new StateBasedRule();
     }
 
-    @Override
-    public void restoreFromStorage(RuleOptions ruleOptions) {
-        super.restoreFromStorage(ruleOptions);
-        ruleOptions.addChangeListener(INITIAL_TICK_DELAY_PROPERTY, this);
-        ruleOptions.addChangeListener(SEQUENCE_LENGTH_PROPERTY, this);
-    }
-
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
-            switch (key) {
-            case INITIAL_TICK_DELAY_PROPERTY:
-//                this.initialTickDelay = (int) newValue;
-                break;
-            case SEQUENCE_LENGTH_PROPERTY:
-//                this.sequenceLength = (int) newValue;
-                break;
-            default:
-                break;
-            }
-        }
-
-    }
-
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(
-        // @formatter:off
-            new IntegerParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", 0, 100, 1, 0),
-            new IntegerParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", 1, 1000, 1, 1)
-            // @formatter:on
-        );
-    }
 }

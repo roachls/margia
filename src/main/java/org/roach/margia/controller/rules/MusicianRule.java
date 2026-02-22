@@ -1,5 +1,6 @@
 package org.roach.margia.controller.rules;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.roach.margia.controller.Musician;
@@ -43,6 +44,7 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
     /**
      * @return settable parameter types
      */
-    @SuppressWarnings("java:S1452")
-    public abstract List<SettableParamDescription> getSettableParameters();
+    default List<SettableParamDescription> getSettableParameters() {
+        return Collections.emptyList();
+    }
 }

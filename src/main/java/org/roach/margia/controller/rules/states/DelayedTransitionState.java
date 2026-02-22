@@ -52,7 +52,7 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
             logger.atDebug().log("{}: chord heard was null, returning", musician.getId());
             return;
         }
-
+        
         super.doActions(musician, rule, chordLocal);
     }
 

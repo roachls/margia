@@ -57,6 +57,10 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
         // to be implemented by children
     }
 
+    /**
+     * @param action a {@link MusicalAction} to add to the list of actions to take
+     *               this tick
+     */
     public void addActionToTake(MusicalAction action) {
         actionsToTake.add(action);
     }

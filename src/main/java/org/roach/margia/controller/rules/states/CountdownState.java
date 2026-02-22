@@ -1,6 +1,7 @@
 package org.roach.margia.controller.rules.states;
 
 import org.roach.margia.controller.Musician;
+import org.roach.margia.util.RangeCheck;
 
 /**
  * A {@link MusicianState} that operates on a countdown. The {@code value}
@@ -15,7 +16,7 @@ public class CountdownState extends AbstractMusicianState<CountdownState> {
 
     /**
      * @param name       name of state
-     * @param startValue value to start at
+     * @param startValue number of ticks to count down before transitioning
      * @param toState    state to transition to once the value reaches 0
      */
     public CountdownState(final String name, final int startValue, final MusicianState toState) {
@@ -33,6 +34,13 @@ public class CountdownState extends AbstractMusicianState<CountdownState> {
         }
         return this;
     }
+
+    /**
+     * Override countdown value
+     * 
+     * @param value number of ticks to count down before transitioning
+     */
+    public void setValue(int value) { this.value = RangeCheck.check("countdown", value, 0, Integer.MAX_VALUE); }
 
     @Override
     public boolean equals(Object obj) {
