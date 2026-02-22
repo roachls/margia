@@ -7,8 +7,6 @@ import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.states.NeverTransitionState;
 import org.roach.margia.model.*;
-import org.roach.margia.storage.params.IntegerParamDescription;
-import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
  * Random-note generator
@@ -68,15 +66,6 @@ public class RandomRule extends AbstractMusicianRule {
     @Override
     public RandomRule copy() {
         return new RandomRule();
-    }
-
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(
-                new IntegerParamDescription("maxChordStringLength", "Max chords to play before resting", 1,
-                        Integer.MAX_VALUE, 1, 5),
-                new IntegerParamDescription("restsBetweenChordStrings", "Rest between chord strings", 0, 1000, 1, 1),
-                new IntegerParamDescription("chordSize", "Number of notes per chord", 1, 5, 1, 1));
     }
 
     @Override

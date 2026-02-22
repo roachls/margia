@@ -6,15 +6,12 @@ import org.roach.margia.actions.PlayChord;
 import org.roach.margia.controller.rules.states.AlwaysTransitionState;
 import org.roach.margia.controller.rules.states.DelayedTransitionState;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.params.IntegerParamDescription;
-import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
  * A state-machine based agent
  */
 public class UpFourthRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
-    private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
 
     @Override
     public void initActionsAfterMusicianAssigned() {
@@ -34,13 +31,4 @@ public class UpFourthRule extends AbstractMusicianRule {
         return new UpFourthRule();
     }
 
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(
-        // @formatter:off
-            new IntegerParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", 0, 100, 1, 0),
-            new IntegerParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", 1, 1000, 1, 1)
-            // @formatter:on
-        );
-    }
 }

@@ -1,10 +1,6 @@
 package org.roach.margia.controller.rules;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.roach.margia.controller.Musician;
-import org.roach.margia.storage.params.SettableParamDescription;
 
 /**
  * A rule for a {@link Musician} to follow when it 'hears' a note
@@ -40,11 +36,4 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
      * Actions to be performed after this rule is assigned a {@link Musician}
      */
     void initActionsAfterMusicianAssigned();
-
-    /**
-     * @return settable parameter types
-     */
-    default List<SettableParamDescription> getSettableParameters() {
-        return Collections.emptyList();
-    }
 }
