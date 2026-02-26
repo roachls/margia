@@ -5,20 +5,16 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.MusicOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * Swing UI for controlling / viewing the {@link Transport} and
  * {@link TimingSource}
  */
-public class TransportPanel extends JPanel implements PropertyChangeListener, ChangeListener {
+public class TransportPanel extends JPanel implements PropertyChangeListener {
     private final JLabel measure;
     private final JLabel beat;
     private final JLabel clockPulse;
@@ -79,8 +75,6 @@ public class TransportPanel extends JPanel implements PropertyChangeListener, Ch
         startBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
         rewindBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
         tempo.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
-
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }
 
     @Override
@@ -105,12 +99,8 @@ public class TransportPanel extends JPanel implements PropertyChangeListener, Ch
         });
     }
 
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object newValue)
-                && MusicOptions.TEMPO_PROPERTY.equals(key)) {
-            tempo.setValue((int) newValue);
-        }
+    void initFromOptions() {
+        tempo.setValue(Options.getInstance().getMusicOptions().getTempo());
     }
 
 }

@@ -7,8 +7,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.*;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.Length;
-import org.roach.margia.model.MusicianList;
+import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 
 /**
@@ -39,19 +38,36 @@ public class Transport {
     private long tick = 1;
     private final Logger logger = LogManager.getLogger(getClass());
     private final Map<Long, Runnable> tickActions = new HashMap<>();
-    private final int tickLength;
+    private int tickLength;
     private int currentClockPulse = 1;
     private int beatNum = 1;
     private int measureNum = 1;
     private final PropertyChangeSupport propertyChangeSupport;
+    private static Transport instance;
 
     /**
      * no-arg constructor
      */
-    public Transport() {
+    private Transport() {
+        initFromOptions();
+        this.propertyChangeSupport = new PropertyChangeSupport(this);
+    }
+    
+    /**
+     * @return the singleton instance of this class
+     */
+    public static Transport instance() {
+        if (instance == null)
+            instance = new Transport();
+        return instance;
+    }
+    
+    /**
+     * (Re)load the tempo from options
+     */
+    public void initFromOptions() {
         var tempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
-        this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
 
     /**
