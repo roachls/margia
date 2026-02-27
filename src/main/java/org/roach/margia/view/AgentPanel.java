@@ -226,7 +226,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var peerIds = mus.peerIds();
             for (var peerId : peerIds) {
                 edges.add(new Edge(musicianComponents.get(id), musicianComponents.get(peerId),
-                        UiOptions.DEFAULT_EDGE_LENGTH));
+                        Options.getInstance().getUiOptions().getEdgeLength()));
             }
         }
     }
