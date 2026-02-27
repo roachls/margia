@@ -18,6 +18,29 @@ The basic unit of time in MARGIA is the tick, which corresponds to a 16th-note i
 
 Each Musician has a pre-defined set of rules that tells it how to react to the notes that it "hears". Currently these rules are written in Java, and creating new ones is not for the faint of heart, but I do have plans to create a graphical editor to simplify the process.
 
+### The Musician time cycle
+
+When we talk about a Musician "hearing" other Musicians, what that means at a code level is that Musicians send messages to each other. The core message type is the MusicianMessage interface, which technically could be any type of message; however, currently the only implementation of MusicianMessage is Chord. A Chord consists of 0 or more note numbers (a Chord with 0 notes is a rest), a velocity, and a length. The note numbers are MIDI notes from 0-127, where 0 is a C in the -2 octave, and 127 is a G8. Velocity is also from 0-127 and represents how "hard" the note is played; for many instruments this roughly translates to volume, although technically these are different concepts. The length is a positive integer that is how many ticks the note should last.
+
+Each Musician has a Queue of Messages received. When Musician A sends a message to Musician B, Musician B puts it in the queue at the top.
+
+Each "tick" (16th-note), each Musician does the following steps:
+
+<ol>
+	<li><b>Calculate phase</b>
+		<ul>
+			<li>In this phase, the musician decides which actions it will take next.
+				<ol>
+					<li>The Musician takes the next message off of its queue.</li>
+					<li>Any rules that the Musician has are applied to this message. This results in a list of actions that are added to a list of things to do next.</li>
+				</ol>
+			</li>
+		</ul>
+	</li>
+	<li><b>Do action phase</b>. In this phase the musician sends the list of actions, in order, that were calculated in the previous phase, to the MidiController. The reason these two phases are separate is to reduced the dependency on the order that musicians were created. The program loops through all Musicians in order of their IDs to run these phases, so if this phase and the previous phase were combined, the agents with lower numbers would always take precedence over those with higher numbers. Due to the queued nature of messaging, this will still be the case, but to a lesser extent.</li>
+	<li><b>Musical actions</b>. After all musicians have submitted their actions, the MidiController actually performs them.</li>
+</ul>
+
 #### Built-in rulesets
 
 Currently the following rulesets are available, although this will change once the graphical editor is available:
@@ -61,7 +84,9 @@ Currently the following rulesets are available, although this will change once t
 
 #### Settings
 
-All settings are stored in YAML format with a ".margia" extension. Some settings, particularly rule-specific options as listed above, are only editable with an external editor such as Notepad. (This will change).
+All settings are stored in YAML format with a ".margia" extension. Some settings, particularly rule-specific options as listed above, are only editable with your preferred YAML editor (I use Notepad++ on Windows). (This will change).
+
+*Note:* Usually the easiest way to create a .margia file is to run MARGIA, put in a few Musicians, and then save the file, at which point you can customize it using an editor.
 
 *Global settings*
 
