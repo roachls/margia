@@ -1,13 +1,12 @@
 package org.roach.margia.controller.rules;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 
 import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.model.Chord;
-import org.roach.margia.model.RuleOptions;
-import org.roach.margia.storage.params.EnumParamDescription;
-import org.roach.margia.storage.params.SettableParamDescription;
+import org.roach.margia.controller.rules.states.NeverTransitionState;
+import org.roach.margia.model.*;
 import org.roach.margia.view.ChordFlavor;
 
 /**
@@ -16,56 +15,59 @@ import org.roach.margia.view.ChordFlavor;
 public class RandomRuleMajorChords extends AbstractMusicianRule {
     private static final String FLAVOR_PROPERTY = "flavor";
     private ChordFlavor flavor = ChordFlavor.MAJOR;
+    private int maxChordStringLength = 5;
+    private int restsBetweenChordStrings = 1;
+
+    private class RandomTransition implements Function<MusicianMessage, List<MusicalAction>> {
+
+        @Override
+        public List<MusicalAction> apply(MusicianMessage t) {
+            var list = new ArrayList<MusicalAction>();
+            if (musician.getChordsIvePlayed() >= maxChordStringLength) {
+                logger.atDebug().log("{}: resting because I've played {} notes", musician.getId(),
+                        musician.getChordsIvePlayed());
+                for (var i = 0; i < restsBetweenChordStrings; i++) {
+                    list.add(new RestOneTick(musician));
+                }
+                list.add(new ResetPlayedChords(musician));
+                return list;
+            }
+            if (musician.getQueueSize() == 0) {
+                logger.atDebug().log("{} queue is empty", musician.getId());
+                list.add(new PlayPseudoRandomChordFlavor(musician, 17, 15, flavor));
+                return list;
+            }
+
+            var heardNote = musician.getNextMessageReceived();
+            // never play the same note twice
+            var lastNote = musician.getMyLastChord();
+            if (lastNote != null) {
+                while (lastNote.equals(heardNote)) {
+                    heardNote = musician.getNextMessageReceived();
+                }
+            }
+            logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
+            if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
+                logger.atDebug().log("{}: heard null or rest, returning");
+            }
+            return Collections.emptyList();
+        }
+
+    }
 
     @Override
-    public void calculateAction(long tick) {
-        if (musician.getChordsIvePlayed() >= 5) {
-            logger.atDebug().log("{}: resting because I've played 5 notes", musician.getId());
-            actionsToTake.add(new RestOneTick(musician));
-            actionsToTake.add(new ResetPlayedChords(musician));
-            return;
-        }
-        if (musician.getQueueSize() == 0) {
-            logger.atDebug().log("{} queue is empty", musician.getId());
-            actionsToTake.add(new PlayPseudoRandomChordFlavor(musician, 17, 15, flavor));
-            return;
-        }
-
-        var heardNote = musician.getNextMessageReceived();
-        // never play the same note twice
-        var lastNote = musician.getMyLastChord();
-        if (lastNote != null) {
-            while (lastNote.equals(heardNote)) {
-                heardNote = musician.getNextMessageReceived();
-            }
-        }
-        logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
-        if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
-            logger.atDebug().log("{}: heard null or rest, returning");
-        }
-
+    public void initActionsAfterMusicianAssigned() {
+        super.initActionsAfterMusicianAssigned();
+        var randomState = new NeverTransitionState("random").withAction(new RandomTransition());
+        this.startingState = this.state = randomState;
     }
 
     @Override
     public String getName() { return "randomFlavor"; }
 
     @Override
-    public void reset() {
-        // nothing to do
-    }
-
-    @Override
     public RandomRuleMajorChords copy() {
         return new RandomRuleMajorChords();
-    }
-
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(
-        // @formatter:off
-            new EnumParamDescription(FLAVOR_PROPERTY, "Chord flavor", ChordFlavor.MAJOR)
-            // @formatter:on
-        );
     }
 
     @Override

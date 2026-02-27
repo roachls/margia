@@ -72,12 +72,10 @@ public class Main {
         }
         var musicians = MusicianList.getInstance().getMusicians();
 
-        var randomSeed = Options.getInstance().getRandomSeed();
+        Key.initFromOptions();
+        DieRoller.initFromOptions();
 
-        Key.setRandomSeed(randomSeed);
-        DieRoller.setSeed(randomSeed);
-
-        var transport = new Transport();
+        var transport = Transport.instance();
         musicians.values().forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
         transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
             Key.reset();
@@ -86,7 +84,7 @@ public class Main {
 
         var timing = Options.getInstance().getMidiOptions().isUsingExternalTiming()
                 ? new ExternalTimingSource(transport)
-                :new InternalTimingSource(transport);
+                : new InternalTimingSource(transport);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             timing.stop();

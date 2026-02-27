@@ -18,9 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.MusicOptions;
-import org.roach.margia.model.UiOptions;
+import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
+import org.roach.margia.util.DieRoller;
 import org.roach.margia.view.AgentPanel.EditMode;
 import org.roach.margia.view.AgentPanel.FanDirection;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
@@ -67,6 +67,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             """;
     private JMenuBar menubar;
     private JToolBar toolbar;
+    private final TransportPanel transportPanel;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -80,19 +81,16 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        var transportPanel = new TransportPanel(timing, transport);
+        transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionsWindow = new OptionsWindow(this);
         updateTitle();
-        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
-                MusicianComponent.SHOW_NUMBERS_LISTENER);
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY,
-                MusicianComponent.TEMPO_LISTENER);
-        Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
         agentPanel = new AgentPanel();
+        registerListeners();
         agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
+        optionsWindow.addPropertyChangeListener(agentPanel);
         agentPanel.setBounds(0, 0, 1000, 1000);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 
@@ -104,6 +102,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
 
         transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
+    }
+
+    private void registerListeners() {
+        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
+                MusicianComponent.SHOW_NUMBERS_LISTENER);
+        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY,
+                MusicianComponent.TEMPO_LISTENER);
+        Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
     }
 
     private class AgentPanelKeyListener implements KeyEventDispatcher {
@@ -603,7 +609,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
             Options.getInstance().setSaveDir(newSaveLocation.getParent());
+            registerListeners();
             optionsWindow.updateOptions();
+            Key.initFromOptions();
+            DieRoller.initFromOptions();
+            Transport.instance().initFromOptions();
+            transportPanel.initFromOptions();
             updateTitle();
             SwingUtilities.invokeLater(() -> {
                 agentPanel.reset();

@@ -3,6 +3,8 @@ package org.roach.margia.model;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.roach.margia.storage.Options;
+
 /**
  * Represents a musical key along with a range of allowed notes
  */
@@ -49,12 +51,9 @@ public interface Key {
     static Key fromOptions(String keyName) {
         return BUILTIN_KEYS.get(keyName);
     }
-
-    /**
-     * @param seed random seed to use
-     */
-    static void setRandomSeed(long seed) {
-        randomHolder.setRandomSeed(seed);
+    
+    static void initFromOptions() {
+        randomHolder.setRandomSeed(Options.getInstance().getRandomSeed());
     }
 
     /**
