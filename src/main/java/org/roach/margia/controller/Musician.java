@@ -107,8 +107,6 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             } else {
                 var range = musicianOptions.getRange();
                 var adjustedNote = range.adjustToRangeByOctaves(note);
-                if (id == 0)
-                    System.out.println(chord);
                 logger.atDebug().log("{}: playing note {} on channel {}, duration {}", id, adjustedNote,
                         musicianOptions.getChannel(), chord.getLength());
                 adjustedNotes.add(adjustedNote);
