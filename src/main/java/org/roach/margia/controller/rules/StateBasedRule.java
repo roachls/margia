@@ -1,231 +1,76 @@
 package org.roach.margia.controller.rules;
 
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import org.roach.margia.actions.*;
-import org.roach.margia.controller.Musician;
-import org.roach.margia.model.Chord;
-import org.roach.margia.model.RuleOptions;
+import org.roach.margia.controller.rules.states.*;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.params.IntegerParamDescription;
-import org.roach.margia.storage.params.SettableParamDescription;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
  * A state-machine based agent
  */
-public class StateBasedRule extends AbstractMusicianRule implements ChangeListener {
+public class StateBasedRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
     private static final String INITIAL_TICK_DELAY_PROPERTY = "initialTickDelay";
-    private int sequenceLength = 1;
-    private static final String DIRECT_REPEAT = "direct repeat";
-    private static final String UP_FOURTH = "up 4th";
-    private static final String DOWN_FOURTH = "down 4th";
-    private static final String DOUBLE_SPEED = "double speed";
-    private static final String HALF_SPEED = "half speed";
-    private static final String INCREASE_VELOCITY = "increase velocity";
-    private static final String DECREASE_VELOCITY = "decrease velocity";
-
-    private int sequenceCountdown;
-    private String state = DIRECT_REPEAT;
-    private int tickCountdown;
-    private int initialTickDelay;
-    private final BlockingQueue<Chord> delayQueue = new LinkedBlockingQueue<>();
 
     @Override
-    @SuppressWarnings({ "java:S899", "java:S3776" })
-    public void calculateAction(long tick) {
-        if (initialTickDelay > 0) {
-            initialTickDelay--;
-            return;
-        }
-        if (tickCountdown > 0) {
-            tickCountdown--;
-        }
-        if (tickCountdown > 0) {
-            logger.atDebug().log("{}: tickCountdown={}, returning", musician.getId(), tickCountdown);
-            return;
-        }
-        var message = musician.getNextMessageReceived();
-        if (message != null && message instanceof Chord heardChord) {
-            delayQueue.offer(heardChord);
-        }
+    public void initActionsAfterMusicianAssigned() {
+        var sequenceLength = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
+                .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 1);
+        var upFourth = new AlwaysTransitionState("up 4th").withAction(c -> List.of(new PlayChord(this.musician, c)));
+        var upFourthDelayed = new DelayedTransitionState("up 4th delayed", sequenceLength).withWrappedState(upFourth);
+        var downFourth = new AlwaysTransitionState("down 4th")
+                .withAction(c -> List.of(new PlayChordDownInterval(musician, c, 5)));
+        var downFourthDelayed = new DelayedTransitionState("down 4th delayed", sequenceLength)
+                .withWrappedState(downFourth);
+        var doubleSpeed = new AlwaysTransitionState("double speed")
+                .withAction(c -> List.of(new PlayChordTwiceLength(musician, c)));
+        var doubleSpeedDelayed = new DelayedTransitionState("double speed delayed", sequenceLength)
+                .withWrappedState(doubleSpeed);
+        var halfSpeed = new AlwaysTransitionState("half speed")
+                .withAction(c -> List.of(new PlayChordHalfLength(musician, c)));
+        var halfSpeedDelayed = new DelayedTransitionState("half speed delayed", sequenceLength)
+                .withWrappedState(halfSpeed);
+        var increaseVelocity = new AlwaysTransitionState("increase velocity")
+                .withAction(c -> List.of(new PlayChordUpVelocity(musician, c, 15)));
+        var increaseVelocityDelayed = new DelayedTransitionState("increase velocity delayed", sequenceLength)
+                .withWrappedState(increaseVelocity);
+        var decreaseVelocity = new AlwaysTransitionState("decrease velocity")
+                .withAction(c -> List.of(new PlayChordDownVelocity(musician, c, 15)));
+        var decreaseVelocityDelayed = new DelayedTransitionState("decrease velocity delayed", sequenceLength)
+                .withWrappedState(decreaseVelocity);
+        var directRepeat = new PseudoRandomState("direct repeat", 30)
+                .withAction(c -> List.of(new PlayChord(musician, c)));
 
-        var chord = delayQueue.poll();
-        // never play the same note twice
-        var lastChord = musician.getMyLastChord();
-        if (lastChord != null) {
-            while (lastChord.equals(chord)) {
-                chord = delayQueue.poll();
-            }
-        }
-        sequenceCountdown--;
-        if (chord == null) {
-            logger.atDebug().log("{}: note heard was null, returning", musician.getId());
-            return;
-        }
-        tickCountdown = chord.getLength();
+        super.initActionsAfterMusicianAssigned();
+        var sequenceCountdownState = new DelayedTransitionState("sequenceCountdown", sequenceLength)
+                .withWrappedState(directRepeat);
+        var tickCountdownState = new CountdownState("tickDelay", (int) Options.getInstance().getMusicians()
+                .get(musician.getId()).getRuleOptions().getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0),
+                sequenceCountdownState);
+        upFourth.setToState(sequenceCountdownState);
+        downFourth.setToState(sequenceCountdownState);
+        increaseVelocity.setToState(sequenceCountdownState);
+        decreaseVelocity.setToState(sequenceCountdownState);
+        halfSpeed.setToState(sequenceCountdownState);
+        doubleSpeed.setToState(sequenceCountdownState);
 
-        switch (state) {
-        case DIRECT_REPEAT:
-            logger.atDebug().log("{} ({}): playing note {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayChord(musician, chord));
-            break;
-        case UP_FOURTH: {
-            if (!Musician.REST.equals(chord)) { // note a rest
-                actionsToTake.add(new PlayChordUpInterval(musician, chord, 5));
-            } else {
-                actionsToTake.add(new PlayChord(musician, chord));
-            }
-            break;
-        }
-        case DOWN_FOURTH: {
-            if (!Musician.REST.equals(chord)) { // not a rest
-                actionsToTake.add(new PlayChordDownInterval(musician, chord, 5));
-            } else {
-                actionsToTake.add(new PlayChord(musician, chord));
-            }
-            break;
-        }
-        case HALF_SPEED: {
-            logger.atDebug().log("{} ({}): playing note half length {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayChordHalfLength(musician, chord));
-            break;
-        }
-        case DOUBLE_SPEED: {
-            logger.atDebug().log("{} ({}): playing note double length {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayChordTwiceLength(musician, chord));
-            break;
-        }
-        case INCREASE_VELOCITY: {
-            logger.atDebug().log("{} ({}): playing note with increased velocity {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayChordUpVelocity(musician, chord, 15));
-            break;
-        }
-        case DECREASE_VELOCITY: {
-            logger.atDebug().log("{} ({}): playing note with decreased velocity {}", musician.getId(), state, chord);
-            actionsToTake.add(new PlayChordDownVelocity(musician, chord, 15));
-            break;
-        }
-        default:
-            throw new IllegalStateException("Bad state: " + state);
-        }
-
-        if (sequenceCountdown <= 0) {
-            var newState = switch (state) {
-            case DIRECT_REPEAT -> {
-                var rand = tick + musician.getId();
-                if (lastChord != null) {
-                    for (var lastNote : lastChord.getNotes()) {
-                        rand += lastNote;
-                    }
-                }
-                rand %= 30;
-                logger.atDebug().log("{}: 'random' number: {}", musician.getId(), rand);
-                if (rand >= 1 && rand <= 3)
-                    yield UP_FOURTH;
-                else if (rand >= 4 && rand <= 6)
-                    yield DOWN_FOURTH;
-                else if (rand >= 7 && rand <= 8)
-                    yield HALF_SPEED;
-                else if (rand >= 9 && rand <= 10)
-                    yield DOUBLE_SPEED;
-                else if (rand >= 11 && rand <= 12)
-                    yield INCREASE_VELOCITY;
-                else if (rand >= 13 && rand <= 14)
-                    yield DECREASE_VELOCITY;
-                else
-                    yield DIRECT_REPEAT;
-            }
-            case UP_FOURTH, DOWN_FOURTH, HALF_SPEED, DOUBLE_SPEED, INCREASE_VELOCITY, DECREASE_VELOCITY ->
-                DIRECT_REPEAT;
-            default -> throw new IllegalStateException("No such state: " + state);
-            };
-            if (!state.equals(newState))
-                logger.atDebug().log("{} ({}): switching to {}", musician.getId(), state, newState);
-            state = newState;
-            sequenceCountdown = sequenceLength;
-        } else {
-            logger.atDebug().log("{}: sequence countdown = {}", musician.getId(), sequenceCountdown);
-        }
-    }
-
-    /**
-     * Decrement the current sequence length by 1, but not lower than 1
-     */
-    public void decrementSequenceLength() {
-        this.sequenceLength--;
-        if (this.sequenceLength < 1)
-            this.sequenceLength = 1;
-    }
-
-    /**
-     * Increment the current sequence length by 1
-     */
-    public void incrementSequenceLength() {
-        this.sequenceLength++;
+        directRepeat = directRepeat.withStateTransition(new NumericRange(1, 3), upFourthDelayed)
+                .withStateTransition(new NumericRange(4, 6), downFourthDelayed)
+                .withStateTransition(new NumericRange(7, 8), increaseVelocityDelayed)
+                .withStateTransition(new NumericRange(9, 10), decreaseVelocityDelayed)
+                .withStateTransition(new NumericRange(11, 12), halfSpeedDelayed)
+                .withStateTransition(new NumericRange(13, 14), doubleSpeedDelayed);
+        this.state = tickCountdownState;
+        this.startingState = tickCountdownState;
     }
 
     @Override
     public String getName() { return "statebased"; }
 
     @Override
-    public void reset() {
-        sequenceLength = 0;
-        sequenceCountdown = 0;
-        state = DIRECT_REPEAT;
-        tickCountdown = 0;
-        initialTickDelay = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
-                .getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0);
-        delayQueue.clear();
+    public AbstractMusicianRule copy() {
+        return new StateBasedRule();
     }
 
-    @Override
-    public StateBasedRule copy() {
-        var copy = new StateBasedRule();
-        copy.initialTickDelay = this.initialTickDelay;
-        copy.sequenceLength = this.sequenceLength;
-        return copy;
-    }
-
-    @Override
-    public void restoreFromStorage(RuleOptions ruleOptions) {
-        super.restoreFromStorage(ruleOptions);
-        this.initialTickDelay = (int) ruleOptions.getRuleSpecificOptionOrDefault(INITIAL_TICK_DELAY_PROPERTY, 0);
-        this.sequenceLength = (int) ruleOptions.getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 1);
-        ruleOptions.addChangeListener(INITIAL_TICK_DELAY_PROPERTY, this);
-        ruleOptions.addChangeListener(SEQUENCE_LENGTH_PROPERTY, this);
-    }
-
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
-            switch (key) {
-            case INITIAL_TICK_DELAY_PROPERTY:
-                this.initialTickDelay = (int) newValue;
-                break;
-            case SEQUENCE_LENGTH_PROPERTY:
-                this.sequenceLength = (int) newValue;
-                break;
-            default:
-                break;
-            }
-        }
-
-    }
-
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(
-        // @formatter:off
-            new IntegerParamDescription(INITIAL_TICK_DELAY_PROPERTY, "Initial delay", 0, 100, 1, 0),
-            new IntegerParamDescription(SEQUENCE_LENGTH_PROPERTY, "Sequence length", 1, 1000, 1, 1)
-            // @formatter:on
-        );
-    }
 }

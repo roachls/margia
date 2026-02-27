@@ -3,6 +3,8 @@ package org.roach.margia.util;
 import java.util.Random;
 import java.util.regex.Pattern;
 
+import org.roach.margia.storage.Options;
+
 /**
  * Rolls dice to get a random number
  */
@@ -19,13 +21,13 @@ public class DieRoller {
     }
 
     /**
-     * @param seed the seed for the random generator
+     * Initialize from stored options
      */
-    public static void setSeed(long seed) {
-        DieRoller.seed = seed;
+    public static void initFromOptions() {
+        DieRoller.seed = Options.getInstance().getRandomSeed();
         random.setSeed(seed);
     }
-
+    
     /**
      * @param diceDescription description of dice in the form xny, where x is number
      *                        of dice, and y is number of sides per die

@@ -13,8 +13,6 @@ import org.roach.margia.controller.MidiController.MidiReceiver;
 import org.roach.margia.model.Chord;
 import org.roach.margia.model.RuleOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.storage.params.SettableParamDescription;
-import org.roach.margia.storage.params.StringListParamDescription;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 /**
@@ -48,12 +46,6 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
 
     @Override
     public String getName() { return "receiver"; }
-
-    @Override
-    public List<SettableParamDescription> getSettableParameters() {
-        return List.of(new StringListParamDescription(DEVICE_NAME_PROPERTY, "Device Name",
-                MidiController.getInstance().getInputDeviceNames(), ALL_DEVICES));
-    }
 
     /**
      * @param deviceName the name of the external device from which this object

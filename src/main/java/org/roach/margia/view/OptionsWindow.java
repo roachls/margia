@@ -18,8 +18,6 @@ import org.roach.margia.controller.rules.MusicianRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
-import org.roach.margia.storage.params.*;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
 @SuppressWarnings("java:S1948")
 class OptionsWindow extends JDialog implements PropertyChangeListener {
@@ -38,9 +36,11 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private DefaultMutableTreeNode root;
     private DefaultMutableTreeNode musiciansNode;
     private final Map<Integer, DefaultMutableTreeNode> musicianNodes = new HashMap<>();
-    
+
     private static final double LEFT_COLUMN_WEIGHT = 0.2;
     private static final double RIGHT_COLUMN_WEIGHT = 1.0 - LEFT_COLUMN_WEIGHT;
+
+    public static final String OPTIONS_AGENTS_SELECTED_PROPERTY = "options agents selected";
 
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
@@ -128,6 +128,20 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                 } else {
                     setupMultipleSelection(selectedPaths, selectedPanel);
                 }
+            }
+            if (tree.getSelectionCount() > 0) {
+                var selectedPaths = tree.getSelectionPaths();
+                var musicianIdList = new ArrayList<Integer>();
+                for (var selectedPath : selectedPaths) {
+                    var lastPathComponent = (DefaultMutableTreeNode) selectedPath.getLastPathComponent();
+                    var string = lastPathComponent.getUserObject().toString();
+                    if (string != null && string.startsWith(MUSICIAN)) {
+                        var musicianId = Integer.parseInt(string.substring(MUSICIAN.length()));
+                        musicianIdList.add(musicianId);
+                    }
+                }
+                // fire change of musicianIdList with property OPTIONS_AGENTS_SELECTED_PROPERTY
+                firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
             }
             revalidate();
             repaint();
@@ -932,7 +946,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     }
 
     private class MusicianRuleOptionsPanel extends JPanel {
-        private RuleSpecificOptionsPanel ruleSpecificOptionsPanel;
         private final Map<String, MusicianRule> availableRules;
         private final List<String> ruleNames;
         private final int id;
@@ -964,10 +977,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             ruleModel.setSelectedItem("");
             rule = new JComboBox<>(ruleModel);
             rule.setSelectedItem(options.getName());
-            rule.addActionListener(_ -> {
-                options.setName((String) rule.getSelectedItem());
-                populateRuleSpecificParams(options);
-            });
+            rule.addActionListener(_ -> options.setName((String) rule.getSelectedItem()));
 
             var ruleLabel = new JLabel("Rule");
             ruleLabel.setLabelFor(rule);
@@ -983,11 +993,8 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.weightx = RIGHT_COLUMN_WEIGHT;
             upperPanel.add(rule, c);
             add(upperPanel, BorderLayout.NORTH);
-
-            populateRuleSpecificParams(options);
         }
 
-        @SuppressWarnings("unchecked")
         // multiple selection
         MusicianRuleOptionsPanel(List<MusicianRuleOptionsPanel> others) {
             this.id = -1; // unused
@@ -1027,23 +1034,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                 rule.setBackground(normalRuleBackground);
                 options.setName((String) rule.getSelectedItem());
                 others.forEach(o -> o.rule.setSelectedItem(rule.getSelectedItem()));
-                populateRuleSpecificParams(options);
-            });
-
-            options.addChangeListener(RuleOptions.RULE_SPECIFIC_OPTION_CHANGED_PROPERTY, e -> {
-                if (e.getSource() instanceof ChangeSource(_, Object val) && val instanceof Map.Entry<?, ?>) {
-                    var updatedOpts = (Map.Entry<String, Object>) val;
-                    others.forEach(o -> {
-                        var otherComp = o.ruleSpecificOptionsPanel.editableComponents.get(updatedOpts.getKey());
-                        if (otherComp instanceof JCheckBox cb) {
-                            cb.setSelected((boolean) updatedOpts.getValue());
-                        } else if (otherComp instanceof JSpinner spin) {
-                            spin.setValue(updatedOpts.getValue());
-                        } else if (otherComp instanceof JComboBox<?> cbo) {
-                            cbo.setSelectedItem(updatedOpts.getValue());
-                        }
-                    });
-                }
             });
 
             var ruleLabel = new JLabel("Rule");
@@ -1052,113 +1042,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             upperPanel.add(ruleLabel);
             upperPanel.add(rule);
             add(upperPanel, BorderLayout.NORTH);
-
-            populateRuleSpecificParams(options);
-        }
-
-        private void populateRuleSpecificParams(RuleOptions ruleOpts) {
-            SwingUtilities.invokeLater(() -> {
-                if (ruleSpecificOptionsPanel != null)
-                    remove(ruleSpecificOptionsPanel);
-                var selectedRule = availableRules.get(ruleOpts.getName());
-                if (selectedRule == null)
-                    return;
-                var ruleParams = selectedRule.getSettableParameters();
-                ruleSpecificOptionsPanel = new RuleSpecificOptionsPanel(ruleOpts, ruleParams);
-                add(ruleSpecificOptionsPanel, BorderLayout.CENTER);
-                revalidate();
-                repaint();
-            });
-        }
-
-    }
-
-    private static class RuleSpecificOptionsPanel extends JPanel {
-        private final Map<String, JComponent> editableComponents = new HashMap<>();
-
-        RuleSpecificOptionsPanel(RuleOptions ruleOpts, List<SettableParamDescription> ruleParams) {
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.insets = new Insets(2, 2, 2, 2);
-            c.anchor = GridBagConstraints.NORTHWEST;
-
-            for (var ruleParam : ruleParams) {
-                c.gridx = 0;
-                c.weightx = LEFT_COLUMN_WEIGHT;
-                c.gridy++;
-                switch (ruleParam) {
-                case IntegerParamDescription(String propertyName, String displayName, int minValue, int maxValue, int step, int defaultValue): {
-                    var comp = createSpinner(propertyName,
-                            ((int) ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue)), minValue,
-                            maxValue, step);
-                    comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getValue()));
-                    var label = createLabelFor(displayName, comp);
-                    add(label, c);
-                    c.gridx = 1;
-                    c.weightx = RIGHT_COLUMN_WEIGHT;
-                    add(comp, c);
-                    editableComponents.put(propertyName, comp);
-                }
-                    break;
-                case BooleanParamDescription(String propertyName, String displayName, boolean defaultValue): {
-                    var comp = new JCheckBox(displayName);
-                    comp.setSelected((Boolean) ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
-                    comp.addChangeListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.isSelected()));
-                    add(new JLabel(""), c);
-                    c.gridx = 1;
-                    c.weightx = RIGHT_COLUMN_WEIGHT;
-                    add(comp, c);
-                    editableComponents.put(propertyName, comp);
-                }
-                    break;
-                case StringListParamDescription(String propertyName, String displayName, List<String> possibleValues, String defaultValue): {
-                    var model = new DefaultComboBoxModel<String>(possibleValues.toArray(new String[0]));
-                    var comp = new JComboBox<String>(model);
-                    comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
-                    comp.addActionListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
-                    var label = new JLabel(displayName);
-                    label.setLabelFor(comp);
-                    add(label, c);
-                    c.gridx = 1;
-                    c.weightx = RIGHT_COLUMN_WEIGHT;
-                    add(comp, c);
-                    editableComponents.put(propertyName, comp);
-                }
-                    break;
-                case EnumParamDescription(String propertyName, String displayName, Enum<?> defaultValue): {
-                    @SuppressWarnings("unchecked")
-                    var comp = createEnumComboBox(defaultValue.getClass());
-                    comp.setSelectedItem(ruleOpts.getRuleSpecificOptionOrDefault(propertyName, defaultValue));
-                    comp.addActionListener(_ -> ruleOpts.setRuleSpecificOption(propertyName, comp.getSelectedItem()));
-                    var label = new JLabel(displayName);
-                    label.setLabelFor(comp);
-                    add(label, c);
-                    c.gridx = 1;
-                    c.weightx = RIGHT_COLUMN_WEIGHT;
-                    add(comp, c);
-                    editableComponents.put(propertyName, comp);
-                }
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            "I haven't been programmed to understand a " + ruleParam.getClass().getName());
-                }
-            }
-            /*
-             * Add a "filler" component to absorb extra vertical space This pushes all
-             * previous components to the top of the container
-             */
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
-
-        }
-
-        private static <E extends Enum<E>> JComboBox<E> createEnumComboBox(Class<E> clazz) {
-            var model = new DefaultComboBoxModel<E>(clazz.getEnumConstants());
-            return new JComboBox<>(model);
         }
 
     }
@@ -1209,7 +1092,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         midiPanel.verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
         midiPanel.verticalPanWithRelativeLocations
                 .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
-        
+
         globalMusicPanel.maxQueueSize.setValue(options.getMusicOptions().getMaxQueueSize());
     }
 }
