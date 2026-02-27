@@ -2,6 +2,10 @@
 
 Intelligent agents with limited intelligence that play music through MIDI and sharing information.
 
+## Demo
+
+[![MARGIA Drums Demo](https://img.youtube.com/vi/56HKEjrpDCI/0.jpg)](https://www.youtube.com/watch?v=56HKEjrpDCI "MARGIA Drums Demo")
+
 ### Setup
 
 To run on Windows 10+, follow these steps:
