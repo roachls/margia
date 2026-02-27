@@ -40,6 +40,8 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     private static final double LEFT_COLUMN_WEIGHT = 0.2;
     private static final double RIGHT_COLUMN_WEIGHT = 1.0 - LEFT_COLUMN_WEIGHT;
 
+    public static final String OPTIONS_AGENTS_SELECTED_PROPERTY = "options agents selected";
+
     OptionsWindow(JFrame parent) {
         super(parent, "Options");
         setName(OPTIONS_WINDOW_NAME);
@@ -126,6 +128,20 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                 } else {
                     setupMultipleSelection(selectedPaths, selectedPanel);
                 }
+            }
+            if (tree.getSelectionCount() > 0) {
+                var selectedPaths = tree.getSelectionPaths();
+                var musicianIdList = new ArrayList<Integer>();
+                for (var selectedPath : selectedPaths) {
+                    var lastPathComponent = (DefaultMutableTreeNode) selectedPath.getLastPathComponent();
+                    var string = lastPathComponent.getUserObject().toString();
+                    if (string != null && string.startsWith(MUSICIAN)) {
+                        var musicianId = Integer.parseInt(string.substring(MUSICIAN.length()));
+                        musicianIdList.add(musicianId);
+                    }
+                }
+                // fire change of musicianIdList with property OPTIONS_AGENTS_SELECTED_PROPERTY
+                firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
             }
             revalidate();
             repaint();

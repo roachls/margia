@@ -85,11 +85,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
         optionsWindow = new OptionsWindow(this);
         updateTitle();
-        registerListeners();
         agentPanel = new AgentPanel();
+        registerListeners();
         agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
+        optionsWindow.addPropertyChangeListener(agentPanel);
         agentPanel.setBounds(0, 0, 1000, 1000);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 

@@ -876,10 +876,18 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         createEdges(components);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
         if (Transport.TICK_PROPERTY.equals(evt.getPropertyName())
                 && Options.getInstance().getUiOptions().isAnimateBackground())
             animateBackground();
+        else if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
+            var selectedMusicianIds = (List<Integer>) evt.getNewValue();
+            deselectAll();
+            for (var id : selectedMusicianIds) {
+                musicianComponents.get(id).setSelected(true);
+            }
+        }
     }
 }
