@@ -1,0 +1,451 @@
+---
+musicOptions:
+  tempo: 130
+  tempoMinimum: 30
+  tempoMaximum: 120
+  maxQueueSize: 12
+midiOptions:
+  usingExternalMidi: true
+  sendingMidiTimecode: true
+  tempoController: 0
+  sendPanMessage: true
+  panController: 77
+  panWithRelativeLocations: false
+  sendVerticalPanMessage: true
+  verticalPanController: 78
+  verticalPanWithRelativeLocations: false
+  usingExternalTiming: false
+uiOptions:
+  showNumbers: false
+  gravity: 0.1
+  edgeLength: 60
+  windSpeed: 1.6
+  animateBackground: true
+  musicianComponents:
+    0:
+      locked: false
+      position:
+        x: 913.9976262185146
+        "y": 440.83230244300415
+      radius: 18
+    1:
+      locked: false
+      position:
+        x: 1102.2005036525836
+        "y": 558.0
+      radius: 18
+    2:
+      locked: false
+      position:
+        x: 842.632507329355
+        "y": 241.5279754865584
+      radius: 18
+    3:
+      locked: false
+      position:
+        x: 1076.905795058146
+        "y": 280.29882293935094
+      radius: 18
+    4:
+      locked: false
+      position:
+        x: 884.8357871279242
+        "y": 161.5841354538531
+      radius: 18
+    6:
+      locked: false
+      position:
+        x: 624.5483885808113
+        "y": 535.0057078234756
+      radius: 18
+    7:
+      locked: false
+      position:
+        x: 480.0440266515846
+        "y": 334.8510044705336
+      radius: 18
+    8:
+      locked: false
+      position:
+        x: 634.0534019275977
+        "y": 159.38417785039647
+      radius: 18
+    9:
+      locked: false
+      position:
+        x: 698.265954235023
+        "y": 41.25280733767698
+      radius: 18
+    10:
+      locked: false
+      position:
+        x: 459.40978275828604
+        "y": 18.0
+      radius: 18
+    12:
+      locked: false
+      position:
+        x: 408.69359758091093
+        "y": 135.40150796103205
+      radius: 18
+    13:
+      locked: false
+      position:
+        x: 437.3717412111481
+        "y": 415.1185869470596
+      radius: 18
+    14:
+      locked: false
+      position:
+        x: 245.80766752506042
+        "y": 296.00597961540797
+      radius: 18
+    15:
+      locked: false
+      position:
+        x: 863.5071276005605
+        "y": 558.0
+      radius: 18
+    16:
+      locked: false
+      position:
+        x: 655.5097030336119
+        "y": 284.6573904545814
+      radius: 22
+    17:
+      locked: false
+      position:
+        x: 688.6374183824347
+        "y": 417.073861543078
+      radius: 18
+    18:
+      locked: false
+      position:
+        x: 220.67209899862118
+        "y": 18.0
+      radius: 18
+musicians:
+  0:
+    busName: "loopMIDI Port"
+    channel: 5
+    peerIds:
+    - 1
+    - 3
+    - 17
+    muted: false
+    listening: true
+    id: 0
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  1:
+    busName: "loopMIDI Port"
+    channel: 4
+    peerIds:
+    - 0
+    - 15
+    muted: false
+    listening: true
+    id: 1
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  2:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 8
+    - 3
+    - 17
+    - 9
+    muted: true
+    listening: true
+    id: 2
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  3:
+    busName: "loopMIDI Port"
+    channel: 6
+    peerIds:
+    - 4
+    - 0
+    - 2
+    muted: false
+    listening: true
+    id: 3
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  4:
+    busName: "loopMIDI Port"
+    channel: 7
+    peerIds:
+    - 3
+    - 9
+    - 16
+    muted: false
+    listening: true
+    id: 4
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  6:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 7
+    - 13
+    - 15
+    muted: true
+    listening: true
+    id: 6
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  7:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 8
+    - 14
+    - 6
+    - 17
+    muted: true
+    listening: true
+    id: 7
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  8:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 10
+    - 2
+    - 12
+    - 7
+    muted: true
+    listening: true
+    id: 8
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  9:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 4
+    - 10
+    - 2
+    muted: true
+    listening: true
+    id: 9
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  10:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 9
+    - 8
+    - 18
+    muted: true
+    listening: true
+    id: 10
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  12:
+    busName: "loopMIDI Port"
+    channel: 2
+    peerIds:
+    - 8
+    - 14
+    - 18
+    muted: false
+    listening: true
+    id: 12
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  13:
+    busName: "loopMIDI Port"
+    channel: 0
+    peerIds:
+    - 14
+    - 6
+    muted: false
+    listening: true
+    id: 13
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  14:
+    busName: "loopMIDI Port"
+    channel: 1
+    peerIds:
+    - 12
+    - 7
+    - 13
+    muted: false
+    listening: true
+    id: 14
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  15:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 1
+    - 6
+    - 17
+    muted: true
+    listening: true
+    id: 15
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  16:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 13
+    muted: true
+    listening: true
+    id: 16
+    ruleOptions:
+      name: "random"
+      ruleSpecificOptions:
+        maxChordStringLength: 8
+        restsBetweenChordStrings: 8
+        chordSize: 1
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  17:
+    busName: "loopMIDI Port"
+    channel: 14
+    peerIds:
+    - 0
+    - 2
+    - 7
+    - 15
+    muted: true
+    listening: true
+    id: 17
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+  18:
+    busName: "loopMIDI Port"
+    channel: 3
+    peerIds:
+    - 12
+    - 10
+    muted: false
+    listening: true
+    id: 18
+    ruleOptions:
+      name: "statebased"
+      ruleSpecificOptions:
+        initialTickDelay: 64
+        sequenceLength: 16
+    keyName: "D Major"
+    range:
+      low: 0
+      high: 127
+randomSeed: 1010101
