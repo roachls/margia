@@ -12,7 +12,7 @@ import org.roach.margia.view.ChordFlavor;
 /**
  * Random-note generator
  */
-public class RandomRuleMajorChords extends AbstractMusicianRule {
+public class RandomFlavorRule extends AbstractMusicianRule {
     private static final String FLAVOR_PROPERTY = "flavor";
     private ChordFlavor flavor = ChordFlavor.MAJOR;
     private int maxChordStringLength = 5;
@@ -66,8 +66,8 @@ public class RandomRuleMajorChords extends AbstractMusicianRule {
     public String getName() { return "randomFlavor"; }
 
     @Override
-    public RandomRuleMajorChords copy() {
-        return new RandomRuleMajorChords();
+    public RandomFlavorRule copy() {
+        return new RandomFlavorRule();
     }
 
     @Override
