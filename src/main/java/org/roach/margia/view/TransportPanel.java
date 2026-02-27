@@ -1,6 +1,7 @@
 package org.roach.margia.view;
 
 import java.awt.FlowLayout;
+import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -20,6 +21,10 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
     private final JLabel clockPulse;
     private final JLabel tick;
     private final JSpinner tempo;
+    private transient TimingSource timing;
+    private JButton startBtn;
+    private ImageIcon startIcon;
+    private ImageIcon pauseIcon;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -27,6 +32,7 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
      */
     public TransportPanel(TimingSource timing, Transport transport) {
         super(new FlowLayout(FlowLayout.CENTER, 3, 3));
+        this.timing = timing;
 
         transport.addPropertyListener(this);
 
@@ -49,20 +55,12 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         tempo.addChangeListener(_ -> Options.getInstance().getMusicOptions().setTempo((int) tempo.getValue()));
         add(tempo);
 
-        var startIcon = Icons.getButtonIcon(Icons.START);
+        startIcon = Icons.getButtonIcon(Icons.START);
         var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
-        var pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
+        pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
 
-        var startBtn = new JButton(startIcon);
-        startBtn.addActionListener(_ -> {
-            if (timing.isRunning()) {
-                timing.stop();
-                startBtn.setIcon(startIcon);
-            } else {
-                timing.start();
-                startBtn.setIcon(pauseIcon);
-            }
-        });
+        startBtn = new JButton(startIcon);
+        startBtn.addActionListener(startStopActionListener);
         add(startBtn);
         var rewindBtn = new JButton(rewindIcon);
         rewindBtn.addActionListener(_ -> {
@@ -76,6 +74,17 @@ public class TransportPanel extends JPanel implements PropertyChangeListener {
         rewindBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
         tempo.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
     }
+    
+    transient ActionListener startStopActionListener = _ -> {
+
+            if (timing.isRunning()) {
+                timing.stop();
+                startBtn.setIcon(startIcon);
+            } else {
+                timing.start();
+                startBtn.setIcon(pauseIcon);
+            }
+        };
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {

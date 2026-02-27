@@ -59,9 +59,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <tr><td>Ctrl+S</td><td>save</td></tr>
             <tr><td>Ctrl+O</td><td>open</td></tr>
             <tr><td>Ctrl+A</td><td>select all musicians</td></tr>
+            <tr><td>Ctrl+M</td><td>Toggle muting of selected musicians</td></tr>
             <tr><td>Del</td><td>Delete selected musicians</td></tr>
             <tr><td>Esc</td><td>Deselect all musicians</td></tr>
             <tr><td>F11</td><td>Toggle full-screen</td></tr>
+            <tr><td>Ctrl+Spacebar</td><td>Play/pause</td></tr>
             </table>
             </html>
             """;
@@ -144,6 +146,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     }
                 }
                 break;
+            case KeyEvent.VK_M:
+                if (e.getID() == KeyEvent.KEY_RELEASED && e.isControlDown()) {
+                    agentPanel.toggleMuteSelected();
+                }
+                break;
             case KeyEvent.VK_V:
                 if (e.isControlDown()) {
                     if (e.isShiftDown()) {
@@ -178,6 +185,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     }
                     MargiaWindow.this.revalidate();
                     fullScreen = !fullScreen;
+                }
+                break;
+            case KeyEvent.VK_SPACE:
+                if (e.getID() == KeyEvent.KEY_RELEASED && e.isControlDown()) {
+                    transportPanel.startStopActionListener.actionPerformed(null);
                 }
                 break;
             default:
