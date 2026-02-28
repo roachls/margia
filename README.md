@@ -74,7 +74,7 @@ Currently the following rulesets are available, although this will change once t
 			<li>Options:
 				<ul>
 					<li><code>initialTickDelay (int)</code>: Wait this many ticks before playing anything. Default is 0.</li>
-					<li><code>sequenceLength (int)</code>: Play this many notes before changing states. Default is 1.</li>
+					<li><code>sequenceLength (int)</code>: Play this many notes before changing states. Default is 16.</li>
 				</ul>
 			</li>
 		</ul>

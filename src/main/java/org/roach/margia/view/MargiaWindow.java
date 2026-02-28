@@ -120,6 +120,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         @SuppressWarnings("java:S3776")
         public boolean dispatchKeyEvent(KeyEvent e) {
             boolean complete = false;
+            if (e.getID() != KeyEvent.KEY_RELEASED)
+                return false;
             switch (e.getKeyCode()) {
             case KeyEvent.VK_ESCAPE:
                 agentPanel.deselectAll();
@@ -147,7 +149,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 }
                 break;
             case KeyEvent.VK_M:
-                if (e.getID() == KeyEvent.KEY_RELEASED && e.isControlDown()) {
+                if (e.isControlDown()) {
                     agentPanel.toggleMuteSelected();
                 }
                 break;
@@ -188,7 +190,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 }
                 break;
             case KeyEvent.VK_SPACE:
-                if (e.getID() == KeyEvent.KEY_RELEASED && e.isControlDown()) {
+                if (e.isControlDown()) {
                     transportPanel.startStopActionListener.actionPerformed(null);
                 }
                 break;

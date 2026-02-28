@@ -16,7 +16,7 @@ public class StateBasedRule extends AbstractMusicianRule {
     @Override
     public void initActionsAfterMusicianAssigned() {
         var sequenceLength = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
-                .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 1);
+                .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 16);
         var upFourth = new AlwaysTransitionState("up 4th").withAction(c -> List.of(new PlayChord(this.musician, c)));
         var upFourthDelayed = new DelayedTransitionState("up 4th delayed", sequenceLength).withWrappedState(upFourth);
         var downFourth = new AlwaysTransitionState("down 4th")
