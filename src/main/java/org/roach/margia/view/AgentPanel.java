@@ -834,12 +834,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
         // make connections
         for (var y = 0; y < num; y++) {
-            if (direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL && y < numWithConnections) {
+            if ((direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL) && y < numWithConnections) {
                 arr[y].addPeer(arr[y * 2 + 1]);
                 arr[y].addPeer(arr[y * 2 + 2]);
             }
-            if (direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL && y > 0) {
-                arr[y].addPeer(arr[y / 2]);
+            if ((direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL) && y > 0) {
+                arr[y].addPeer(arr[(y - 1) / 2]);
             }
         }
         var components = Arrays.asList(arr).stream().map(this::addMusicianComponent).toList();
