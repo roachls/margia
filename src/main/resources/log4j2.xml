@@ -18,7 +18,7 @@
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.ReceiverRule"
-			level="trace" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.Transport" level="info"
