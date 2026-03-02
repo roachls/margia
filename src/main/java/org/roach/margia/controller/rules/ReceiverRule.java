@@ -63,12 +63,13 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
             if (!ALL_DEVICES.equals(this.deviceName)) {
                 var distributor = MidiController.getInstance().getExternalReceiver(this.deviceName);
                 if (distributor != null) {
+                    this.logger.atInfo().log("Registered with bus {} on channel {}", deviceName, musician.getChannel());
                     distributor.registerReceiver(this);
                 } else
-                    musician.getLogger().atWarn().log(
-                            "Device {} is not available, musician {} will not be able to receive", deviceName,
-                            musician.getId());
+                    logger.atWarn().log("Device {} is not available, musician {} will not be able to receive",
+                            deviceName, musician.getId());
             } else {
+                logger.atInfo().log("deviceName property not set, registring with all external receivers");
                 MidiController.getInstance().registerWithAllExternalReceivers(this);
             }
         }
@@ -88,6 +89,8 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
      */
     @Override
     public void receive(ShortMessage message) {
+        if (message.getChannel() != musician.getChannel())
+            return;
         if (message.getCommand() == ShortMessage.NOTE_OFF) {
             var note = message.getData1();
             var velocity = message.getData2();
@@ -97,6 +100,7 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
         } else if (message.getCommand() == ShortMessage.NOTE_ON) {
             // we use velocity of NOTE_ON
             this.latestVelocity = message.getData2();
+            logger.atTrace().log("{}: Received NOTE_ON velocity={}", musician.getCurrentTick(), message.getData2());
         }
     }
 
