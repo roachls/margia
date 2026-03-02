@@ -312,10 +312,20 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     }
 
     /**
-     * @return true if the musician is listening to notes (may still receive other
+     * @return true if the musician is listening to Chords (may still receive other
      *         types of messages)
      */
     public boolean isListening() { return musicianOptions.isListening(); }
+
+    /**
+     * @param listening {@code true} means that the musician is listening to Chords
+     *                  (the normal state) from peers; {@code false} means that any
+     *                  new Chords will be ignored and not placed in the queue
+     *                  (doesn't affect other types of {@link MusicianMessage}
+     */
+    public void setListening(boolean listening) {
+        musicianOptions.setListening(listening);
+    }
 
     @Override
     public String toString() {

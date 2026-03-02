@@ -32,11 +32,13 @@ public class Icons {
     public static final String EXIT = "exit";
     public static final String HELP = "help";
     public static final String KEYBOARD = "keyboard";
+    public static final String LISTENING = "listening";
     public static final String LOCK_ALL = "lock_all";
     public static final String LOCK = "lock";
     public static final String MOVE = "move";
     public static final String MUTE_ALL = "mute_all";
     public static final String MUTE = "mute";
+    public static final String NOT_LISTENING = "not_listening";
     public static final String OPEN = "open";
     public static final String OPTIONS = "options";
     public static final String PASTE = "paste";
@@ -65,12 +67,14 @@ public class Icons {
             Map.entry(EXIT, "A door with an arrow pointing out of it"),
             Map.entry(ADD_FAN, "7 dots in a binary tree formation"),
             Map.entry(HELP, "a question mark"),
+            Map.entry(LISTENING, "an ear"),
             Map.entry(LOCK_ALL, "a closed lock with an 'A'"),
             Map.entry(LOCK, "a closed lock"),
             Map.entry(KEYBOARD, "a keyboard"),
             Map.entry(MOVE, "a four-way arrow icon"),
             Map.entry(MUTE_ALL, "a speaker that is muted with a small 'A'"),
             Map.entry(MUTE, "a speaker that is muted"),
+            Map.entry(NOT_LISTENING, "an ear with a line through it"),
             Map.entry(OPEN, "an open folder"),
             Map.entry(OPTIONS, ""),
             Map.entry(PASTE, "a clipboard"),
@@ -90,8 +94,8 @@ public class Icons {
 
     static {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
-                ADD_FAN, HELP, KEYBOARD, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, OPEN, OPTIONS, PASTE, SAVE, SELECT_ALL,
-                SELECT, SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL, EXIT }) {
+                ADD_FAN, HELP, KEYBOARD, LISTENING, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, NOT_LISTENING, OPEN, OPTIONS,
+                PASTE, SAVE, SELECT_ALL, SELECT, SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL, EXIT }) {
             LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
             SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }

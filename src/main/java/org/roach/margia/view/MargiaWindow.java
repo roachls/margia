@@ -60,6 +60,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <tr><td>Ctrl+O</td><td>open</td></tr>
             <tr><td>Ctrl+A</td><td>select all musicians</td></tr>
             <tr><td>Ctrl+M</td><td>Toggle muting of selected musicians</td></tr>
+            <tr><td>Ctrl+L</td><td>Toggle whether selected musicians are listening to peers</td></tr>
             <tr><td>Del</td><td>Delete selected musicians</td></tr>
             <tr><td>Esc</td><td>Deselect all musicians</td></tr>
             <tr><td>F11</td><td>Toggle full-screen</td></tr>
@@ -192,6 +193,11 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             case KeyEvent.VK_SPACE:
                 if (e.isControlDown()) {
                     transportPanel.startStopActionListener.actionPerformed(null);
+                }
+                break;
+            case KeyEvent.VK_L:
+                if (e.isControlDown()) {
+                    agentPanel.toggleSelectedListening();
                 }
                 break;
             default:
@@ -363,6 +369,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         var unmuteSelected = new JButton(getMenuIcon(UNMUTE));
         unmuteSelected.setToolTipText("Unmute selected");
         unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
+        var setSelectedListening = new JButton(getMenuIcon(LISTENING));
+        setSelectedListening.setToolTipText("Set selected agents listening");
+        setSelectedListening.addActionListener(_ -> agentPanel.setSelectedListening());
+        var setSelectedNotListening = new JButton(getMenuIcon(NOT_LISTENING));
+        setSelectedNotListening.setToolTipText("Set selected agents not listening");
+        setSelectedNotListening.addActionListener(_ -> agentPanel.setSelectedNotListening());
         var lockSelected = new JButton(getMenuIcon(LOCK));
         lockSelected.setToolTipText("Lock selected");
         lockSelected.addActionListener(_ -> agentPanel.lockSelected());
@@ -415,6 +427,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         toolbar.addSeparator();
         toolbar.add(muteSelected);
         toolbar.add(unmuteSelected);
+        toolbar.add(setSelectedListening);
+        toolbar.add(setSelectedNotListening);
         toolbar.addSeparator();
         toolbar.add(lockSelected);
         toolbar.add(unlockSelected);

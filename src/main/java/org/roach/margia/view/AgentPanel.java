@@ -616,13 +616,12 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                 .forEach(mc -> mc.getMusician().getOptions().setMuted(false));
     }
-    
+
     void toggleMuteSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-            .forEach(mc -> {
-                boolean isMuted = mc.getMusician().getOptions().isMuted();
-                mc.getMusician().getOptions().setMuted(!isMuted);
-            });
+        musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
+            boolean isMuted = mc.getMusician().getOptions().isMuted();
+            mc.getMusician().getOptions().setMuted(!isMuted);
+        });
     }
 
     void lockSelected() {
@@ -631,6 +630,21 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void unlockSelected() {
         musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> mc.setLocked(false));
+    }
+
+    void toggleSelectedListening() {
+        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                .forEach(mc -> mc.getMusician().setListening(!mc.getMusician().isListening()));
+    }
+
+    void setSelectedNotListening() {
+        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                .forEach(mc -> mc.getMusician().setListening(false));
+    }
+
+    void setSelectedListening() {
+        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                .forEach(mc -> mc.getMusician().setListening(true));
     }
 
     void deleteSelected() {
