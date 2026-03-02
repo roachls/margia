@@ -4,6 +4,7 @@ import static javax.sound.midi.ShortMessage.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sound.midi.*;
@@ -38,6 +39,7 @@ public class MidiController implements ChangeListener {
     private final ExecutorService immediateExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final Map<String, Map<Integer, List<Chord>>> chordsToPlayNextPerBus = new HashMap<>();
     private final ShortMessage timingPulse;
+    private AtomicBoolean sending = new AtomicBoolean();
     private static MidiController instance;
     private static final Map<Integer, String> MIDI_COMMANDS = Map.of(NOTE_OFF, "NOTE_OFF", NOTE_ON, "NOTE_ON",
             POLY_PRESSURE, "POLY_PRESSURE", CONTROL_CHANGE, "CONTROL_CHANGE", PROGRAM_CHANGE, "PROGRAM_CHANGE",
@@ -200,6 +202,8 @@ public class MidiController implements ChangeListener {
      * @param amount     controller value to send (0-127)
      */
     public void sendControlChange(String busName, int channel, int controller, int amount) {
+        if (!sending.get())
+            return;
         if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
             LOGGER.atDebug().log("out of range; amount: {}, channel: {}, controller: {}", amount, channel, controller);
             return;
@@ -284,6 +288,7 @@ public class MidiController implements ChangeListener {
      * Send a MIDI clock start message
      */
     public void sendStart() {
+        sending.set(true);
         var startMsg = new ShortMessage();
         try {
             startMsg.setMessage(ShortMessage.START);
@@ -299,6 +304,7 @@ public class MidiController implements ChangeListener {
      * Send a MIDI clock stop message
      */
     public void sendStop() {
+        sending.set(false);
         var stopMsg = new ShortMessage();
         try {
             stopMsg.setMessage(ShortMessage.STOP);
@@ -336,10 +342,10 @@ public class MidiController implements ChangeListener {
      */
     public void close() {
         try {
-            scheduledExecutor.shutdown();
-            scheduledExecutor.awaitTermination(2, TimeUnit.SECONDS);
-            immediateExecutor.shutdown();
-            immediateExecutor.awaitTermination(2, TimeUnit.SECONDS);
+            scheduledExecutor.shutdownNow();
+            scheduledExecutor.awaitTermination(1, TimeUnit.SECONDS);
+            immediateExecutor.shutdownNow();
+            immediateExecutor.awaitTermination(1, TimeUnit.SECONDS);
         } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
