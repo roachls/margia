@@ -52,7 +52,7 @@ public class Transport {
         initFromOptions();
         this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
-    
+
     /**
      * @return the singleton instance of this class
      */
@@ -61,7 +61,7 @@ public class Transport {
             instance = new Transport();
         return instance;
     }
-    
+
     /**
      * (Re)load the tempo from options
      */
@@ -110,43 +110,54 @@ public class Transport {
      * Fires once every 24th of a beat from the {@link TimingSource}
      */
     public void receiveClockPulse() {
-        logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
-        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
-            MidiController.getInstance().sendClockPulse();
-        }
-        // Once each 16th note (every 6 clock pulses) we kick off musician actions
-        if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13 || currentClockPulse == 19) {
-            if (tickActions.containsKey(tick)) {
-                logger.atDebug().log("Transport playing tick action {}", tick);
-                tickActions.remove(tick).run();
+        /*
+         * We wrap this whole thing in a try-catch block because typically we'll be
+         * running it from inside a scheduled executor (see
+         * InternalTimingSource#startClock), in which case any exceptions will get
+         * swallowed and the executor would simply stop with no explanation.
+         */
+        try {
+            logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
+            if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
+                MidiController.getInstance().sendClockPulse();
             }
-            // each musician calculate their next action
-            for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
-                m.getValue().calculateAction(tick);
+            // Once each 16th note (every 6 clock pulses) we kick off musician actions
+            if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13
+                    || currentClockPulse == 19) {
+                if (tickActions.containsKey(tick)) {
+                    logger.atDebug().log("Transport playing tick action {}", tick);
+                    tickActions.remove(tick).run();
+                }
+                // each musician calculate their next action
+                for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                    m.getValue().calculateAction(tick);
+                }
+                // each musician perform the action they just calculated
+                for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                    m.getValue().doAction();
+                }
+                // controller actually play notes from each musician
+                MidiController.getInstance().playChordsThisTick();
             }
-            // each musician perform the action they just calculated
-            for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
-                m.getValue().doAction();
+            if (currentClockPulse % 6 == 0) {
+                var oldValue = tick++;
+                propertyChangeSupport.firePropertyChange(TICK_PROPERTY, oldValue, tick);
             }
-            // controller actually play notes from each musician
-            MidiController.getInstance().playChordsThisTick();
-        }
-        if (currentClockPulse % 6 == 0) {
-            var oldValue = tick++;
-            propertyChangeSupport.firePropertyChange(TICK_PROPERTY, oldValue, tick);
-        }
-        var oldClockPulse = currentClockPulse++;
-        if (currentClockPulse > 24) {
-            currentClockPulse = 1;
-            var oldBeatNum = beatNum++;
-            if (beatNum > 4) {
-                beatNum = 1;
-                var oldMeasure = measureNum++;
-                propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, oldMeasure, measureNum);
+            var oldClockPulse = currentClockPulse++;
+            if (currentClockPulse > 24) {
+                currentClockPulse = 1;
+                var oldBeatNum = beatNum++;
+                if (beatNum > 4) {
+                    beatNum = 1;
+                    var oldMeasure = measureNum++;
+                    propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, oldMeasure, measureNum);
+                }
+                propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, oldBeatNum, beatNum);
             }
-            propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, oldBeatNum, beatNum);
+            propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, oldClockPulse, currentClockPulse);
+        } catch (Exception e) {
+            logger.atError().withThrowable(e).log("Error in Transport#receiveClockPulse");
         }
-        propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, oldClockPulse, currentClockPulse);
     }
 
     /**
