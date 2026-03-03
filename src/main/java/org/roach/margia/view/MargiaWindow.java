@@ -246,7 +246,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                         new Object[] { "Save", "Don't Save", "Cancel" }, "Save");
                 if (answer == 0) {
                     saveSettingsToFile();
-                } else if (answer == 1) {
+                } else if (answer == 2) {
                     return;
                 }
             }
