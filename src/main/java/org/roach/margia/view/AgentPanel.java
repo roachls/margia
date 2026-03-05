@@ -43,8 +43,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
     static final String AGENT_ADDED_PROPERTY = "agent_added";
     static final String AGENT_REMOVED_PROPERTY = "agent_removed";
-    private int oldWidth;
-    private int oldHeight;
     private Point dragStart;
     private Point dragEnd;
     private List<MusicianComponent> copiedComponents;
@@ -70,7 +68,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         setBackground(Color.LIGHT_GRAY);
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
-        addComponentListener(new Resizer());
         Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }
 
@@ -81,35 +78,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.musicianComponents.clear();
     }
 
-    private class Resizer extends ComponentAdapter {
-        @Override
-        public void componentResized(ComponentEvent e) {
-            // width and height are from before the resize
-            var newWidth = getWidth();
-            var newHeight = getHeight();
-            var xRatio = (double) newWidth / (double) oldWidth;
-            var yRatio = (double) newHeight / (double) oldHeight;
-            musicianComponents.values().forEach(mc -> {
-                var locked = mc.isLocked();
-                var mcOpts = mc.getOptions();
-                mcOpts.setLocked(false);
-                mcOpts.setPosition(
-                        new Point2D.Double(mc.getPosition().getX() * xRatio, mc.getPosition().getY() * yRatio));
-                mc.setVelocity(mc.getVelocity().x() * xRatio, mc.getVelocity().y() * yRatio);
-                // restore to previous locked status
-                mcOpts.setLocked(locked);
-            });
-            oldWidth = newWidth;
-            oldHeight = newHeight;
-            Global.setScreenWidth(newWidth);
-            Global.setScreenHeight(newHeight);
-        }
-    }
-
     void initMusicians() {
-        // store width and height in case we resize later
-        oldWidth = getWidth();
-        oldHeight = getHeight();
         for (var musician : MusicianList.getInstance().getMusicians().values()) {
             addMusicianComponent(musician);
         }
