@@ -27,7 +27,9 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
      */
     public ExternalTimingSource(Transport transport) {
         this.transport = transport;
-        MidiController.getInstance().registerWithAllExternalReceivers(this);
+        var configuredExternalTimingBus = Options.getInstance().getMidiOptions().getExternalTimingBus();
+        logger.atInfo().log("Using external timing source: {}", configuredExternalTimingBus);
+        MidiController.getInstance().getExternalReceiver(configuredExternalTimingBus).registerReceiver(this);
     }
 
     @Override

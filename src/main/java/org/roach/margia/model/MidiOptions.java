@@ -37,6 +37,7 @@ public class MidiOptions {
     private int verticalPanController = DEFAULT_VERTICAL_PAN_CONTROLLER;
     private boolean verticalPanWithRelativeLocations = true;
     private boolean usingExternalTiming;
+    private String externalTimingBus;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -199,6 +200,16 @@ public class MidiOptions {
             Options.getInstance().setDirty();
         }
     }
+
+    /**
+     * @return the externalTimingBus
+     */
+    public String getExternalTimingBus() { return externalTimingBus; }
+
+    /**
+     * @param externalTimingBus the externalTimingBus to set
+     */
+    public void setExternalTimingBus(String externalTimingBus) { this.externalTimingBus = externalTimingBus; }
 
     /**
      * @param key      name of property being listened for
