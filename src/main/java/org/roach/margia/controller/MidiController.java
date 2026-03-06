@@ -6,6 +6,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import javax.sound.midi.*;
 import javax.swing.event.ChangeEvent;
@@ -142,9 +143,17 @@ public class MidiController implements ChangeListener {
         this.inputReceivers.clear();
         MidiDevice device;
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
+        var usedOutputDevices = Options.getInstance().getMusicians().values().stream().map(MusicianOptions::getBusName).collect(Collectors.toSet());
+        LOGGER.atDebug().log("MIDI devices configured for output: {}", usedOutputDevices);
         for (MidiDevice.Info info : infos) {
-            if (EXCLUDED_INPUT_DEVICES.contains(info.getName()))
+            if (EXCLUDED_INPUT_DEVICES.contains(info.getName())) {
+                LOGGER.atInfo().log("Not registering for input on {} because it is an excluded input device", info.getName());
                 continue;
+            }
+            if (usedOutputDevices.contains(info.getName())) {
+                LOGGER.atInfo().log("Not registering for input on {} because it is an output device (loopback would occur)", info.getName());
+                continue;
+            }
             try {
                 device = MidiSystem.getMidiDevice(info);
                 // Check if device has transmitters and isn't a software synthesizer
@@ -202,8 +211,6 @@ public class MidiController implements ChangeListener {
      * @param amount     controller value to send (0-127)
      */
     public void sendControlChange(String busName, int channel, int controller, int amount) {
-        if (!sending.get())
-            return;
         if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
             LOGGER.atDebug().log("out of range; amount: {}, channel: {}, controller: {}", amount, channel, controller);
             return;
@@ -440,7 +447,7 @@ public class MidiController implements ChangeListener {
             if (message instanceof ShortMessage sm) {
                 var channel = sm.getChannel();
                 LOGGER.atTrace().log("Received a {} command on channel {}: {}/{}, status={}",
-                        MIDI_COMMANDS.getOrDefault(sm.getCommand(), Integer.toString(sm.getCommand())), channel, sm.getData1(), sm.getData2(),MIDI_STATUSES.getOrDefault(sm.getStatus(), Integer.toString(message.getStatus())));
+                        MIDI_COMMANDS.getOrDefault(sm.getCommand(), Integer.toString(sm.getCommand())), channel+1, sm.getData1(), sm.getData2(),MIDI_STATUSES.getOrDefault(sm.getStatus(), Integer.toString(message.getStatus())));
                 for (var receiver : receivers) {
                     receiver.receive(sm);
                 }
