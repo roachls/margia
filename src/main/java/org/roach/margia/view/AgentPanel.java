@@ -68,6 +68,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         setBackground(Color.LIGHT_GRAY);
         this.addMouseListener(mouseAdapter);
         this.addMouseMotionListener(mouseAdapter);
+        this.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                super.componentResized(e);
+                Global.setScreenHeight(getHeight());
+                Global.setScreenWidth(getWidth());
+            }
+        });
         Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
     }
 
