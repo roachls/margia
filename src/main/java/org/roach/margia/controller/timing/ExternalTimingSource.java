@@ -91,5 +91,9 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
     private double calcTempo() {
         return Arrays.stream(tempo).average().getAsDouble();
     }
-
+    
+    @Override
+    public String toString() {
+        return "External Timing Source";
+    }
 }

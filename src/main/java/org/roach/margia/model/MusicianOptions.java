@@ -17,7 +17,7 @@ import org.roach.margia.util.RangeCheck;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicianOptions {
-    private String busName = ALL_BUSSES;
+    private String busName;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
     private boolean muted;
@@ -34,10 +34,6 @@ public class MusicianOptions {
      * {@link AtomicInteger} that is used to generate the ID of the next musician
      */
     public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
-    /**
-     * special value of busName to indicate all/any available busses
-     */
-    public static final String ALL_BUSSES = "All available outputs";
 
     /**
      * @return the busName
@@ -52,8 +48,9 @@ public class MusicianOptions {
             return;
         var oldBusName = this.busName;
         this.busName = busName;
-        if (oldBusName != null && !oldBusName.equals(this.busName))
+        if (oldBusName != null && !oldBusName.equals(this.busName)) {
             Options.getInstance().setDirty();
+        }
     }
 
     /**

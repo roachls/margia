@@ -6,17 +6,11 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-<!-- 		<Logger name="Musician_13" level="debug" additivity="false"> -->
-<!-- 			<AppenderRef ref="Console" /> -->
-<!-- 		</Logger> -->
-		<!-- <Logger name="Musician_13" level="debug" additivity="false"> -->
-		<!-- <AppenderRef ref="Console" />> -->
-		<!-- </Logger> -->
 		<Logger name="org.roach.margia.Transport" level="info"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Root level="debug">
+		<Root level="info">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>

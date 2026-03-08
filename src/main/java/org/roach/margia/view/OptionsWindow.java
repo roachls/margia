@@ -725,7 +725,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var channelLabel = createLabelFor("MIDI Channel", channel);
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
-            availableDevices.add(MusicianOptions.ALL_BUSSES);
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
             var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
             bus = new JComboBox<>(busModel);
@@ -881,7 +880,6 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var channelLabel = createLabelFor("MIDI Channel", channel);
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
-            availableDevices.add(MusicianOptions.ALL_BUSSES);
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
             var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
             bus = new JComboBox<>(busModel);

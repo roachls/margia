@@ -1,6 +1,6 @@
 package org.roach.margia.model;
 
-import java.util.Objects;
+import java.util.*;
 
 import javax.swing.event.ChangeListener;
 
@@ -28,6 +28,7 @@ public class MidiOptions {
     public static final int DEFAULT_VERTICAL_PAN_CONTROLLER = 78;
 
     private boolean usingExternalMidi;
+    private final Set<String> bussesToSendTiming = new HashSet<>();
     private boolean sendingMidiTimecode;
     private int tempoController;
     private boolean sendPanMessage = true;
@@ -49,7 +50,7 @@ public class MidiOptions {
      * @return whether to use external MIDI devices
      */
     public boolean isUsingExternalMidi() { return usingExternalMidi; }
-
+    
     /**
      * @param usingExternalMidi whether to use external MIDI devices
      */
@@ -63,6 +64,20 @@ public class MidiOptions {
         }
     }
 
+    /**
+     * @return a set of names of busses on which to send timing signals
+     */
+    public Set<String> getBussesToSendTiming() {
+        return Collections.unmodifiableSet(bussesToSendTiming);
+    }
+    
+    /**
+     * @param bussesToSendTiming one or more names of busses on which to send timing
+     */
+    public void setBussesToSendTiming(Set<String> bussesToSendTiming) {
+        this.bussesToSendTiming.addAll(Objects.requireNonNull(bussesToSendTiming));
+    }
+    
     /**
      * @return the sendingMidiTimecode
      */
