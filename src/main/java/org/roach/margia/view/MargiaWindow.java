@@ -4,6 +4,7 @@ import static org.roach.margia.view.Icons.*;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.prefs.BackingStoreException;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings({ "java:S1948" })
 public class MargiaWindow extends JFrame implements ChangeListener {
+    private static final String MARGIA_EXTENSION = ".margia";
     private static final String ABOUT_MESSAGE = """
             <html>
             <h1>MARGIA</h1>
@@ -681,7 +683,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
     private void saveSettingsToFile() {
         var options = Options.getInstance();
-        if (Options.getInstance().getFilename() == null) {
+        boolean newFile = Options.getInstance().getFilename() == null;
+        if (newFile) {
             Options.getInstance().setFilename(getFilePathFromUser(this, "Select Save location", FileAction.SAVE));
         }
         if (Options.getInstance().getFilename() == null)
@@ -689,8 +692,19 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         try {
             var filenameStr = Options.getInstance().getFilename().toString();
             if (filenameStr.lastIndexOf('.') == -1)
-                Options.getInstance()
-                        .setFilename(Options.getInstance().getFilename().resolveSibling(filenameStr + ".margia"));
+                Options.getInstance().setFilename(
+                        Options.getInstance().getFilename().resolveSibling(filenameStr + MARGIA_EXTENSION));
+            // warn user if this was a Save As and file already exists
+            if (newFile && Files.exists(Options.getInstance().getFilename())) {
+                var answer = JOptionPane.showConfirmDialog(this,
+                        "File '%s' exists, do you want to replace it?"
+                                .formatted(Options.getInstance().getFilename().toString()),
+                        "Confirm overwrite", JOptionPane.YES_NO_OPTION);
+                if (answer == JOptionPane.NO_OPTION) {
+                    Options.getInstance().setFilename(null);
+                    return;
+                }
+            }
             try (var os = Files.newOutputStream(Options.getInstance().getFilename())) {
                 options.store(os);
             }
@@ -722,8 +736,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         fileChooser.setDialogTitle(dialogTitle);
         fileChooser.setCurrentDirectory(Options.getInstance().getSaveDir().toFile());
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        if (action == FileAction.LOAD)
-            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MARGIA files", "margia"));
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MARGIA files", "margia"));
 
         int returnValue;
         if (action == FileAction.SAVE) {
@@ -733,7 +746,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         }
 
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            var selectedFile = fileChooser.getSelectedFile();
+            File selectedFile = fileChooser.getSelectedFile();
+            String selectedFilename = selectedFile.getAbsolutePath();
+            if (!selectedFilename.toLowerCase().endsWith(MARGIA_EXTENSION)) {
+                selectedFilename += MARGIA_EXTENSION;
+                selectedFile = new File(selectedFilename);
+            }
             try {
                 Options.getInstance().setSaveDir(selectedFile.getParentFile().toPath());
             } catch (BackingStoreException e) {
