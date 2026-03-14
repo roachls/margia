@@ -30,15 +30,34 @@ public class MidiController implements ChangeListener {
     private static final Logger LOGGER = LogManager.getLogger(MidiController.class);
     /*
      * All of the following MIDI devices will cause errors if you try to even open
-     * them to look at them, so we exclude them from the list of available devices
+     * them to look at them, so we exclude them from the list of available devices.
+     * 
+     * TODO: this is admittedly Windows-specific, and even specific to my device.
+     * Need to find a better way.
      */
     private static final Set<String> EXCLUDED_OUTPUT_DEVICES = Set.of("CoolSoft MIDIMapper", "Real Time Sequencer",
             "Microsoft MIDI Mapper", "MidiView");
+    /*
+     * All devices that are available for output (by name), even if they aren't
+     * being used
+     */
     private final Map<String, MidiDevice> outputDevices = new TreeMap<>();
+    /*
+     * All devices that are available for input (by name), even if they aren't being
+     * used
+     */
     private final Map<String, MidiDevice> inputDevices = new TreeMap<>();
+    /*
+     * Devices that are actually being used for output will have their receivers
+     * here by name
+     */
     private final Map<String, Receiver> outputReceivers = new TreeMap<>();
+    /*
+     * Devices that are actually being used for input will have their
+     * ExternalReceivers here by name
+     */
     private final Map<String, ExternalReceiver> inputReceivers = new TreeMap<>();
-    // one executor per MIDI channel
+    // one executor per available processor
     private final ScheduledExecutorService scheduledExecutor = Executors
             .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
     private final ExecutorService immediateExecutor = Executors.newVirtualThreadPerTaskExecutor();
@@ -46,11 +65,17 @@ public class MidiController implements ChangeListener {
     private final ShortMessage timingPulse;
     private AtomicBoolean sending = new AtomicBoolean();
     private static MidiController instance;
-    private static final Map<Integer, String> MIDI_COMMANDS = Map.of(NOTE_OFF, "NOTE_OFF", NOTE_ON, "NOTE_ON",
-            POLY_PRESSURE, "POLY_PRESSURE", CONTROL_CHANGE, "CONTROL_CHANGE", PROGRAM_CHANGE, "PROGRAM_CHANGE",
-            CHANNEL_PRESSURE, "CHANNEL_PRESSURE", PITCH_BEND, "PITCH_BEND", 240, "CLOCK_PULSE");
-    private static final Map<Integer, String> MIDI_STATUSES = Map.ofEntries(
     // @formatter:off
+    private static final Map<Integer, String> MIDI_COMMANDS = Map.of(
+            NOTE_OFF, "NOTE_OFF",
+            NOTE_ON, "NOTE_ON",
+            POLY_PRESSURE, "POLY_PRESSURE",
+            CONTROL_CHANGE, "CONTROL_CHANGE", 
+            PROGRAM_CHANGE, "PROGRAM_CHANGE",
+            CHANNEL_PRESSURE, "CHANNEL_PRESSURE",
+            PITCH_BEND, "PITCH_BEND",
+            240, "CLOCK_PULSE");
+    private static final Map<Integer, String> MIDI_STATUSES = Map.ofEntries(
             Map.entry(MIDI_TIME_CODE, "MIDI_TIME_CODE"),
             Map.entry(SONG_POSITION_POINTER, "SONG_POSITION_POINTER"),
             Map.entry(SONG_SELECT, "SONG_SELECT"), 
@@ -140,11 +165,16 @@ public class MidiController implements ChangeListener {
                 if (receiver != null) {
                     // always add devices to list of possible output devices
                     outputDevices.put(info.getName(), device);
-                    LOGGER.atInfo().log("Added MIDI output device: {}", info.getName());
+                    LOGGER.atInfo().log("Added potential MIDI output device: {}", info.getName());
                     // only added receivers that are actually in use
                     if (registeredOutputDevices.contains(info.getName())
                             && !outputReceivers.containsKey(info.getName())) {
                         outputReceivers.put(info.getName(), receiver);
+                        LOGGER.atInfo().log("Registered '{}' as output device", info.getName());
+                        if (inputReceivers.containsKey(info.getName())) {
+                            LOGGER.atError().log("'{}' is being used for both input and output! Loopback will occur!",
+                                    info.getName());
+                        }
                     }
                 }
             } else {
@@ -196,7 +226,7 @@ public class MidiController implements ChangeListener {
                 var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
                 if (similarNameExists)
                     continue;
-                LOGGER.atInfo().log("Adding input device '{}' ({}:{})", info.getName(), info.getVendor(),
+                LOGGER.atInfo().log("Adding potential input device '{}' ({}:{})", info.getName(), info.getVendor(),
                         info.getVersion());
                 inputDevices.put(info.getName(), device);
             }
@@ -232,6 +262,11 @@ public class MidiController implements ChangeListener {
             }
             transmitter.setReceiver(externalReceiver);
             inputReceivers.put(registeredInputDevice, externalReceiver);
+            LOGGER.atInfo().log("Registered '{}' as input device", registeredInputDevice);
+            if (outputReceivers.containsKey(registeredInputDevice)) {
+                LOGGER.atError().log("'{}' has been registered for both input and output, loopback will occur!",
+                        registeredInputDevice);
+            }
         }
     }
 
