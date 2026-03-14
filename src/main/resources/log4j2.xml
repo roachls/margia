@@ -39,6 +39,10 @@
 			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
+		<Logger name="org.roach.margia.view" level="debug"
+			additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
 		<Root level="info">
 			<AppenderRef ref="Console" />
 		</Root>

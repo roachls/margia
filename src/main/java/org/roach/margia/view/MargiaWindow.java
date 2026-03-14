@@ -5,8 +5,7 @@ import static org.roach.margia.view.Icons.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.util.prefs.BackingStoreException;
 
 import javax.swing.*;
@@ -19,6 +18,7 @@ import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
+import org.roach.margia.util.MargiaFileUtils;
 import org.roach.margia.view.AgentPanel.EditMode;
 import org.roach.margia.view.AgentPanel.FanDirection;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
@@ -71,6 +71,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private JMenuBar menubar;
     private JToolBar toolbar;
     private final TransportPanel transportPanel;
+    private JMenu openRecents;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -173,7 +174,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 break;
             case KeyEvent.VK_O:
                 if (e.isControlDown()) {
-                    openSettingsFromFile();
+                    openSettingsFromFileUserPrompt();
                     complete = true;
                 }
                 break;
@@ -223,7 +224,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         fileMenu.setMnemonic(KeyEvent.VK_F);
         var openMenuItem = new JMenuItem("Open", getToolbarIcon(OPEN));
         openMenuItem.setMnemonic(KeyEvent.VK_O);
-        openMenuItem.addActionListener(_ -> openSettingsFromFile());
+        openMenuItem.addActionListener(_ -> openSettingsFromFileUserPrompt());
 
         var saveMenuItem = new JMenuItem("Save", getToolbarIcon(SAVE));
         saveMenuItem.setMnemonic(KeyEvent.VK_S);
@@ -235,6 +236,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             Options.getInstance().setFilename(null);
             saveSettingsToFile();
         });
+
+        openRecents = new JMenu("Open recent file");
+        updateRecentsMenu();
 
         var exitMenuItem = new JMenuItem("Exit", getToolbarIcon(EXIT));
         exitMenuItem.setMnemonic(KeyEvent.VK_X);
@@ -254,11 +258,23 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         });
 
         fileMenu.add(openMenuItem);
+        fileMenu.add(openRecents);
         fileMenu.add(saveMenuItem);
         fileMenu.add(saveAsMenuItem);
         fileMenu.addSeparator();
         fileMenu.add(exitMenuItem);
         menubar.add(fileMenu);
+    }
+
+    private void updateRecentsMenu() {
+        openRecents.removeAll();
+        var recentFiles = MargiaFileUtils.getRecentsFromPersistence();
+        for (var i = 0; i < recentFiles.size(); i++) {
+            var file = new JMenuItem("%d: %s".formatted(i + 1, recentFiles.get(i)));
+            file.setName(recentFiles.get(0));
+            file.addActionListener(_ -> openSettingsFromFile(Paths.get(recentFiles.get(0))));
+            openRecents.add(file);
+        }
     }
 
     private void setupEditMenu(JMenuBar menubar) {
@@ -629,14 +645,18 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         menubar.add(helpMenu);
     }
 
-    private void openSettingsFromFile() {
+    private void openSettingsFromFileUserPrompt() {
         var newSaveLocation = getFilePathFromUser(this, "Select file", FileAction.LOAD);
         if (newSaveLocation == null)
             return;
-        Options.getInstance().setFilename(newSaveLocation);
+        openSettingsFromFile(newSaveLocation);
+    }
+
+    private void openSettingsFromFile(Path fileLocation) {
+        Options.getInstance().setFilename(fileLocation);
         try (var is = Files.newInputStream(Options.getInstance().getFilename())) {
             Options.getInstance().load(is);
-            Options.getInstance().setSaveDir(newSaveLocation.getParent());
+            Options.getInstance().setSaveDir(fileLocation.getParent());
             registerListeners();
             optionsWindow.updateOptions();
             Key.initFromOptions();
@@ -649,11 +669,13 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 agentPanel.init();
                 agentPanel.initMusicians();
             });
+            MargiaFileUtils.saveRecentsToPersistence(fileLocation.toString());
+            updateRecentsMenu();
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
         } catch (BackingStoreException e) {
-            LOGGER.atError().setMessage("Error writing save directory to preferences: {}")
-                    .addArgument(() -> e.getMessage()).log();
+            LOGGER.atError().setMessage("Error writing save directory to preferences: {}").addArgument(e::getMessage)
+                    .log();
         }
     }
 
@@ -673,6 +695,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 options.store(os);
             }
             updateTitle();
+            MargiaFileUtils.saveRecentsToPersistence(filenameStr);
+            updateRecentsMenu();
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error saving file", JOptionPane.ERROR_MESSAGE);
         }

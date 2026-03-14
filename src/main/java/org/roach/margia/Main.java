@@ -22,6 +22,7 @@ import org.roach.margia.model.Key;
 import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
+import org.roach.margia.util.MargiaFileUtils;
 import org.roach.margia.view.MargiaWindow;
 
 import com.beust.jcommander.JCommander;
@@ -61,6 +62,7 @@ public class Main {
                 Options.getInstance().load(is);
                 Options.getInstance().setFilename(params.file);
                 Options.getInstance().setSaveDir(params.file.getParent());
+                MargiaFileUtils.saveRecentsToPersistence(params.file.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (BackingStoreException e) {

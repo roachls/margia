@@ -53,9 +53,10 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
         if (message.getCommand() != 240) // clock pulse
             return;
 
-        logger.atTrace().setMessage("ET-{}:{} {} {}").addArgument(() -> message.getChannel())
-                .addArgument(() -> message.getStatus()).addArgument(() -> message.getData1())
-                .addArgument(() -> message.getData2()).log();
+        logger.atTrace().setMessage("ET-{}:{} {} {}").addArgument(message::getChannel)
+                .addArgument(message::getStatus)
+                .addArgument(message::getData1)
+                .addArgument(message::getData2).log();
         switch (message.getStatus()) {
         case ShortMessage.TIMING_CLOCK:
             long currentTime = System.nanoTime() / 1000; // Convert to microseconds
