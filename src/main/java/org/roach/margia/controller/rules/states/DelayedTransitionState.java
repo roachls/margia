@@ -54,7 +54,7 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
         }
 
         if (chord == null) {
-            logger.atDebug().log("{}: chord heard was null, returning", musician.getId());
+            logger.atDebug().setMessage("{}: chord heard was null, returning").addArgument(musician.getId()).log();
             return;
         }
 

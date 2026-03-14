@@ -13,8 +13,6 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
@@ -24,6 +22,8 @@ import org.roach.margia.util.DieRoller;
 import org.roach.margia.view.AgentPanel.EditMode;
 import org.roach.margia.view.AgentPanel.FanDirection;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The main program window
@@ -45,7 +45,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
     private OptionsWindow optionsWindow;
     private AgentPanel agentPanel;
     private boolean fullScreen;
-    private static final Logger LOGGER = LogManager.getLogger(MargiaWindow.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MargiaWindow.class);
     // OS-specific control key (Ctrl for Windows, Option for Mac)
     private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
     private static final String SHIFT_TEXT = InputEvent.getModifiersExText(InputEvent.SHIFT_DOWN_MASK);
@@ -652,7 +652,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         } catch (IOException e1) {
             JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
         } catch (BackingStoreException e) {
-            LOGGER.atError().log("Error writing save directory to preferences: {}", e.getMessage());
+            LOGGER.atError().setMessage("Error writing save directory to preferences: {}")
+                    .addArgument(() -> e.getMessage()).log();
         }
     }
 

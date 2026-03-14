@@ -5,15 +5,18 @@ import java.beans.PropertyChangeSupport;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.*;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.*;
+import org.roach.margia.model.Length;
+import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is the "clock" that drives everything. It issues a "tick" once every
  * 16th note.
  */
+@SuppressWarnings("java:S6548")
 public class Transport {
     /**
      * Property fired when tick updates
@@ -36,7 +39,7 @@ public class Transport {
      */
     public static final String RESET_PROPERTY = "reset";
     private long tick = 1;
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<Long, Runnable> tickActions = new HashMap<>();
     private int tickLength;
     private int currentClockPulse = 1;
@@ -117,7 +120,9 @@ public class Transport {
          * swallowed and the executor would simply stop with no explanation.
          */
         try {
-            logger.printf(Level.TRACE, "%03d:%01d.%02d (%03d)", measureNum, beatNum, currentClockPulse, tick);
+            logger.atTrace()
+                    .setMessage(() -> "%03d:%01d.%02d (%03d)".formatted(measureNum, beatNum, currentClockPulse, tick))
+                    .log();
             if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
                 MidiController.getInstance().sendClockPulse();
             }
@@ -125,7 +130,7 @@ public class Transport {
             if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13
                     || currentClockPulse == 19) {
                 if (tickActions.containsKey(tick)) {
-                    logger.atDebug().log("Transport playing tick action {}", tick);
+                    logger.atDebug().setMessage("Transport playing tick action {}").addArgument(tick).log();
                     tickActions.remove(tick).run();
                 }
                 // each musician calculate their next action
@@ -156,7 +161,7 @@ public class Transport {
             }
             propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, oldClockPulse, currentClockPulse);
         } catch (Exception e) {
-            logger.atError().withThrowable(e).log("Error in Transport#receiveClockPulse");
+            logger.atError().setCause(e).setMessage("Error in Transport#receiveClockPulse").log();
         }
     }
 

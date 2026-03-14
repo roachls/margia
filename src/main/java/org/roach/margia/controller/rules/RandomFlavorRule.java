@@ -24,8 +24,8 @@ public class RandomFlavorRule extends AbstractMusicianRule {
         public List<MusicalAction> apply(MusicianMessage t) {
             var list = new ArrayList<MusicalAction>();
             if (musician.getChordsIvePlayed() >= maxChordStringLength) {
-                logger.atDebug().log("{}: resting because I've played {} notes", musician.getId(),
-                        musician.getChordsIvePlayed());
+                logger.atDebug().setMessage("{}: resting because I've played {} notes").addArgument(musician.getId())
+                        .addArgument(() -> musician.getChordsIvePlayed()).log();
                 for (var i = 0; i < restsBetweenChordStrings; i++) {
                     list.add(new RestOneTick(musician));
                 }
@@ -33,7 +33,7 @@ public class RandomFlavorRule extends AbstractMusicianRule {
                 return list;
             }
             if (musician.getQueueSize() == 0) {
-                logger.atDebug().log("{} queue is empty", musician.getId());
+                logger.atDebug().setMessage("{} queue is empty").addArgument(musician.getId()).log();
                 list.add(new PlayPseudoRandomChordFlavor(musician, 17, 15, flavor));
                 return list;
             }

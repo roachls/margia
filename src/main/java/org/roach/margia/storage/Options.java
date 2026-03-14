@@ -7,13 +7,13 @@ import java.util.prefs.BackingStoreException;
 
 import javax.swing.event.ChangeListener;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
 import org.roach.margia.view.ChangeEmitter;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -25,7 +25,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 @SuppressWarnings({ "java:S3008", "java:S6548" })
 public class Options {
     private static final String SAVE_DIR_PROPERTY = "saveDir";
-    private static final Logger LOGGER = LogManager.getLogger(Options.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Options.class);
 
     /**
      * Property fired to notify listeners that something has changed
@@ -80,7 +80,7 @@ public class Options {
         try {
             loadedOpts = mapper.readValue(is, StoredOptions.class);
         } catch (MismatchedInputException e) {
-            LOGGER.atError().withThrowable(e).log("Parameter file was empty or malformed");
+            LOGGER.atError().setCause(e).log("Parameter file was empty or malformed");
             return;
         }
         if (loadedOpts != null) {
