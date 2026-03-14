@@ -10,13 +10,13 @@ import javax.sound.midi.ShortMessage;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController.MidiReceiver;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.model.MusicOptions;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import tech.units.indriya.quantity.Quantities;
 import tech.units.indriya.quantity.time.TimeQuantities;
@@ -30,7 +30,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
     private AtomicReference<Quantity<Time>> tickLengthMicros;
     private final ScheduledExecutorService clockExecutor;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
      * @param transport the transport to control

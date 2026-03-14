@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.*;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
@@ -20,6 +21,11 @@ import org.roach.margia.controller.rules.NumericRange;
 class PseudoRandomMusicianStateTest {
     private static org.roach.margia.controller.rules.states.PseudoRandomMusicianStateTest.CapturingAppender appender;
 
+    @org.apache.logging.log4j.core.config.plugins.Plugin(
+            name = "capture",
+            category = Core.CATEGORY_NAME,
+            elementType = Appender.ELEMENT_TYPE,
+            printObject = true)
     private static class CapturingAppender extends AbstractAppender {
         final Queue<LogEvent> events = new LinkedBlockingQueue<>();
 
@@ -42,6 +48,7 @@ class PseudoRandomMusicianStateTest {
         appender.start();
         configuration.addLoggerAppender(logger, appender);
         logger.addAppender(configuration.getAppender("capture"));
+        logger.setLevel(Level.DEBUG);
     }
 
     @Test

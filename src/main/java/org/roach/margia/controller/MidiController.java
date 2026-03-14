@@ -12,13 +12,13 @@ import javax.sound.midi.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.rules.ReceiverRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.NamedThreadFactory;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Sends MIDI messages to external (or internal) MIDI instruments
@@ -27,7 +27,7 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
 public class MidiController implements ChangeListener {
 
     private static final int ALL_NOTES_OFF = 123;
-    private static final Logger LOGGER = LogManager.getLogger(MidiController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MidiController.class);
     /*
      * All of the following MIDI devices will cause errors if you try to even open
      * them to look at them, so we exclude them from the list of available devices.
@@ -104,7 +104,7 @@ public class MidiController implements ChangeListener {
         try {
             timingPulse.setMessage(ShortMessage.TIMING_CLOCK);
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("Error setting MIDI timing pulse");
+            LOGGER.atError().setCause(e).log("Error setting MIDI timing pulse");
         }
         Options.getInstance().getMidiOptions().addChangeListener(MidiOptions.EXTERNAL_MIDI_PROPERTY, this);
     }
@@ -139,43 +139,48 @@ public class MidiController implements ChangeListener {
             try {
                 device = MidiSystem.getMidiDevice(info);
             } catch (MidiUnavailableException e) {
-                LOGGER.atError().log("Unable to obtain information about device {}", info.getName());
-                LOGGER.atTrace().withThrowable(e).log();
+                LOGGER.atError().setMessage("Unable to obtain information about device {}").addArgument(info.getName())
+                        .log();
+                LOGGER.atTrace().setCause(e).log();
                 continue;
             }
             if (!device.isOpen()) {
                 try {
                     device.open();
                 } catch (MidiUnavailableException e) {
-                    LOGGER.atError().log("MIDI device {} unavailable", info.getName());
-                    LOGGER.atDebug().withThrowable(e).log("{}", info.getName());
+                    LOGGER.atError().setMessage("MIDI device {} unavailable").addArgument(info.getName()).log();
+                    LOGGER.atDebug().setCause(e).setMessage("{}").addArgument(info::getName).log();
                     continue;
                 }
                 Receiver receiver = null;
                 try {
                     receiver = device.getReceiver();
                 } catch (MidiUnavailableException _) {
-                    LOGGER.atDebug().log("No receiver available for MIDI device {}", info.getName());
+                    LOGGER.atDebug().setMessage("No receiver available for MIDI device {}")
+                            .addArgument(info::getName).log();
                     continue;
                 }
                 // a device with no receiver is not an output device
                 if (receiver != null) {
                     // always add devices to list of possible output devices
                     outputDevices.put(info.getName(), device);
-                    LOGGER.atInfo().log("Added potential MIDI output device: {}", info.getName());
+                    LOGGER.atInfo().setMessage("Added potential MIDI output device: {}")
+                            .addArgument(info::getName).log();
                     // only added receivers that are actually in use
                     if (registeredOutputDevices.contains(info.getName())
                             && !outputReceivers.containsKey(info.getName())) {
                         outputReceivers.put(info.getName(), receiver);
-                        LOGGER.atInfo().log("Registered '{}' as output device", info.getName());
+                        LOGGER.atInfo().setMessage("Registered '{}' as output device").addArgument(info::getName)
+                                .log();
                         if (inputReceivers.containsKey(info.getName())) {
-                            LOGGER.atError().log("'{}' is being used for both input and output! Loopback will occur!",
-                                    info.getName());
+                            LOGGER.atError()
+                                    .setMessage("'{}' is being used for both input and output! Loopback will occur!")
+                                    .addArgument(info.getName()).log();
                         }
                     }
                 }
             } else {
-                LOGGER.atWarn().log("Device {} is already open", info.getName());
+                LOGGER.atWarn().setMessage("Device {} is already open").addArgument(info.getName()).log();
             }
         }
 
@@ -202,29 +207,33 @@ public class MidiController implements ChangeListener {
                 .map(mo -> mo.getRuleOptions()).filter(ro -> ro.getName().equals("receiver"))
                 .map(ro -> (String) ro.getRuleSpecificOptionOrDefault(ReceiverRule.DEVICE_NAME_PROPERTY, null))
                 .filter(b -> b != null).collect(Collectors.toSet()));
-        LOGGER.atDebug().log("MIDI devices configured for input: {}", registeredInputDevices);
+        LOGGER.atDebug().setMessage("MIDI devices configured for input: {}").addArgument(() -> registeredInputDevices)
+                .log();
         var oldInputReceivers = new HashMap<String, ExternalReceiver>(this.inputReceivers);
         this.inputReceivers.clear();
         MidiDevice device;
         MidiDevice.Info[] infos = MidiSystem.getMidiDeviceInfo();
         var usedOutputDevices = outputReceivers.keySet();
-        LOGGER.atDebug().log("MIDI devices configured for output: {}", usedOutputDevices);
+        LOGGER.atDebug().setMessage("MIDI devices configured for output: {}").addArgument(() -> usedOutputDevices)
+                .log();
         for (MidiDevice.Info info : infos) {
             try {
                 device = MidiSystem.getMidiDevice(info);
             } catch (MidiUnavailableException e) {
-                LOGGER.atError().withThrowable(e).log("Error obtaining MIDI device '{}'", info.getName());
+                LOGGER.atError().setCause(e).setMessage("Error obtaining MIDI device '{}'").addArgument(info.getName())
+                        .log();
                 continue;
             }
             // Check if device has transmitters and isn't a software synthesizer
-            LOGGER.atTrace().log("Examining input device '{}'", info.getName());
+            LOGGER.atTrace().setMessage("Examining input device '{}'").addArgument(info::getName).log();
             if (device.getMaxTransmitters() != 0 && !(device instanceof Synthesizer)) {
-                LOGGER.atDebug().log("Found input device '{}'", info.getName());
+                LOGGER.atDebug().setMessage("Found input device '{}'").addArgument(info::getName).log();
                 var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
                 if (similarNameExists)
                     continue;
-                LOGGER.atInfo().log("Adding potential input device '{}' ({}:{})", info.getName(), info.getVendor(),
-                        info.getVersion());
+                LOGGER.atInfo().setMessage("Adding potential input device '{}' ({}:{})")
+                        .addArgument(info::getName).addArgument(info::getVendor)
+                        .addArgument(info::getVersion).log();
                 inputDevices.put(info.getName(), device);
             }
         }
@@ -233,20 +242,23 @@ public class MidiController implements ChangeListener {
         for (var registeredInputDevice : registeredInputDevices) {
             device = inputDevices.get(registeredInputDevice);
             if (device == null) {
-                LOGGER.atError().log("No device named '{}' found, are you sure it's connected?", registeredInputDevice);
+                LOGGER.atError().setMessage("No device named '{}' found, are you sure it's connected?")
+                        .addArgument(registeredInputDevice).log();
                 continue;
             }
             try {
                 device.open();
             } catch (MidiUnavailableException e) {
-                LOGGER.atError().withThrowable(e).log("Error opening MIDI device '{}'", registeredInputDevice);
+                LOGGER.atError().setCause(e).setMessage("Error opening MIDI device '{}'")
+                        .addArgument(registeredInputDevice).log();
                 continue;
             }
             Transmitter transmitter = null;
             try {
                 transmitter = device.getTransmitter();
             } catch (MidiUnavailableException _) {
-                LOGGER.atError().log("No transmitter available for '{}'", registeredInputDevice);
+                LOGGER.atError().setMessage("No transmitter available for '{}'").addArgument(registeredInputDevice)
+                        .log();
                 continue;
             }
             var externalReceiver = new ExternalReceiver(registeredInputDevice);
@@ -259,10 +271,10 @@ public class MidiController implements ChangeListener {
             }
             transmitter.setReceiver(externalReceiver);
             inputReceivers.put(registeredInputDevice, externalReceiver);
-            LOGGER.atInfo().log("Registered '{}' as input device", registeredInputDevice);
+            LOGGER.atInfo().setMessage("Registered '{}' as input device").addArgument(registeredInputDevice).log();
             if (outputReceivers.containsKey(registeredInputDevice)) {
-                LOGGER.atError().log("'{}' has been registered for both input and output, loopback will occur!",
-                        registeredInputDevice);
+                LOGGER.atError().setMessage("'{}' has been registered for both input and output, loopback will occur!")
+                        .addArgument(registeredInputDevice).log();
             }
         }
     }
@@ -285,21 +297,21 @@ public class MidiController implements ChangeListener {
     private void tryToObtainReceiverForBus(String busName) {
         var device = outputDevices.get(busName);
         if (device == null) {
-            LOGGER.atError().log("No such device: '{}'", busName);
+            LOGGER.atError().setMessage("No such device: '{}'").addArgument(busName).log();
             return;
         }
         Receiver receiver = null;
         try {
             receiver = device.getReceiver();
         } catch (MidiUnavailableException _) {
-            LOGGER.atDebug().log("No receiver available for MIDI device {}", busName);
+            LOGGER.atDebug().setMessage("No receiver available for MIDI device '{}'").addArgument(busName).log();
             return;
         }
         // a device with no receiver is not an output device
         if (receiver != null) {
             // always add devices to list of possible output devices
             outputDevices.put(busName, device);
-            LOGGER.atInfo().log("Added MIDI output device: {}", busName);
+            LOGGER.atInfo().setMessage("Added MIDI output device: '{}'").addArgument(busName).log();
             // only added receivers that are actually in use
             if (!outputReceivers.containsKey(busName)) {
                 outputReceivers.put(busName, receiver);
@@ -317,18 +329,20 @@ public class MidiController implements ChangeListener {
      */
     public void sendControlChange(String busName, int channel, int controller, int amount) {
         if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
-            LOGGER.atDebug().log("out of range; amount: {}, channel: {}, controller: {}", amount, channel, controller);
+            LOGGER.atDebug().setMessage("out of range; amount: {}, channel: {}, controller: {}").addArgument(amount)
+                    .addArgument(channel).addArgument(controller).log();
             return;
         }
         try {
             var panMessage = new ShortMessage(ShortMessage.CONTROL_CHANGE, channel, controller, amount);
             if (outputReceivers.containsKey(busName)) {
                 immediateExecutor.submit(() -> outputReceivers.get(busName).send(panMessage, -1));
-                LOGGER.atTrace().log("Sending control message on {}:{} with controller {}, amount {}", busName,
-                        channel + 1, controller, amount);
+                LOGGER.atTrace().setMessage("Sending control message on {}:{} with controller {}, amount {}")
+                        .addArgument(busName).addArgument(channel + 1).addArgument(controller).addArgument(amount)
+                        .log();
             }
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("Invalid MIDI data");
+            LOGGER.atError().setCause(e).log("Invalid MIDI data");
         }
     }
 
@@ -343,9 +357,10 @@ public class MidiController implements ChangeListener {
      */
     @SuppressWarnings("java:S3776")
     public void playChordsThisTick() {
-        for (var busEntry : chordsToPlayNextPerDevice.entrySet()) {
-            LOGGER.atTrace().log("Playing chords this tick for '{}'", busEntry.getKey());
-            var chordsToPlayNext = busEntry.getValue();
+        for (var deviceEntry : chordsToPlayNextPerDevice.entrySet()) {
+            LOGGER.atTrace().setMessage("Playing chords this tick for '{}'").addArgument(deviceEntry::getKey)
+                    .log();
+            var chordsToPlayNext = deviceEntry.getValue();
             for (var i = 0; i < 16; i++) {
                 var ai = new AtomicInteger(i);
                 if (chordsToPlayNext.containsKey(i)) {
@@ -354,7 +369,7 @@ public class MidiController implements ChangeListener {
                     immediateExecutor.submit(() -> {
                         for (var chord : chordList) {
                             for (var noteInfo : chord.getNotes()) {
-                                play(outputReceivers.get(busEntry.getKey()), ai.get(), noteInfo, NOTE_ON,
+                                play(outputReceivers.get(deviceEntry.getKey()), ai.get(), noteInfo, NOTE_ON,
                                         chord.getVelocity());
                             }
                         }
@@ -368,7 +383,7 @@ public class MidiController implements ChangeListener {
                                 .getValue().doubleValue() * 0.95);
                         scheduledExecutor.schedule(() -> {
                             for (var noteInfo : chord.getNotes()) {
-                                play(outputReceivers.get(busEntry.getKey()), ai.get(), noteInfo, NOTE_OFF,
+                                play(outputReceivers.get(deviceEntry.getKey()), ai.get(), noteInfo, NOTE_OFF,
                                         chord.getVelocity());
                             }
                         }, noteLengthInMillis, TimeUnit.MILLISECONDS);
@@ -385,12 +400,13 @@ public class MidiController implements ChangeListener {
      */
     public void sendClockPulse() {
         if (Options.getInstance().getMidiOptions().getDevicesToSendTiming().isEmpty()) {
-            LOGGER.atError().log(
-                    "Configured to send MIDI timecode, but no external busses have been configured with the 'midiOptions:bussesToSendTiming' parameter");
+            LOGGER.atError().setMessage(
+                    "Configured to send MIDI timecode, but no external devices have been configured with the 'midiOptions:devicesToSendTiming' parameter")
+                    .log();
         } else {
-            for (var busName : Options.getInstance().getMidiOptions().getDevicesToSendTiming()) {
-                var outputDevice = outputReceivers.get(busName);
-                LOGGER.atTrace().log("Sending timecode to '{}'", busName);
+            for (var deviceName : Options.getInstance().getMidiOptions().getDevicesToSendTiming()) {
+                var outputDevice = outputReceivers.get(deviceName);
+                LOGGER.atTrace().setMessage("Sending timecode to '{}'").addArgument(deviceName).log();
                 outputDevice.send(timingPulse, -1);
             }
         }
@@ -408,7 +424,7 @@ public class MidiController implements ChangeListener {
                 primaryReceiver.send(startMsg, -1);
             }
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("Error sending MIDI clock start message");
+            LOGGER.atError().setCause(e).log("Error sending MIDI clock start message");
         }
     }
 
@@ -424,7 +440,7 @@ public class MidiController implements ChangeListener {
                 primaryReceiver.send(stopMsg, -1);
             }
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("Error sending MIDI clock stop message");
+            LOGGER.atError().setCause(e).log("Error sending MIDI clock stop message");
         }
     }
 
@@ -445,7 +461,7 @@ public class MidiController implements ChangeListener {
                 break;
             }
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().withThrowable(e).log("invalid MIDI data");
+            LOGGER.atError().setCause(e).log("invalid MIDI data");
         }
     }
 
@@ -486,7 +502,7 @@ public class MidiController implements ChangeListener {
                 receiver.send(new ShortMessage(ShortMessage.CONTROL_CHANGE, ALL_NOTES_OFF, 0), -1);
             }
         } catch (InvalidMidiDataException e) {
-            LOGGER.atError().log("Error turning all notes off: {}", e.getMessage());
+            LOGGER.atError().setMessage("Error turning all notes off: {}").addArgument(e.getMessage()).log();
         }
     }
 

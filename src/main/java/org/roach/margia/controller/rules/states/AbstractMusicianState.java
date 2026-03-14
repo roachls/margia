@@ -3,13 +3,13 @@ package org.roach.margia.controller.rules.states;
 import java.util.*;
 import java.util.function.Function;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.actions.MusicalAction;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.AbstractMusicianRule;
 import org.roach.margia.model.Chord;
 import org.roach.margia.model.MusicianMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link MusicianState}
@@ -20,7 +20,7 @@ import org.roach.margia.model.MusicianMessage;
 public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> implements MusicianState {
     protected final String name;
     protected final List<Function<MusicianMessage, List<MusicalAction>>> actions = new ArrayList<>();
-    protected final Logger logger = LogManager.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AbstractMusicianState(final String name) {
         this.name = name;
@@ -61,7 +61,8 @@ public abstract class AbstractMusicianState<T extends AbstractMusicianState<T>> 
     @Override
     public void doActions(Musician musician, AbstractMusicianRule rule, MusicianMessage message) {
         for (var action : actions()) {
-            logger.atDebug().log("{} ({}): {}", musician.getId(), name(), message);
+            logger.atDebug().setMessage("{} ({}): {}").addArgument(musician.getId()).addArgument(name())
+                    .addArgument(message).log();
             for (var musicianAction : action.apply(message)) {
                 rule.addActionToTake(musicianAction);
             }

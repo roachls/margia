@@ -8,12 +8,12 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("javadoc")
 public class Icons {
-    private static final Logger LOGGER = LogManager.getLogger(Icons.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Icons.class);
     private static final int TOOLBAR_ICON_SIZE = 24;
     private static final int MENU_ICON_SIZE = 18;
     private static final Map<String, ImageIcon> LARGE_ICONS = new HashMap<>();
@@ -126,7 +126,7 @@ public class Icons {
             var resizedImage = image.getScaledInstance(scale, scale, Image.SCALE_SMOOTH);
             return new ImageIcon(resizedImage, description);
         } catch (IOException e) {
-            LOGGER.atError().withThrowable(e).log("Unable to load image file {}", path);
+            LOGGER.atError().setCause(e).setMessage("Unable to load image file {}").addArgument(path).log();
             return null;
         }
     }

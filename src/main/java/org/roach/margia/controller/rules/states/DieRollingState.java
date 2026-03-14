@@ -40,7 +40,7 @@ public class DieRollingState extends NumberRangeBasedState<DieRollingState> {
             checkForOverlap(range);
             this.stateMap.put(range, toState);
         } catch (NumericRangeOverlapException e) {
-            logger.atWarn().withThrowable(e).log("Error adding state transition");
+            logger.atWarn().setCause(e).setMessage("Error adding state transition").log();
         }
         return this;
     }

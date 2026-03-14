@@ -8,13 +8,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.roach.margia.controller.rules.*;
+import org.roach.margia.controller.rules.AbstractMusicianRule;
+import org.roach.margia.controller.rules.MusicianRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.roach.margia.view.PropertyChangeEmitter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link Musician} is the core class of the application. It continuously
@@ -49,7 +50,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     private AbstractMusicianRule rule;
     private int chordsIvePlayed;
     private Chord myLastChord;
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private long currentTick;
     private final PropertyChangeSupport propertyChange;
     private MusicianOptions musicianOptions;
@@ -103,12 +104,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
             if (note == null || note == Note.REST)
                 continue;
             if (musicianOptions.isMuted()) {
-                logger.atDebug().log("{} is muted", id);
+                logger.atDebug().setMessage("{} is muted").addArgument(id).log();
             } else {
                 var range = musicianOptions.getRange();
                 var adjustedNote = range.adjustToRangeByOctaves(note);
-                logger.atDebug().log("{}: playing note {} on channel {}, duration {}", id, adjustedNote,
-                        musicianOptions.getChannel(), chord.getLength());
+                logger.atDebug().setMessage("{}: playing note {} on channel {}, duration {}").addArgument(id)
+                        .addArgument(adjustedNote).addArgument(musicianOptions.getChannel())
+                        .addArgument(chord.getLength()).log();
                 adjustedNotes.add(adjustedNote);
             }
         }
@@ -155,11 +157,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     public void calculateAction(long tick) {
         this.currentTick = tick;
-        logger.atDebug().log("{}: tick={} calculateAction", id, tick);
+        logger.atDebug().setMessage("{}: tick={} calculateAction").addArgument(id).addArgument(tick).log();
         if (rule != null)
             rule.calculateAction(tick);
         else
-            logger.atTrace().log("{} rule is null", id);
+            logger.atTrace().setMessage("{} rule is null").addArgument(id).log();
     }
 
     /**
@@ -179,15 +181,17 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
         var offerSuccess = this.messageQueue.offer(message);
         if (offerSuccess) {
             if (message instanceof Chord heardChord)
-                logger.atDebug().log("{}: heard {}, queue size = {}", id, heardChord, messageQueue.size());
+                logger.atDebug().setMessage("{}: heard {}, queue size = {}").addArgument(id).addArgument(heardChord)
+                        .addArgument(messageQueue::size).log();
             else
-                logger.atDebug().log("{}: received message: {}", id, message);
+                logger.atDebug().setMessage("{}: received message: {}").addArgument(id).addArgument(() -> message)
+                        .log();
             if (messageQueue.size() > Options.getInstance().getMusicOptions().getMaxQueueSize()) {
-                logger.atDebug().log("{}: pulling old message to make room for new", id);
+                logger.atDebug().setMessage("{}: pulling old message to make room for new").addArgument(id);
                 messageQueue.poll();
             }
         } else {
-            logger.atWarn().log("{}: Unable to add note to queue (out of memory?)", id);
+            logger.atWarn().setMessage("{}: Unable to add note to queue (out of memory?)").addArgument(id).log();
         }
     }
 

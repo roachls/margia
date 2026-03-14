@@ -4,18 +4,18 @@ import java.util.Arrays;
 
 import javax.sound.midi.ShortMessage;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.MidiController.MidiReceiver;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.storage.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A timing source that receives clock impulses from external MIDI
  */
 public class ExternalTimingSource implements TimingSource, MidiReceiver {
-    private final Logger logger = LogManager.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Transport transport;
     private long lastClockTime;
     private final double[] tempo = new double[24];
@@ -28,7 +28,8 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
     public ExternalTimingSource(Transport transport) {
         this.transport = transport;
         var configuredExternalTimingDevice = Options.getInstance().getMidiOptions().getExternalTimingDevice();
-        logger.atInfo().log("Using external timing source: {}", configuredExternalTimingDevice);
+        logger.atInfo().setMessage("Using external timing source: {}").addArgument(() -> configuredExternalTimingDevice)
+                .log();
         MidiController.getInstance().getExternalReceiver(configuredExternalTimingDevice).registerReceiver(this);
     }
 
@@ -52,8 +53,9 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
         if (message.getCommand() != 240) // clock pulse
             return;
 
-        logger.atTrace().log("ET-{}:{} {} {}", message.getChannel(), message.getStatus(), message.getData1(),
-                message.getData2());
+        logger.atTrace().setMessage("ET-{}:{} {} {}").addArgument(() -> message.getChannel())
+                .addArgument(() -> message.getStatus()).addArgument(() -> message.getData1())
+                .addArgument(() -> message.getData2()).log();
         switch (message.getStatus()) {
         case ShortMessage.TIMING_CLOCK:
             long currentTime = System.nanoTime() / 1000; // Convert to microseconds
@@ -91,7 +93,7 @@ public class ExternalTimingSource implements TimingSource, MidiReceiver {
     private double calcTempo() {
         return Arrays.stream(tempo).average().getAsDouble();
     }
-    
+
     @Override
     public String toString() {
         return "External Timing Source";
