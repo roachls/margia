@@ -17,7 +17,7 @@ import org.roach.margia.util.RangeCheck;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicianOptions {
-    private String busName;
+    private String deviceName;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
     private boolean muted;
@@ -36,19 +36,19 @@ public class MusicianOptions {
     public static final AtomicInteger ID_GENERATOR = new AtomicInteger(0);
 
     /**
-     * @return the busName
+     * @return the device name
      */
-    public String getBusName() { return busName; }
+    public String getDeviceName() { return deviceName; }
 
     /**
-     * @param busName the busName to set
+     * @param deviceName the name of the device that the musician should send on
      */
-    public void setBusName(String busName) {
-        if (busName == null)
+    public void setDeviceName(String deviceName) {
+        if (deviceName == null)
             return;
-        var oldBusName = this.busName;
-        this.busName = busName;
-        if (oldBusName != null && !oldBusName.equals(this.busName)) {
+        var oldDeviceName = this.deviceName;
+        this.deviceName = deviceName;
+        if (oldDeviceName != null && !oldDeviceName.equals(this.deviceName)) {
             Options.getInstance().setDirty();
         }
     }
@@ -158,9 +158,9 @@ public class MusicianOptions {
 
     @Override
     public String toString() {
-        return "MusicianOptions [id=" + id + ", busName=" + busName + ", channel=" + channel + ", peerIds=" + peerIds
-                + ", muted=" + muted + ", listening=" + listening + ", ruleOptions=" + ruleOptions + ", keyName="
-                + keyName + ", range=" + range + "]";
+        return "MusicianOptions [id=" + id + ", deviceName=" + deviceName + ", channel=" + channel + ", peerIds="
+                + peerIds + ", muted=" + muted + ", listening=" + listening + ", ruleOptions=" + ruleOptions
+                + ", keyName=" + keyName + ", range=" + range + "]";
     }
 
     /**
@@ -180,7 +180,7 @@ public class MusicianOptions {
         copy.keyName = keyName;
         copy.range = range.copy();
         copy.id = newId;
-        copy.busName = busName;
+        copy.deviceName = deviceName;
         return copy;
     }
 
@@ -202,7 +202,7 @@ public class MusicianOptions {
 
     @Override
     public int hashCode() {
-        return Objects.hash(busName, channel, id, keyName, listening, muted, peerIds, range, ruleOptions);
+        return Objects.hash(deviceName, channel, id, keyName, listening, muted, peerIds, range, ruleOptions);
     }
 
     @Override
@@ -214,7 +214,7 @@ public class MusicianOptions {
         if (getClass() != obj.getClass())
             return false;
         MusicianOptions other = (MusicianOptions) obj;
-        return Objects.equals(busName, other.busName) && channel == other.channel && id == other.id
+        return Objects.equals(deviceName, other.deviceName) && channel == other.channel && id == other.id
                 && Objects.equals(keyName, other.keyName) && listening == other.listening && muted == other.muted
                 && Objects.equals(peerIds, other.peerIds) && Objects.equals(range, other.range)
                 && Objects.equals(ruleOptions, other.ruleOptions);

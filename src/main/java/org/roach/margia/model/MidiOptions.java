@@ -28,7 +28,7 @@ public class MidiOptions {
     public static final int DEFAULT_VERTICAL_PAN_CONTROLLER = 78;
 
     private boolean usingExternalMidi;
-    private final Set<String> bussesToSendTiming = new HashSet<>();
+    private final Set<String> devicesToSendTiming = new HashSet<>();
     private boolean sendingMidiTimecode;
     private int tempoController;
     private boolean sendPanMessage = true;
@@ -38,7 +38,7 @@ public class MidiOptions {
     private int verticalPanController = DEFAULT_VERTICAL_PAN_CONTROLLER;
     private boolean verticalPanWithRelativeLocations = true;
     private boolean usingExternalTiming;
-    private String externalTimingBus;
+    private String externalTimingDevice;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -50,7 +50,7 @@ public class MidiOptions {
      * @return whether to use external MIDI devices
      */
     public boolean isUsingExternalMidi() { return usingExternalMidi; }
-    
+
     /**
      * @param usingExternalMidi whether to use external MIDI devices
      */
@@ -65,19 +65,18 @@ public class MidiOptions {
     }
 
     /**
-     * @return a set of names of busses on which to send timing signals
+     * @return a set of names of devices to send timing signals to
      */
-    public Set<String> getBussesToSendTiming() {
-        return Collections.unmodifiableSet(bussesToSendTiming);
-    }
-    
+    public Set<String> getDevicesToSendTiming() { return Collections.unmodifiableSet(devicesToSendTiming); }
+
     /**
-     * @param bussesToSendTiming one or more names of busses on which to send timing
+     * @param devicesToSendTiming one or more names of devices on which to send
+     *                            timing
      */
-    public void setBussesToSendTiming(Set<String> bussesToSendTiming) {
-        this.bussesToSendTiming.addAll(Objects.requireNonNull(bussesToSendTiming));
+    public void setDevicesToSendTiming(Set<String> devicesToSendTiming) {
+        this.devicesToSendTiming.addAll(Objects.requireNonNull(devicesToSendTiming));
     }
-    
+
     /**
      * @return the sendingMidiTimecode
      */
@@ -217,14 +216,17 @@ public class MidiOptions {
     }
 
     /**
-     * @return the externalTimingBus
+     * @return the device to receive timing from (if
+     *         {@link #isUsingExternalTiming()} is {@code true}
      */
-    public String getExternalTimingBus() { return externalTimingBus; }
+    public String getExternalTimingDevice() { return externalTimingDevice; }
 
     /**
-     * @param externalTimingBus the externalTimingBus to set
+     * @param externalTimingDevice the device to use for external timing
      */
-    public void setExternalTimingBus(String externalTimingBus) { this.externalTimingBus = externalTimingBus; }
+    public void setExternalTimingDevice(String externalTimingDevice) {
+        this.externalTimingDevice = externalTimingDevice;
+    }
 
     /**
      * @param key      name of property being listened for

@@ -61,7 +61,7 @@ public class MidiController implements ChangeListener {
     private final ScheduledExecutorService scheduledExecutor = Executors
             .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new NamedThreadFactory("controller"));
     private final ExecutorService immediateExecutor = Executors.newVirtualThreadPerTaskExecutor();
-    private final Map<String, Map<Integer, List<Chord>>> chordsToPlayNextPerBus = new HashMap<>();
+    private final Map<String, Map<Integer, List<Chord>>> chordsToPlayNextPerDevice = new HashMap<>();
     private final ShortMessage timingPulse;
     private AtomicBoolean sending = new AtomicBoolean();
     private static MidiController instance;
@@ -99,9 +99,6 @@ public class MidiController implements ChangeListener {
         return instance;
     }
 
-    /**
-     * @param busName name of MIDI bus to send notes on
-     */
     private MidiController() {
         this.timingPulse = new ShortMessage();
         try {
@@ -130,8 +127,8 @@ public class MidiController implements ChangeListener {
 
         // all devices actually being used in loaded options
         Set<String> registeredOutputDevices = new HashSet<>(Options.getInstance().getMusicians().values().stream()
-                .map(mo -> mo.getBusName()).collect(Collectors.toSet()));
-        registeredOutputDevices.addAll(Options.getInstance().getMidiOptions().getBussesToSendTiming());
+                .map(mo -> mo.getDeviceName()).collect(Collectors.toSet()));
+        registeredOutputDevices.addAll(Options.getInstance().getMidiOptions().getDevicesToSendTiming());
 
         // Find an output device (e.g., a software synthesizer or a physical MIDI output
         // port)
@@ -200,7 +197,7 @@ public class MidiController implements ChangeListener {
         // devices actually registered as inputs
         var registeredInputDevices = new HashSet<String>();
         if (Options.getInstance().getMidiOptions().isUsingExternalTiming())
-            registeredInputDevices.add(Options.getInstance().getMidiOptions().getExternalTimingBus());
+            registeredInputDevices.add(Options.getInstance().getMidiOptions().getExternalTimingDevice());
         registeredInputDevices.addAll(Options.getInstance().getMusicians().values().stream()
                 .map(mo -> mo.getRuleOptions()).filter(ro -> ro.getName().equals("receiver"))
                 .map(ro -> (String) ro.getRuleSpecificOptionOrDefault(ReceiverRule.DEVICE_NAME_PROPERTY, null))
@@ -336,7 +333,7 @@ public class MidiController implements ChangeListener {
     }
 
     private void addChordsThisTick(String busName, int midiChannel, Chord chord) {
-        var chordsForBus = chordsToPlayNextPerBus.computeIfAbsent(busName, _ -> new HashMap<>());
+        var chordsForBus = chordsToPlayNextPerDevice.computeIfAbsent(busName, _ -> new HashMap<>());
         var listOfChords = chordsForBus.computeIfAbsent(midiChannel, _ -> new ArrayList<>());
         listOfChords.add(chord);
     }
@@ -346,7 +343,7 @@ public class MidiController implements ChangeListener {
      */
     @SuppressWarnings("java:S3776")
     public void playChordsThisTick() {
-        for (var busEntry : chordsToPlayNextPerBus.entrySet()) {
+        for (var busEntry : chordsToPlayNextPerDevice.entrySet()) {
             LOGGER.atTrace().log("Playing chords this tick for '{}'", busEntry.getKey());
             var chordsToPlayNext = busEntry.getValue();
             for (var i = 0; i < 16; i++) {
@@ -380,18 +377,18 @@ public class MidiController implements ChangeListener {
             }
             chordsToPlayNext.clear();
         }
-        chordsToPlayNextPerBus.clear();
+        chordsToPlayNextPerDevice.clear();
     }
 
     /**
      * Send a clock pulse. Pulses should be sent 24 per beat
      */
     public void sendClockPulse() {
-        if (Options.getInstance().getMidiOptions().getBussesToSendTiming().isEmpty()) {
+        if (Options.getInstance().getMidiOptions().getDevicesToSendTiming().isEmpty()) {
             LOGGER.atError().log(
                     "Configured to send MIDI timecode, but no external busses have been configured with the 'midiOptions:bussesToSendTiming' parameter");
         } else {
-            for (var busName : Options.getInstance().getMidiOptions().getBussesToSendTiming()) {
+            for (var busName : Options.getInstance().getMidiOptions().getDevicesToSendTiming()) {
                 var outputDevice = outputReceivers.get(busName);
                 LOGGER.atTrace().log("Sending timecode to '{}'", busName);
                 outputDevice.send(timingPulse, -1);

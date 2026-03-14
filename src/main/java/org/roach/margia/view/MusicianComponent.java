@@ -107,7 +107,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 // smaller y's) to send higher numbers
                 verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.y) / height);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(), musician.getChannel(),
+            MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getVerticalPanController(), verticalPanValue);
         }
 
@@ -121,7 +121,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
                 width = Global.getScreenWidth();
                 panValue = width == 0 ? 63 : (int) (127d * pos.x / width);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getBusName(), musician.getChannel(),
+            MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getPanController(), panValue);
         }
 

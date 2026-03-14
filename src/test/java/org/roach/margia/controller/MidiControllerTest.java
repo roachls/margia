@@ -21,7 +21,7 @@ class MidiControllerTest {
         Options.getInstance().getMusicOptions().setTempo(60);
         Options.getInstance().getMidiOptions().setUsingExternalMidi(false);
         var mo = new MusicianOptions();
-        mo.setBusName("Microsoft GS Wavetable Synth");
+        mo.setDeviceName("Microsoft GS Wavetable Synth");
         Options.getInstance().getMusicians().put(1, mo);
         var controller = MidiController.getInstance();
         controller.scanForMidiOutputDevices();
