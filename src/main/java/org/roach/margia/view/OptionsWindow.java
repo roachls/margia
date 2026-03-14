@@ -689,7 +689,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         private final JSpinner rangeLow;
         private final JSpinner rangeHi;
         private JSpinner channel;
-        private JComboBox<String> bus;
+        private JComboBox<String> device;
 
         @Override
         public String toString() {
@@ -725,14 +725,13 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var channelLabel = createLabelFor("MIDI Channel", channel);
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
-            availableDevices.add(MusicianOptions.ALL_BUSSES);
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
-            var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
-            bus = new JComboBox<>(busModel);
-            bus.setSelectedItem(options.getBusName());
-            bus.addActionListener(_ -> options.setBusName((String) bus.getSelectedItem()));
-            var busLabel = new JLabel("MIDI Bus");
-            busLabel.setLabelFor(bus);
+            var deviceModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
+            device = new JComboBox<>(deviceModel);
+            device.setSelectedItem(options.getDeviceName());
+            device.addActionListener(_ -> options.setDeviceName((String) device.getSelectedItem()));
+            var deviceLabel = new JLabel("MIDI Device");
+            deviceLabel.setLabelFor(device);
 
             var c = new GridBagConstraints();
             c.fill = GridBagConstraints.BOTH;
@@ -772,10 +771,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.gridx = 0;
             c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
-            add(busLabel, c);
+            add(deviceLabel, c);
             c.gridx = 1;
             c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(bus, c);
+            add(device, c);
 
             // Add a "filler" component to absorb extra vertical space
             // This pushes all previous components to the top of the container
@@ -813,12 +812,12 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                     .allMatch(c -> firstChannel == c);
             if (allChannelsSame)
                 options.setChannel(firstChannel);
-            var firstBusName = optionsList.get(0).getBusName();
-            var allBusNamesSame = optionsList.stream().map(MusicianOptions::getBusName).allMatch(firstBusName::equals);
-            if (allBusNamesSame)
-                options.setBusName(firstBusName);
+            var firstDeviceName = optionsList.get(0).getDeviceName();
+            var allDevicesNamesSame = optionsList.stream().map(MusicianOptions::getDeviceName).allMatch(firstDeviceName::equals);
+            if (allDevicesNamesSame)
+                options.setDeviceName(firstDeviceName);
             else
-                options.setBusName("");
+                options.setDeviceName("");
 
             setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " musical options"));
             setLayout(new GridBagLayout());
@@ -881,23 +880,22 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             var channelLabel = createLabelFor("MIDI Channel", channel);
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
-            availableDevices.add(MusicianOptions.ALL_BUSSES);
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
-            var busModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
-            bus = new JComboBox<>(busModel);
-            var normalBusBackground = bus.getBackground();
-            if (!allBusNamesSame)
-                bus.setBackground(Color.red);
-            bus.setSelectedItem(options.getBusName());
-            bus.addActionListener(_ -> {
-                if ("".equals(bus.getSelectedItem()))
+            var deviceModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
+            device = new JComboBox<>(deviceModel);
+            var normalDeviceBackground = device.getBackground();
+            if (!allDevicesNamesSame)
+                device.setBackground(Color.red);
+            device.setSelectedItem(options.getDeviceName());
+            device.addActionListener(_ -> {
+                if ("".equals(device.getSelectedItem()))
                     return;
-                bus.setBackground(normalBusBackground);
-                options.setBusName((String) bus.getSelectedItem());
-                others.forEach(o -> o.bus.setSelectedItem(bus.getSelectedItem()));
+                device.setBackground(normalDeviceBackground);
+                options.setDeviceName((String) device.getSelectedItem());
+                others.forEach(o -> o.device.setSelectedItem(device.getSelectedItem()));
             });
-            var busLabel = new JLabel("MIDI Bus");
-            busLabel.setLabelFor(bus);
+            var deviceLabel = new JLabel("MIDI Device");
+            deviceLabel.setLabelFor(device);
 
             c.gridx = 0;
             c.weightx = LEFT_COLUMN_WEIGHT;
@@ -930,10 +928,10 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             c.gridx = 0;
             c.weightx = LEFT_COLUMN_WEIGHT;
             c.gridy++;
-            add(busLabel, c);
+            add(deviceLabel, c);
             c.gridx = 1;
             c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(bus, c);
+            add(device, c);
 
             // Add a "filler" component to absorb extra vertical space
             // This pushes all previous components to the top of the container

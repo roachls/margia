@@ -23,10 +23,6 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
      * device name property
      */
     public static final String DEVICE_NAME_PROPERTY = "deviceName";
-    /**
-     * special deviceName property representing all devices
-     */
-    public static final String ALL_DEVICES = "All Available Devices";
 
     private String deviceName;
 
@@ -60,18 +56,15 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
 
     private void registerWithExternalReceiver() {
         if (this.deviceName != null) {
-            if (!ALL_DEVICES.equals(this.deviceName)) {
-                var distributor = MidiController.getInstance().getExternalReceiver(this.deviceName);
-                if (distributor != null) {
-                    this.logger.atInfo().log("Registered with bus {} on channel {}", deviceName, musician.getChannel());
-                    distributor.registerReceiver(this);
-                } else
-                    logger.atWarn().log("Device {} is not available, musician {} will not be able to receive",
-                            deviceName, musician.getId());
-            } else {
-                logger.atInfo().log("deviceName property not set, registring with all external receivers");
-                MidiController.getInstance().registerWithAllExternalReceivers(this);
-            }
+            var distributor = MidiController.getInstance().getExternalReceiver(this.deviceName);
+            if (distributor != null) {
+                this.logger.atInfo().log("Registered with bus '{}' on channel {}", deviceName, musician.getChannel());
+                distributor.registerReceiver(this);
+            } else
+                logger.atWarn().log("Bus '{}' is not available, musician {} will not be able to receive", deviceName,
+                        musician.getId());
+        } else {
+            logger.atWarn().log("ReceiverRule has no device name, cannot register for inputs");
         }
     }
 
@@ -107,7 +100,7 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
     @Override
     public void restoreFromStorage(RuleOptions ruleOptions) {
         super.restoreFromStorage(ruleOptions);
-        this.deviceName = (String) ruleOptions.getRuleSpecificOptionOrDefault(DEVICE_NAME_PROPERTY, ALL_DEVICES);
+        this.deviceName = (String) ruleOptions.getRuleSpecificOptionOrDefault(DEVICE_NAME_PROPERTY, null);
     }
 
     @Override
