@@ -8,6 +8,7 @@ import java.beans.PropertyChangeListener;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.swing.JPanel;
@@ -16,6 +17,7 @@ import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.command.*;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.rules.StateBasedRule;
@@ -536,12 +538,22 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     void setEditMode(EditMode mode) { this.mode = mode; }
 
-    void lockAll() {
-        musicianComponents.values().forEach(mc -> mc.setLocked(true));
+    class LockAllCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().forEach(mc -> mc.setLocked(true));
+            if (!undo)
+                CommandCaretaker.pushStack(new Memento(this, List.of(new UnlockAllCommand())));
+        }
     }
 
-    void unlockAll() {
-        musicianComponents.values().forEach(mc -> mc.setLocked(false));
+    class UnlockAllCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().forEach(mc -> mc.setLocked(false));
+            if (!undo)
+                CommandCaretaker.pushStack(new Memento(this, List.of(new LockAllCommand())));
+        }
     }
 
     void delete(List<MusicianComponent> selectedMusicianComponents) {
@@ -584,83 +596,222 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         notifyListenersOfSelection();
     }
 
-    void muteSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().getOptions().setMuted(true));
+    class MuteSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.getMusician().getOptions().setMuted(true));
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new UnmuteSelectedCommand())));
+        }
+
     }
 
-    void unmuteSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().getOptions().setMuted(false));
+    class UnmuteSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.getMusician().getOptions().setMuted(false));
+            if (!undo)
+                CommandCaretaker
+                        .pushStack(new Memento(this, List.of(new RestoreSelectedCommand(), new MuteSelectedCommand())));
+        }
+
     }
 
-    void toggleMuteSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
-            boolean isMuted = mc.getMusician().getOptions().isMuted();
-            mc.getMusician().getOptions().setMuted(!isMuted);
-        });
-    }
+    private class RestoreSelectedCommand implements Command {
+        private final Set<Integer> selectedAgents;
 
-    void lockSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> mc.setLocked(true));
-    }
+        public RestoreSelectedCommand() {
+            selectedAgents = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .map(mc -> mc.getMusician().getId()).collect(Collectors.toSet());
+        }
 
-    void unlockSelected() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> mc.setLocked(false));
-    }
-
-    void toggleSelectedListening() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().setListening(!mc.getMusician().isListening()));
-    }
-
-    void setSelectedNotListening() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().setListening(false));
-    }
-
-    void setSelectedListening() {
-        musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .forEach(mc -> mc.getMusician().setListening(true));
-    }
-
-    void deleteSelected() {
-        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-        delete(selectedMusicians);
-    }
-
-    void connectSelected() {
-        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-        for (int i = 0; i < selectedMusicians.size() - 1; i++) {
-            for (int j = i + 1; j < selectedMusicians.size(); j++) {
-                var mc1 = selectedMusicians.get(i);
-                var mus1 = mc1.getMusician();
-                var mc2 = selectedMusicians.get(j);
-                var mus2 = mc2.getMusician();
-                mus1.addPeer(mus2);
-                mus2.addPeer(mus1);
-                edges.add(new Edge(mc1, mc2, UiOptions.DEFAULT_EDGE_LENGTH));
-                edges.add(new Edge(mc2, mc1, UiOptions.DEFAULT_EDGE_LENGTH));
+        @Override
+        public void execute(boolean undo) {
+            for (var mc : musicianComponents.values()) {
+                mc.setSelected(selectedAgents.contains(mc.getMusician().getId()));
             }
         }
     }
 
-    void disconnectSelected() {
-        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-        for (int i = 0; i < selectedMusicians.size() - 1; i++) {
-            for (int j = i + 1; j < selectedMusicians.size(); j++) {
-                var mc1 = selectedMusicians.get(i);
-                var mc2 = selectedMusicians.get(j);
-                var edgeIter = edges.iterator();
-                while (edgeIter.hasNext()) {
-                    var edge = edgeIter.next();
-                    if ((mc1.equals(edge.source) && mc2.equals(edge.target))
-                            || (mc2.equals(edge.source) && mc1.equals(edge.target))) {
-                        edge.source.getMusician().removePeer(edge.target.getMusician());
-                        edgeIter.remove();
+    class ToggleMuteSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
+                boolean isMuted = mc.getMusician().getOptions().isMuted();
+                mc.getMusician().getOptions().setMuted(!isMuted);
+            });
+            if (!undo) {
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new ToggleMuteSelectedCommand())));
+            }
+        }
+    }
+
+    class LockSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.setLocked(true));
+            if (!undo) {
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new UnlockSelectedCommand())));
+            }
+        }
+
+    }
+
+    class UnlockSelectedCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.setLocked(false));
+            if (!undo) {
+                CommandCaretaker
+                        .pushStack(new Memento(this, List.of(new RestoreSelectedCommand(), new LockSelectedCommand())));
+            }
+        }
+    }
+
+    class ToggleSelectedListeningCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.getMusician().setListening(!mc.getMusician().isListening()));
+            if (!undo) {
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new ToggleSelectedListeningCommand())));
+            }
+        }
+    }
+
+    class SetSelectedNotListeningCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.getMusician().setListening(false));
+            if (!undo) {
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new SetSelectedListeningCommand())));
+            }
+        }
+    }
+
+    class SetSelectedListeningCommand implements Command {
+        @Override
+        public void execute(boolean undo) {
+            musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .forEach(mc -> mc.getMusician().setListening(true));
+            if (!undo) {
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new SetSelectedNotListeningCommand())));
+            }
+        }
+    }
+
+    class DeleteSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
+            var deletedMusicianOptions = selectedMusicians.stream().map(m -> m.getMusician().getId())
+                    .collect(Collectors.toMap(id -> id, id -> Options.getInstance().getMusicians().get(id)));
+            var deletedMusicianComponentOptions = selectedMusicians.stream().map(m -> m.getMusician().getId())
+                    .collect(Collectors.toMap(id -> id,
+                            id -> Options.getInstance().getUiOptions().getMusicianComponents().get(id)));
+            delete(selectedMusicians);
+            if (!undo) {
+                CommandCaretaker
+                        .pushStack(new Memento(this, List.of(new RestoreDeletedMusiciansCommand(selectedMusicians,
+                                deletedMusicianOptions, deletedMusicianComponentOptions))));
+            }
+        }
+    }
+
+    private class RestoreDeletedMusiciansCommand implements Command {
+        private final List<MusicianComponent> deletedMusicians;
+        private final Map<Integer, MusicianOptions> deletedMusicianOptions;
+        private final Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions;
+
+        public RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
+                Map<Integer, MusicianOptions> deletedMusicianOptions,
+                Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions) {
+            this.deletedMusicians = deletedMusicians;
+            this.deletedMusicianOptions = deletedMusicianOptions;
+            this.deletedMusicianComponentOptions = deletedMusicianComponentOptions;
+        }
+
+        @Override
+        public void execute(boolean undo) {
+            for (var mc : deletedMusicians) {
+                var id = mc.getMusician().getId();
+                MusicianList.getInstance().addMusician(mc.getMusician());
+                numMusicians = MusicianList.getInstance().numMusicians();
+                musicianComponents.put(mc.getMusician().getId(), mc);
+                // TODO re-calc edges
+                add(mc);
+                Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
+                Options.getInstance().getUiOptions().getMusicianComponents().put(id,
+                        deletedMusicianComponentOptions.get(id));
+                // TODO reconnect peerIds that were pointing at this musician
+                firePropertyChange(AGENT_ADDED_PROPERTY, null, mc);
+            }
+        }
+
+    }
+
+    class ConnectSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
+            for (int i = 0; i < selectedMusicians.size() - 1; i++) {
+                for (int j = i + 1; j < selectedMusicians.size(); j++) {
+                    var mc1 = selectedMusicians.get(i);
+                    var mus1 = mc1.getMusician();
+                    var mc2 = selectedMusicians.get(j);
+                    var mus2 = mc2.getMusician();
+                    mus1.addPeer(mus2);
+                    mus2.addPeer(mus1);
+                    edges.add(new Edge(mc1, mc2, UiOptions.DEFAULT_EDGE_LENGTH));
+                    edges.add(new Edge(mc2, mc1, UiOptions.DEFAULT_EDGE_LENGTH));
+                }
+            }
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new DisconnectSelectedCommand())));
+        }
+    }
+
+    class DisconnectSelectedCommand implements Command {
+
+        @Override
+        public void execute(boolean undo) {
+            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
+            for (int i = 0; i < selectedMusicians.size() - 1; i++) {
+                for (int j = i + 1; j < selectedMusicians.size(); j++) {
+                    var mc1 = selectedMusicians.get(i);
+                    var mc2 = selectedMusicians.get(j);
+                    var edgeIter = edges.iterator();
+                    while (edgeIter.hasNext()) {
+                        var edge = edgeIter.next();
+                        if ((mc1.equals(edge.source) && mc2.equals(edge.target))
+                                || (mc2.equals(edge.source) && mc1.equals(edge.target))) {
+                            edge.source.getMusician().removePeer(edge.target.getMusician());
+                            edgeIter.remove();
+                        }
                     }
                 }
             }
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new RestoreSelectedCommand(), new ConnectSelectedCommand())));
         }
     }
 
@@ -865,4 +1016,5 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
     }
+
 }
