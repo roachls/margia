@@ -156,22 +156,21 @@ public class MidiController implements ChangeListener {
                 try {
                     receiver = device.getReceiver();
                 } catch (MidiUnavailableException _) {
-                    LOGGER.atDebug().setMessage("No receiver available for MIDI device {}")
-                            .addArgument(info::getName).log();
+                    LOGGER.atDebug().setMessage("No receiver available for MIDI device {}").addArgument(info::getName)
+                            .log();
                     continue;
                 }
                 // a device with no receiver is not an output device
                 if (receiver != null) {
                     // always add devices to list of possible output devices
                     outputDevices.put(info.getName(), device);
-                    LOGGER.atInfo().setMessage("Added potential MIDI output device: {}")
-                            .addArgument(info::getName).log();
+                    LOGGER.atInfo().setMessage("Added potential MIDI output device: {}").addArgument(info::getName)
+                            .log();
                     // only added receivers that are actually in use
                     if (registeredOutputDevices.contains(info.getName())
                             && !outputReceivers.containsKey(info.getName())) {
                         outputReceivers.put(info.getName(), receiver);
-                        LOGGER.atInfo().setMessage("Registered '{}' as output device").addArgument(info::getName)
-                                .log();
+                        LOGGER.atInfo().setMessage("Registered '{}' as output device").addArgument(info::getName).log();
                         if (inputReceivers.containsKey(info.getName())) {
                             LOGGER.atError()
                                     .setMessage("'{}' is being used for both input and output! Loopback will occur!")
@@ -231,9 +230,8 @@ public class MidiController implements ChangeListener {
                 var similarNameExists = inputDevices.keySet().stream().anyMatch(n -> n.contains(info.getName()));
                 if (similarNameExists)
                     continue;
-                LOGGER.atInfo().setMessage("Adding potential input device '{}' ({}:{})")
-                        .addArgument(info::getName).addArgument(info::getVendor)
-                        .addArgument(info::getVersion).log();
+                LOGGER.atInfo().setMessage("Adding potential input device '{}' ({}:{})").addArgument(info::getName)
+                        .addArgument(info::getVendor).addArgument(info::getVersion).log();
                 inputDevices.put(info.getName(), device);
             }
         }
@@ -322,12 +320,14 @@ public class MidiController implements ChangeListener {
     /**
      * Sends a control MIDI signal
      * 
-     * @param busName    BUS on which to send signal
+     * @param deviceName device to send signal to
      * @param channel    MIDI channel (0-15)
      * @param controller controller number to send (0-127)
      * @param amount     controller value to send (0-127)
      */
-    public void sendControlChange(String busName, int channel, int controller, int amount) {
+    public void sendControlChange(String deviceName, int channel, int controller, int amount) {
+        if (deviceName == null)
+            return;
         if (amount < 0 || amount > 127 || channel < 0 || channel > 15 || controller < 0 || controller > 127) {
             LOGGER.atDebug().setMessage("out of range; amount: {}, channel: {}, controller: {}").addArgument(amount)
                     .addArgument(channel).addArgument(controller).log();
@@ -335,10 +335,10 @@ public class MidiController implements ChangeListener {
         }
         try {
             var panMessage = new ShortMessage(ShortMessage.CONTROL_CHANGE, channel, controller, amount);
-            if (outputReceivers.containsKey(busName)) {
-                immediateExecutor.submit(() -> outputReceivers.get(busName).send(panMessage, -1));
+            if (outputReceivers.containsKey(deviceName)) {
+                immediateExecutor.submit(() -> outputReceivers.get(deviceName).send(panMessage, -1));
                 LOGGER.atTrace().setMessage("Sending control message on {}:{} with controller {}, amount {}")
-                        .addArgument(busName).addArgument(channel + 1).addArgument(controller).addArgument(amount)
+                        .addArgument(deviceName).addArgument(channel + 1).addArgument(controller).addArgument(amount)
                         .log();
             }
         } catch (InvalidMidiDataException e) {
@@ -358,8 +358,7 @@ public class MidiController implements ChangeListener {
     @SuppressWarnings("java:S3776")
     public void playChordsThisTick() {
         for (var deviceEntry : chordsToPlayNextPerDevice.entrySet()) {
-            LOGGER.atTrace().setMessage("Playing chords this tick for '{}'").addArgument(deviceEntry::getKey)
-                    .log();
+            LOGGER.atTrace().setMessage("Playing chords this tick for '{}'").addArgument(deviceEntry::getKey).log();
             var chordsToPlayNext = deviceEntry.getValue();
             for (var i = 0; i < 16; i++) {
                 var ai = new AtomicInteger(i);

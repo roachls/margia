@@ -505,7 +505,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Grid",
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.addGrid((int) rowSpinner.getValue(), (int) colSpinner.getValue());
+                        agentPanel.new AddGridCommand((int) rowSpinner.getValue(), (int) colSpinner.getValue())
+                                .execute();
                     }
                 }
                     break;
@@ -522,7 +523,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Fan",
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.addFan((int) levelSpinner.getValue(), (FanDirection) directionBox.getSelectedItem());
+                        agentPanel.new AddFanCommand((int) levelSpinner.getValue(),
+                                (FanDirection) directionBox.getSelectedItem()).execute();
                     }
                 }
                     break;
@@ -535,7 +537,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
                         var numToAdd = (int) spinner.getValue();
-                        agentPanel.addNMusicians(numToAdd);
+                        agentPanel.new AddNMusiciancCommand(numToAdd).execute();
                     }
                 }
                     break;

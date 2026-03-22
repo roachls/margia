@@ -231,19 +231,21 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         // Calculate attractive forces along edges (O(E))
-        for (Edge edge : edges) {
-            MusicianComponent n1 = edge.source;
-            MusicianComponent n2 = edge.target;
-            var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
-            double distance = n1.getCenter().distance(n2.getCenter());
+        synchronized (edges) {
+            for (var edge : edges) {
+                MusicianComponent n1 = edge.source;
+                MusicianComponent n2 = edge.target;
+                var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
+                double distance = n1.getCenter().distance(n2.getCenter());
 
-            // Spring force (Hooke's law analog)
-            double displacement = distance - edge.idealLength;
-            double force = K_SPRING * displacement;
-            var forceVec = unitVec.multiply(force);
+                // Spring force (Hooke's law analog)
+                double displacement = distance - edge.idealLength;
+                double force = K_SPRING * displacement;
+                var forceVec = unitVec.multiply(force);
 
-            n1.setForce(n1.getForce().subtract(forceVec));
-            n2.setForce(n2.getForce().add(forceVec));
+                n1.setForce(n1.getForce().subtract(forceVec));
+                n2.setForce(n2.getForce().add(forceVec));
+            }
         }
 
         // apply gravity and wind
@@ -725,11 +727,21 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var deletedMusicianComponentOptions = selectedMusicians.stream().map(m -> m.getMusician().getId())
                     .collect(Collectors.toMap(id -> id,
                             id -> Options.getInstance().getUiOptions().getMusicianComponents().get(id)));
+            var mapOfOthersToThese = new HashMap<Integer, List<Integer>>();
+            for (var selectedMusician : selectedMusicians) {
+                var id = selectedMusician.getMusician().getId();
+                for (var otherMusicianEntry : musicianComponents.entrySet()) {
+                    if (otherMusicianEntry.getValue().getMusician().peerIds().contains(id)) {
+                        var list = mapOfOthersToThese.computeIfAbsent(id, _ -> new ArrayList<>());
+                        list.add(otherMusicianEntry.getKey());
+                    }
+                }
+            }
             delete(selectedMusicians);
             if (!undo) {
                 CommandCaretaker
                         .pushStack(new Memento(this, List.of(new RestoreDeletedMusiciansCommand(selectedMusicians,
-                                deletedMusicianOptions, deletedMusicianComponentOptions))));
+                                deletedMusicianOptions, deletedMusicianComponentOptions, mapOfOthersToThese))));
             }
         }
     }
@@ -738,13 +750,18 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private final List<MusicianComponent> deletedMusicians;
         private final Map<Integer, MusicianOptions> deletedMusicianOptions;
         private final Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions;
+        // key = id of deleted musician, value = list of musicians with the deleted
+        // musician as a peer
+        private final Map<Integer, List<Integer>> mapOfOthersToThese;
 
-        public RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
+        RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
                 Map<Integer, MusicianOptions> deletedMusicianOptions,
-                Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions) {
+                Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions,
+                Map<Integer, List<Integer>> mapOfOthersToThese) {
             this.deletedMusicians = deletedMusicians;
             this.deletedMusicianOptions = deletedMusicianOptions;
             this.deletedMusicianComponentOptions = deletedMusicianComponentOptions;
+            this.mapOfOthersToThese = mapOfOthersToThese;
         }
 
         @Override
@@ -754,13 +771,24 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 MusicianList.getInstance().addMusician(mc.getMusician());
                 numMusicians = MusicianList.getInstance().numMusicians();
                 musicianComponents.put(mc.getMusician().getId(), mc);
-                // TODO re-calc edges
                 add(mc);
                 Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
                 Options.getInstance().getUiOptions().getMusicianComponents().put(id,
                         deletedMusicianComponentOptions.get(id));
-                // TODO reconnect peerIds that were pointing at this musician
                 firePropertyChange(AGENT_ADDED_PROPERTY, null, mc);
+            }
+            // restore peers
+            for (var otherEntry : mapOfOthersToThese.entrySet()) {
+                var listOfOthers = otherEntry.getValue();
+                for (var otherId : listOfOthers) {
+                    musicianComponents.get(otherId).getMusician()
+                            .addPeer(musicianComponents.get(otherEntry.getKey()).getMusician());
+                }
+            }
+            // re-calc edges
+            synchronized (edges) {
+                edges.clear();
+                calcEdges();
             }
         }
 
@@ -905,43 +933,77 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
     }
 
-    @SuppressWarnings("java:S3776")
-    void addGrid(int numRows, int numCols) {
-        if (numRows <= 0 || numCols <= 0)
-            return;
-        var list = new ArrayList<Musician>();
-        var arr = new Musician[numRows][numCols];
-        for (var y = 0; y < numRows; y++) {
-            for (var x = 0; x < numCols; x++) {
-                arr[y][x] = Musician.newInstance();
-                MusicianList.getInstance().addMusician(arr[y][x]);
-                arr[y][x].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
-                list.add(arr[y][x]);
-            }
+    private class SelectAddedCommand implements Command {
+        private final List<MusicianComponent> addedMcs;
+
+        SelectAddedCommand(List<MusicianComponent> addedMcs) {
+            this.addedMcs = addedMcs;
         }
-        // make connections
-        for (var y = 0; y < numRows; y++) {
-            for (var x = 0; x < numCols; x++) {
-                if (y < numRows - 1) {
-                    arr[y][x].addPeer(arr[y + 1][x]);
-                    arr[y + 1][x].addPeer(arr[y][x]);
-                }
-                if (y > 0) {
-                    arr[y][x].addPeer(arr[y - 1][x]);
-                    arr[y - 1][x].addPeer(arr[y][x]);
-                }
-                if (x < numCols - 1) {
-                    arr[y][x].addPeer(arr[y][x + 1]);
-                    arr[y][x + 1].addPeer(arr[y][x]);
-                }
-                if (x > 0) {
-                    arr[y][x].addPeer(arr[y][x - 1]);
-                    arr[y][x - 1].addPeer(arr[y][x]);
+
+        @Override
+        public void execute(boolean undo) {
+            addedMcs.forEach(mc -> mc.setSelected(true));
+        }
+
+    }
+
+    class AddGridCommand implements Command {
+        final int numRows;
+        final int numCols;
+
+        public AddGridCommand(int numRows, int numCols) {
+            super();
+            this.numRows = numRows;
+            this.numCols = numCols;
+            if (numRows <= 0)
+                throw new IllegalArgumentException("Must have at least 1 row");
+            if (numCols <= 0)
+                throw new IllegalArgumentException("Must have at least 1 column");
+        }
+
+        @Override
+        @SuppressWarnings("java:S3776")
+        public void execute(boolean undo) {
+
+            var list = new ArrayList<Musician>();
+            var arr = new Musician[numRows][numCols];
+            for (var y = 0; y < numRows; y++) {
+                for (var x = 0; x < numCols; x++) {
+                    arr[y][x] = Musician.newInstance();
+                    MusicianList.getInstance().addMusician(arr[y][x]);
+                    arr[y][x].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
+                    list.add(arr[y][x]);
                 }
             }
+            // make connections
+            for (var y = 0; y < numRows; y++) {
+                for (var x = 0; x < numCols; x++) {
+                    if (y < numRows - 1) {
+                        arr[y][x].addPeer(arr[y + 1][x]);
+                        arr[y + 1][x].addPeer(arr[y][x]);
+                    }
+                    if (y > 0) {
+                        arr[y][x].addPeer(arr[y - 1][x]);
+                        arr[y - 1][x].addPeer(arr[y][x]);
+                    }
+                    if (x < numCols - 1) {
+                        arr[y][x].addPeer(arr[y][x + 1]);
+                        arr[y][x + 1].addPeer(arr[y][x]);
+                    }
+                    if (x > 0) {
+                        arr[y][x].addPeer(arr[y][x - 1]);
+                        arr[y][x - 1].addPeer(arr[y][x]);
+                    }
+                }
+            }
+            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
+            createEdges(components);
+
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
         }
-        var components = list.stream().map(this::addMusicianComponent).toList();
-        createEdges(components);
+
     }
 
     /**
@@ -962,44 +1024,75 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         BIDIRECTIONAL;
     }
 
-    @SuppressWarnings("java:S3776")
-    void addFan(int levels, FanDirection direction) {
-        if (levels <= 2 || levels > 10)
-            return;
-        var num = Math.powExact(2, levels) - 1;
-        var numWithConnections = Math.powExact(2, levels - 1) - 1;
-        var arr = new Musician[num];
-        for (var y = 0; y < num; y++) {
-            arr[y] = Musician.newInstance();
-            MusicianList.getInstance().addMusician(arr[y]);
-            arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
-        }
-        // make connections
-        for (var y = 0; y < num; y++) {
-            if ((direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL) && y < numWithConnections) {
-                arr[y].addPeer(arr[y * 2 + 1]);
-                arr[y].addPeer(arr[y * 2 + 2]);
-            }
-            if ((direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL) && y > 0) {
-                arr[y].addPeer(arr[(y - 1) / 2]);
-            }
-        }
-        var components = Arrays.asList(arr).stream().map(this::addMusicianComponent).toList();
+    class AddFanCommand implements Command {
+        final int levels;
+        final FanDirection direction;
 
-        createEdges(components);
+        AddFanCommand(int levels, FanDirection direction) {
+            super();
+            if (levels <= 2 || levels > 10)
+                throw new IllegalArgumentException("Levels must be Between 2 and 10 inclusive");
+            this.levels = levels;
+            this.direction = direction;
+        }
+
+        @Override
+        @SuppressWarnings("java:S3776")
+        public void execute(boolean undo) {
+            var num = Math.powExact(2, levels) - 1;
+            var numWithConnections = Math.powExact(2, levels - 1) - 1;
+            var arr = new Musician[num];
+            for (var y = 0; y < num; y++) {
+                arr[y] = Musician.newInstance();
+                MusicianList.getInstance().addMusician(arr[y]);
+                arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
+            }
+            // make connections
+            for (var y = 0; y < num; y++) {
+                if ((direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL)
+                        && y < numWithConnections) {
+                    arr[y].addPeer(arr[y * 2 + 1]);
+                    arr[y].addPeer(arr[y * 2 + 2]);
+                }
+                if ((direction == FanDirection.UP || direction == FanDirection.BIDIRECTIONAL) && y > 0) {
+                    arr[y].addPeer(arr[(y - 1) / 2]);
+                }
+            }
+            var components = Arrays.asList(arr).stream().map(AgentPanel.this::addMusicianComponent).toList();
+
+            createEdges(components);
+
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
+        }
     }
 
-    void addNMusicians(int n) {
-        if (n < 1)
-            return;
-        var list = new ArrayList<Musician>();
-        for (var i = 0; i < n; i++) {
-            var m = Musician.newInstance();
-            list.add(m);
-            MusicianList.getInstance().addMusician(m);
+    class AddNMusiciancCommand implements Command {
+        final int n;
+
+        AddNMusiciancCommand(int n) {
+            super();
+            if (n < 1)
+                throw new IllegalArgumentException("Number of musicians to add must be at least 1");
+            this.n = n;
         }
-        var components = list.stream().map(this::addMusicianComponent).toList();
-        createEdges(components);
+
+        @Override
+        public void execute(boolean undo) {
+            var list = new ArrayList<Musician>();
+            for (var i = 0; i < n; i++) {
+                var m = Musician.newInstance();
+                list.add(m);
+                MusicianList.getInstance().addMusician(m);
+            }
+            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
+            createEdges(components);
+
+            if (!undo)
+                CommandCaretaker.pushStack(
+                        new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
+        }
     }
 
     @SuppressWarnings("unchecked")
