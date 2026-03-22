@@ -13,6 +13,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
@@ -132,7 +133,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 complete = true;
                 break;
             case KeyEvent.VK_DELETE:
-                agentPanel.deleteSelected();
+                agentPanel.new DeleteSelectedCommand().execute();
                 complete = true;
                 break;
             case KeyEvent.VK_A:
@@ -154,7 +155,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 break;
             case KeyEvent.VK_M:
                 if (e.isControlDown()) {
-                    agentPanel.toggleMuteSelected();
+                    agentPanel.new ToggleMuteSelectedCommand().execute();
                 }
                 break;
             case KeyEvent.VK_V:
@@ -200,7 +201,12 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 break;
             case KeyEvent.VK_L:
                 if (e.isControlDown()) {
-                    agentPanel.toggleSelectedListening();
+                    agentPanel.new ToggleSelectedListeningCommand().execute();
+                }
+                break;
+            case KeyEvent.VK_Z:
+                if (e.isControlDown()) {
+                    CommandCaretaker.undo();
                 }
                 break;
             default:
@@ -308,30 +314,30 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         selectConnected.addActionListener(_ -> agentPanel.selectConnected());
         var muteSelected = new JMenuItem("Mute selected", getToolbarIcon(MUTE));
         muteSelected.setMnemonic(KeyEvent.VK_U);
-        muteSelected.addActionListener(_ -> agentPanel.muteSelected());
+        muteSelected.addActionListener(_ -> agentPanel.new MuteSelectedCommand().execute());
         var unmuteSelected = new JMenuItem("Unmute selected", getToolbarIcon(UNMUTE));
         unmuteSelected.setMnemonic(KeyEvent.VK_E);
-        unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
+        unmuteSelected.addActionListener(_ -> agentPanel.new UnmuteSelectedCommand().execute());
         var lockSelected = new JMenuItem("Lock selected", getToolbarIcon(LOCK));
         lockSelected.setMnemonic(KeyEvent.VK_L);
-        lockSelected.addActionListener(_ -> agentPanel.lockSelected());
+        lockSelected.addActionListener(_ -> agentPanel.new LockSelectedCommand().execute());
         var unlockSelected = new JMenuItem("Unlock selected", getToolbarIcon(UNLOCK));
         unlockSelected.setMnemonic(KeyEvent.VK_N);
-        unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
+        unlockSelected.addActionListener(_ -> agentPanel.new UnlockSelectedCommand().execute());
         var lockAll = new JMenuItem("Lock all", getToolbarIcon(LOCK_ALL));
-        lockAll.addActionListener(_ -> agentPanel.lockAll());
+        lockAll.addActionListener(_ -> agentPanel.new LockAllCommand().execute());
         var unlockAll = new JMenuItem("Unlock all", getToolbarIcon(UNLOCK_ALL));
-        unlockAll.addActionListener(_ -> agentPanel.unlockAll());
+        unlockAll.addActionListener(_ -> agentPanel.new UnlockAllCommand().execute());
         var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
                 getToolbarIcon(DELETE));
         deleteSelected.setMnemonic(KeyEvent.VK_R);
-        deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
+        deleteSelected.addActionListener(_ -> agentPanel.new DeleteSelectedCommand().execute());
         var connectSelected = new JMenuItem("Connect selected", getToolbarIcon(CONNECT));
         connectSelected.setMnemonic(KeyEvent.VK_T);
-        connectSelected.addActionListener(_ -> agentPanel.connectSelected());
+        connectSelected.addActionListener(_ -> agentPanel.new ConnectSelectedCommand().execute());
         var disconnectSelected = new JMenuItem("Disconnect selected", getToolbarIcon(DISCONNECT));
         disconnectSelected.setMnemonic(KeyEvent.VK_I);
-        disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
+        disconnectSelected.addActionListener(_ -> agentPanel.new DisconnectSelectedCommand().execute());
 
         editMenu.add(copyMenuItem);
         editMenu.add(pasteMenuItem);
@@ -383,37 +389,37 @@ public class MargiaWindow extends JFrame implements ChangeListener {
 
         var muteSelected = new JButton(getMenuIcon(MUTE));
         muteSelected.setToolTipText("Mute selected");
-        muteSelected.addActionListener(_ -> agentPanel.muteSelected());
+        muteSelected.addActionListener(_ -> agentPanel.new MuteSelectedCommand().execute());
         var unmuteSelected = new JButton(getMenuIcon(UNMUTE));
         unmuteSelected.setToolTipText("Unmute selected");
-        unmuteSelected.addActionListener(_ -> agentPanel.unmuteSelected());
+        unmuteSelected.addActionListener(_ -> agentPanel.new UnmuteSelectedCommand().execute());
         var setSelectedListening = new JButton(getMenuIcon(LISTENING));
         setSelectedListening.setToolTipText("Set selected agents listening");
-        setSelectedListening.addActionListener(_ -> agentPanel.setSelectedListening());
+        setSelectedListening.addActionListener(_ -> agentPanel.new SetSelectedListeningCommand().execute());
         var setSelectedNotListening = new JButton(getMenuIcon(NOT_LISTENING));
         setSelectedNotListening.setToolTipText("Set selected agents not listening");
-        setSelectedNotListening.addActionListener(_ -> agentPanel.setSelectedNotListening());
+        setSelectedNotListening.addActionListener(_ -> agentPanel.new SetSelectedNotListeningCommand().execute());
         var lockSelected = new JButton(getMenuIcon(LOCK));
         lockSelected.setToolTipText("Lock selected");
-        lockSelected.addActionListener(_ -> agentPanel.lockSelected());
+        lockSelected.addActionListener(_ -> agentPanel.new LockSelectedCommand().execute());
         var unlockSelected = new JButton(getMenuIcon(UNLOCK));
         unlockSelected.setToolTipText("Unlock selected");
-        unlockSelected.addActionListener(_ -> agentPanel.unlockSelected());
+        unlockSelected.addActionListener(_ -> agentPanel.new UnlockSelectedCommand().execute());
         var lockAll = new JButton(getMenuIcon(LOCK_ALL));
         lockAll.setToolTipText("Lock all");
-        lockAll.addActionListener(_ -> agentPanel.lockAll());
+        lockAll.addActionListener(_ -> agentPanel.new LockAllCommand().execute());
         var unlockAll = new JButton(getMenuIcon(UNLOCK_ALL));
         unlockAll.setToolTipText("Unlock all");
-        unlockAll.addActionListener(_ -> agentPanel.unlockAll());
+        unlockAll.addActionListener(_ -> agentPanel.new UnlockAllCommand().execute());
         var deleteSelected = new JButton(getMenuIcon(DELETE));
         deleteSelected.setToolTipText("Delete selected");
-        deleteSelected.addActionListener(_ -> agentPanel.deleteSelected());
+        deleteSelected.addActionListener(_ -> agentPanel.new DeleteSelectedCommand().execute());
         var connectSelected = new JButton(getMenuIcon(CONNECT));
         connectSelected.setToolTipText("Connect selected");
-        connectSelected.addActionListener(_ -> agentPanel.connectSelected());
+        connectSelected.addActionListener(_ -> agentPanel.new ConnectSelectedCommand().execute());
         var disconnectSelected = new JButton(getMenuIcon(DISCONNECT));
         disconnectSelected.setToolTipText("Disconnect selected");
-        disconnectSelected.addActionListener(_ -> agentPanel.disconnectSelected());
+        disconnectSelected.addActionListener(_ -> agentPanel.new DisconnectSelectedCommand().execute());
 
         var selectAll = new JButton(getMenuIcon(SELECT_ALL));
         selectAll.addActionListener(_ -> agentPanel.selectAll());
@@ -499,7 +505,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Grid",
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.addGrid((int) rowSpinner.getValue(), (int) colSpinner.getValue());
+                        agentPanel.new AddGridCommand((int) rowSpinner.getValue(), (int) colSpinner.getValue())
+                                .execute();
                     }
                 }
                     break;
@@ -516,7 +523,8 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                     var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Fan",
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.addFan((int) levelSpinner.getValue(), (FanDirection) directionBox.getSelectedItem());
+                        agentPanel.new AddFanCommand((int) levelSpinner.getValue(),
+                                (FanDirection) directionBox.getSelectedItem()).execute();
                     }
                 }
                     break;
@@ -529,7 +537,7 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                             JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                     if (result == JOptionPane.OK_OPTION) {
                         var numToAdd = (int) spinner.getValue();
-                        agentPanel.addNMusicians(numToAdd);
+                        agentPanel.new AddNMusiciancCommand(numToAdd).execute();
                     }
                 }
                     break;
