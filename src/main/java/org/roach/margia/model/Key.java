@@ -30,21 +30,25 @@ public interface Key {
     static final List<Integer> MAJOR_INTERVALS = List.of(2, 2, 1, 2, 2, 2, 1);
     static final List<Integer> PENTATONIC_INTERVALS = List.of(2, 2, 3, 2, 3);
     static final List<Integer> CHROMATIC_INTERVALS = List.of(1);
+    static final List<Integer> OCTOTONIC_INTERVALS = List.of(1, 2);
 
     static final String MAJOR_INTERVAL_KEY = "MAJOR_INTERVALS";
     static final String PENTATONIC_KEY = "PENTATONIC_INTERVALS";
     static final String CHROMATIC_KEY = "CHROMATIC";
+    static final String OCTOTONIC_KEY = "OCTOTONIC";
 
     // @formatter:off
     static final Map<String, List<Integer>> AVAILABLE_BASIS = Map.of(
             MAJOR_INTERVAL_KEY, MAJOR_INTERVALS,
             PENTATONIC_KEY, PENTATONIC_INTERVALS,
-            CHROMATIC_KEY, CHROMATIC_INTERVALS
+            CHROMATIC_KEY, CHROMATIC_INTERVALS,
+            OCTOTONIC_KEY, OCTOTONIC_INTERVALS
     );
     static final Map<List<Integer>, String> BASIS_MAP = Map.of(
             MAJOR_INTERVALS, MAJOR_INTERVAL_KEY,
             PENTATONIC_INTERVALS, PENTATONIC_KEY,
-            CHROMATIC_INTERVALS, CHROMATIC_KEY
+            CHROMATIC_INTERVALS, CHROMATIC_KEY,
+            OCTOTONIC_INTERVALS, OCTOTONIC_KEY
             );
     // @formatter:on
 
@@ -116,10 +120,11 @@ public interface Key {
     Key CPentatonic = generateKey("C Pentatonic", PENTATONIC_KEY, 0);
 
     Key Chromatic = generateKey("Chromatic", CHROMATIC_KEY, 0);
+    Key Octotonic = generateKey("Octotonic", OCTOTONIC_KEY, 0);
 
     static final Map<String, Key> BUILTIN_KEYS = List
             .of(CMajor, DbMajor, DMajor, EbMajor, EMajor, FMajor, GbMajor, GMajor, AbMajor, AMajor, BbMajor, BMajor,
-                    CPentatonic, Chromatic)
+                    CPentatonic, Chromatic, Octotonic)
             .stream().collect(Collectors.toMap(Key::getName, k -> k, (_, k2) -> k2, TreeMap::new));
 
     List<Integer> notes();
