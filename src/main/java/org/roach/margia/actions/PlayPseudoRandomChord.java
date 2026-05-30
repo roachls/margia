@@ -10,7 +10,7 @@ import org.roach.margia.model.Chord;
 /**
  * 
  * @param musician The musician
- * @param spread
+ * @param spread   maximum value of pseudo-random number
  * @param num      number below which a random note will be played.
  * @param numNotes number of notes in chord
  */

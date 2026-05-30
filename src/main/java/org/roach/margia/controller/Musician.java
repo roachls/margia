@@ -223,9 +223,23 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     public int getQueueSize() { return this.messageQueue.size(); }
 
     /**
-     * @return the next note in this musician's queue of heard notes
+     * @param skipRepeats {@code true} indicates that messages should continue to be
+     *                    pulled until the next one that is different from the
+     *                    musician's last played chord
+     * @return the next message in this musician's queue of received messages
      */
-    public MusicianMessage getNextMessageReceived() { return messageQueue.poll(); }
+    public MusicianMessage getNextMessageReceived(boolean skipRepeats) {
+        var nextMessage = messageQueue.poll();
+        if (skipRepeats) {
+            var lastNote = getMyLastChord();
+            if (lastNote != null) {
+                while (lastNote.equals(nextMessage)) {
+                    nextMessage = messageQueue.poll();
+                }
+            }
+        }
+        return nextMessage;
+    }
 
     /**
      * @return the number of notes I've played since the last reset

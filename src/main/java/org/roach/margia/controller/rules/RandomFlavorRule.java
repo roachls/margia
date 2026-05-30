@@ -38,14 +38,7 @@ public class RandomFlavorRule extends AbstractMusicianRule {
                 return list;
             }
 
-            var heardNote = musician.getNextMessageReceived();
-            // never play the same note twice
-            var lastNote = musician.getMyLastChord();
-            if (lastNote != null) {
-                while (lastNote.equals(heardNote)) {
-                    heardNote = musician.getNextMessageReceived();
-                }
-            }
+            var heardNote = musician.getNextMessageReceived(true);
             logger.atDebug().log("{}: heard {}", musician.getId(), heardNote);
             if (heardNote == null || heardNote instanceof Chord chord && Musician.REST.equals(chord)) {
                 logger.atDebug().log("{}: heard null or rest, returning");
