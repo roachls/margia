@@ -202,8 +202,8 @@ public class Note {
     public static final int FS8 = 126;
     public static final int G8 = 127;
 
-    public static final Map<Integer, String> NOTE_NAMES = new LinkedHashMap<>();
-    public static final Map<String, Integer> NOTE_NUMBERS;
+    protected static final Map<Integer, String> NOTE_NAMES = new LinkedHashMap<>();
+    protected static final Map<String, Integer> NOTE_NUMBERS;
 
     static {
         NOTE_NAMES.put(C_N2, "C-2");
