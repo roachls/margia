@@ -74,7 +74,10 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
     @Override
     public MusicianState transition(Musician musician) {
         value--;
+        logger.atDebug().setMessage("Countdown ({}): {}").addArgument(musician.getId()).addArgument(value).log();
         if (value <= 0) {
+            logger.atDebug().setMessage("Countdown ({}) at zero, transitioning to {}").addArgument(musician.getId())
+                    .addArgument(wrappedState.name()).log();
             value = startValue;
             return wrappedState.transition(musician);
         }

@@ -2,25 +2,29 @@ package org.roach.margia.actions;
 
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.Chord;
+import org.roach.margia.model.MusicianMessage;
 
 /**
- * Command to play the given {@link Chord} down an octave. Note that this is different
- * from {@link PlayChordDownInterval} with an interval of 12 or 8, which may not
- * be octaves depending on the current scale. (If the scale is
+ * Command to play the given {@link Chord} down an octave. Note that this is
+ * different from {@link PlayChordDownInterval} with an interval of 12 or 8,
+ * which may not be octaves depending on the current scale. (If the scale is
  * {@link org.roach.margia.model.Key#Chromatic}, then this is the equivalent of
  * {@link PlayChordDownInterval} with an interval of 12. Note that if the
  * transformed note ends up below the key's range, it will be automatically
  * adjusted back.
  * 
  * @param musician {@link Musician} that will play the note
- * @param chord    chord to transform
+ * @param message  the message being changed, ignored if not a {@link Chord}
  */
-public record PlayChordDownOctave(Musician musician, Chord chord) implements MusicalAction {
+public record PlayChordDownOctave(Musician musician, MusicianMessage message) implements MusicalAction {
 
     @Override
     public void perform() {
-        var noteList = chord.getNotes().stream().map(n -> musician.getRange().adjustToRangeByOctaves(n - 12)).toList();
-        musician.playChord(chord.withNotes(noteList));
+        if (message instanceof Chord chord) {
+            var noteList = chord.getNotes().stream().map(n -> musician.getRange().adjustToRangeByOctaves(n - 12))
+                    .toList();
+            musician.playChord(chord.withNotes(noteList));
+        }
     }
 
 }

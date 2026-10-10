@@ -278,9 +278,10 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         openRecents.removeAll();
         var recentFiles = MargiaFileUtils.getRecentsFromPersistence();
         for (var i = 0; i < recentFiles.size(); i++) {
+            final int index = i;
             var file = new JMenuItem("%d: %s".formatted(i + 1, recentFiles.get(i)));
             file.setName(recentFiles.get(0));
-            file.addActionListener(_ -> openSettingsFromFile(Paths.get(recentFiles.get(0))));
+            file.addActionListener(_ -> openSettingsFromFile(Paths.get(recentFiles.get(index))));
             openRecents.add(file);
         }
     }

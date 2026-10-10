@@ -15,8 +15,8 @@ import org.roach.margia.view.ChordFlavor;
 public class RandomFlavorRule extends AbstractMusicianRule {
     private static final String FLAVOR_PROPERTY = "flavor";
     private ChordFlavor flavor = ChordFlavor.MAJOR;
-    private int maxChordStringLength = 5;
-    private int restsBetweenChordStrings = 1;
+    private int maxChordStringLength = 1;
+    private int restsBetweenChordStrings = 4;
 
     private class RandomTransition implements Function<MusicianMessage, List<MusicalAction>> {
 
