@@ -18,7 +18,7 @@ class MidiControllerTest {
     @EnabledOnOs(OS.WINDOWS)
     @SuppressWarnings({ "java:S2699", "java:S2925" })
     void testPlayNote() throws InterruptedException {
-        Options.getInstance().getMusicOptions().setTempo(60);
+        Options.getInstance().getMusicOptions().setTempo(160);
         Options.getInstance().getMidiOptions().setUsingExternalMidi(false);
         var mo = new MusicianOptions();
         mo.setDeviceName("Microsoft GS Wavetable Synth");
@@ -30,7 +30,7 @@ class MidiControllerTest {
             var chord = new Chord(Set.of(note, note + 4, note + 7), 1, 70);
             controller.playChord("Microsoft GS Wavetable Synth", 0, chord);
             controller.playChordsThisTick();
-            Thread.sleep(250);
+            Thread.sleep(25);
         }
         controller.close();
     }

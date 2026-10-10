@@ -87,4 +87,8 @@ public class MusicianList {
     public int numMusicians() {
         return musicians.size();
     }
+    
+    void clear() {
+        musicians.clear();
+    }
 }

@@ -1,17 +1,25 @@
 package org.roach.margia.model;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.roach.margia.storage.Options;
 
 class KeyTest {
+    @BeforeAll
+    static void setSeed() {
+        Options.getInstance().setRandomSeed(1L);
+        Key.initFromOptions();
+    }
 
     @ParameterizedTest
-    @CsvSource({ "0,3,4", "0,4,5", "7,1,7", "7,2,9", "7,3,11", "7,4,12", "7,5,14", "7,6,16", "7,7,17" })
+    @CsvSource({ "0,3,4", "0,4,5", "7,1,7", "7,2,9", "7,3,11", "7,4,12", "7,5,14", "7,6,16", "7,7,17", "126,8,9" })
     void testUpCMajor(int start, int interval, int expected) {
         assertEquals(expected, Key.CMajor.up(start, interval));
     }
@@ -42,4 +50,61 @@ class KeyTest {
         assertEquals(11, Octave.O_NEG2.getHigh());
     }
 
+    @Test
+    void testRandomNote() {
+        var listOfRandomNotes = IntStream.range(0, 15).map(_ -> Key.Chromatic.randomNote()).toArray();
+        assertArrayEquals(new int[] { 93, 12, 52, 52, 26, 4, 42, 84, 123, 90, 0, 19, 123, 20, 120 }, listOfRandomNotes);
+    }
+
+    @Test
+    void testLowestNote() {
+        assertEquals(8, Key.AbMajor.lowestNote());
+        assertEquals(1, Key.DbMajor.lowestNote());
+        assertEquals(0, Key.Chromatic.lowestNote());
+    }
+
+    @Test
+    void testHighestNote() {
+        assertEquals(127, Key.AbMajor.highestNote());
+        assertEquals(126, Key.DbMajor.highestNote());
+        assertEquals(127, Key.Chromatic.highestNote());
+    }
+
+    @Test
+    void testName() {
+        assertEquals("Ab Major", Key.AbMajor.getName());
+        Key myKey = Key.generateKey("myKey", Key.OCTOTONIC_KEY, 0);
+        assertEquals("myKey", myKey.getName());
+        Key myOtherKey = new Key() {
+
+            @Override
+            public List<Integer> notes() {
+                return List.of(0, 1, 2);
+            }
+
+            @Override
+            public String getBasis() { return "chaos"; }
+
+        };
+        assertEquals("null", myOtherKey.getName());
+        myOtherKey = new Key() {
+
+            @Override
+            public List<Integer> notes() {
+                return Key.MAJOR_INTERVALS;
+            }
+
+            @Override
+            public String getBasis() { return Key.MAJOR_INTERVAL_KEY; }
+
+        };
+        assertEquals("MAJOR_INTERVALS", myOtherKey.getName());
+    }
+    
+    @Test
+    void testFromOptions() {
+        assertEquals(Key.AMajor, Key.fromOptions("A Major"));
+        assertNull(Key.fromOptions(null));
+        assertNull(Key.fromOptions("stuff"));
+    }
 }

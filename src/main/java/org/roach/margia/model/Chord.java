@@ -17,6 +17,7 @@ public record Chord(Set<Integer> notes, int length, int velocity) implements Mus
      * Sanity-checking of notes
      */
     public Chord {
+        Objects.requireNonNull(notes);
         if (length < 1)
             length = 1;
         notes = notes.stream().map(n -> Math.clamp(n, -1, 127)).collect(Collectors.toSet());
@@ -70,6 +71,13 @@ public record Chord(Set<Integer> notes, int length, int velocity) implements Mus
      */
     public float averageNote() {
         return notes.stream().map(Double::valueOf).collect(Collectors.averagingDouble(d -> d)).floatValue();
+    }
+
+    /**
+     * @return the notes in this chord normalized to the first octave (notes 0-11)
+     */
+    public Set<Integer> normalizedNotes() {
+        return notes.stream().map(i -> i % 12).collect(Collectors.toSet());
     }
 
 }

@@ -53,6 +53,7 @@ public interface Key {
     // @formatter:on
 
     static Key fromOptions(String keyName) {
+        if (keyName == null) return null;
         return BUILTIN_KEYS.get(keyName);
     }
     
@@ -189,7 +190,7 @@ public interface Key {
         return generateKey(name, this.getBasis(), interval);
     }
 
-    default String getName() { return BASIS_MAP.get(notes()); }
+    default String getName() { return BASIS_MAP.getOrDefault(notes(), "null"); }
 
     String getBasis();
 
