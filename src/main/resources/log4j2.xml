@@ -18,11 +18,11 @@
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.RandomFlavorRule"
-			level="debug" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.MusicalRule"
-			level="debug" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.ReceiverRule"
@@ -30,10 +30,10 @@
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.states.DelayedTransitionState"
-			level="debug" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Logger name="org.roach.margia.controller.Transport" level="trace"
+		<Logger name="org.roach.margia.controller.Transport" level="info"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
@@ -43,7 +43,7 @@
 		</Logger>
 		<Logger
 			name="org.roach.margia.controller.timing.InternalTimingSource"
-			level="trace" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger
@@ -55,7 +55,7 @@
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Root level="debug">
+		<Root level="info">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>

@@ -3,21 +3,14 @@ package org.roach.margia.main;
 import java.awt.Frame;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Scanner;
 import java.util.prefs.BackingStoreException;
 
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-import org.pushingpixels.radiance.theming.api.RadianceSkin;
-import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
-import org.pushingpixels.radiance.theming.api.RadianceThemingSlices.FocusKind;
-import org.pushingpixels.radiance.theming.api.skin.GeminiSkin;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.ExternalTimingSource;
 import org.roach.margia.controller.timing.InternalTimingSource;
-import org.roach.margia.main.MainParams.UiType;
 import org.roach.margia.model.Key;
 import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
@@ -94,25 +87,12 @@ public class Main {
             MidiController.getInstance().close();
         }));
 
-        if (params.ui == UiType.SWING) {
-            SwingUtilities.invokeLater(() -> {
-                RadianceSkin skin = new GeminiSkin();
-                RadianceThemingCortex.GlobalScope.setSkin(skin);
-                RadianceThemingCortex.GlobalScope.setFocusKind(FocusKind.NONE);
-                JFrame.setDefaultLookAndFeelDecorated(true);
-                var ui = new MargiaWindow(timing, transport);
-                ui.setExtendedState(Frame.MAXIMIZED_BOTH);
-                ui.setResizable(false);
-                ui.setVisible(true);
-            });
-        } else {
-            timing.start();
-            try (var scanner = new Scanner(System.in)) {
-                scanner.nextLine();
-                System.exit(0);
-            }
-        }
-
+        SwingUtilities.invokeLater(() -> {
+            var ui = new MargiaWindow(timing, transport);
+            ui.setExtendedState(Frame.MAXIMIZED_BOTH);
+            ui.setResizable(false);
+            ui.setVisible(true);
+        });
     }
 
 }
