@@ -64,7 +64,9 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
     public void start() {
         if (isRunning())
             return;
+        logger.atTrace().setMessage("Start transport").log();
         transport.start();
+        logger.atTrace().setMessage("Start clock").log();
         startClock();
     }
 
@@ -80,7 +82,9 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void stop() {
+        logger.atTrace().setMessage("Stop transport").log();
         transport.stop();
+        logger.atTrace().setMessage("Stop clock").log();
         stopClock();
         running.set(false);
     }
