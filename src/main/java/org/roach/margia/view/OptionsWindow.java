@@ -18,6 +18,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.StringConverter;
 
 class OptionsWindow extends Stage implements PropertyChangeListener {
@@ -46,9 +47,11 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
     // Replaces JDialog's built-in Swing PropertyChangeSupport
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
-    OptionsWindow() {
+    OptionsWindow(Window owner) {
         setTitle("Options");
-        setAlwaysOnTop(true);
+        if (owner != null) {
+            initOwner(owner);
+        }
 
         // Save window position and size via JavaFX Property Listeners
         xProperty().addListener((_, _, newVal) -> {
@@ -137,11 +140,9 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         root.getChildren().addAll(uiOptions, midiOptions, miscOptions, musicOptions, musiciansNode);
 
         tree = new TreeView<>(root);
-     // Inside OptionsWindow.createUi(), right after creating `tree = new TreeView<>(root);`
         tree.setShowRoot(false);
         tree.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        // Force TreeView to render item.toString() as text instead of embedding the Node itself
         tree.setCellFactory(_ -> new TreeCell<>() {
             @Override
             protected void updateItem(Object item, boolean empty) {
@@ -219,11 +220,8 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
     @SuppressWarnings("unchecked")
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        // Ensure UI updates run on the JavaFX thread, even if triggered by a Swing EDT
-        // event
         Platform.runLater(() -> {
             if (AgentPanel.AGENT_ADDED_PROPERTY.equals(e.getPropertyName())) {
-                System.out.println("************* " + AgentPanel.AGENT_ADDED_PROPERTY);
                 var mc = (MusicianComponent) e.getNewValue();
                 var id = mc.getMusician().getId();
                 var newUiPanel = new MusicianUiPanel(id, mc.getOptions());

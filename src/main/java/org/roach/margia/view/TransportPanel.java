@@ -1,115 +1,128 @@
 package org.roach.margia.view;
 
-import java.awt.FlowLayout;
-import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-
-import javax.swing.*;
 
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.storage.Options;
 
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+
 /**
  * Swing UI for controlling / viewing the {@link Transport} and
  * {@link TimingSource}
  */
-public class TransportPanel extends JPanel implements PropertyChangeListener {
-    private final JLabel measure;
-    private final JLabel beat;
-    private final JLabel clockPulse;
-    private final JLabel tick;
-    private final JSpinner tempo;
+public class TransportPanel extends HBox implements PropertyChangeListener {
+    private final Label measure;
+    private final Label beat;
+    private final Label clockPulse;
+    private final Label tick;
+    private final Spinner<Integer> tempo;
     private transient TimingSource timing;
-    private JButton startBtn;
-    private ImageIcon startIcon;
-    private ImageIcon pauseIcon;
+    private final Button startBtn;
+    private final Button rewindBtn;
+    private final ImageView startIcon;
+    private final ImageView pauseIcon;
 
     /**
      * @param timing    the {@link TimingSource}
      * @param transport the {@link Transport}
      */
     public TransportPanel(TimingSource timing, Transport transport) {
-        super(new FlowLayout(FlowLayout.CENTER, 3, 3));
+        super(3); // 3px horizontal spacing between children
+        setAlignment(Pos.CENTER);
+        setPadding(new Insets(3));
         this.timing = timing;
 
         transport.addPropertyListener(this);
 
-        add(new JLabel("Time:"));
-        measure = new JLabel("000");
-        add(measure);
-        add(new JLabel(":"));
-        beat = new JLabel("0");
-        add(beat);
-        add(new JLabel("."));
-        clockPulse = new JLabel("00");
-        add(clockPulse);
-        tick = new JLabel(" (000)");
-        add(tick);
+        measure = new Label("000");
+        beat = new Label("0");
+        clockPulse = new Label("00");
+        tick = new Label(" (000)");
 
-        add(new JLabel("Tempo: "));
-        var tempoModel = new SpinnerNumberModel(Options.getInstance().getMusicOptions().getTempo(), 1, 400, 1);
-        tempo = new JSpinner(tempoModel);
-        tempo.setName("tempo");
-        tempo.addChangeListener(_ -> Options.getInstance().getMusicOptions().setTempo((int) tempo.getValue()));
-        add(tempo);
+        tempo = new Spinner<>(1, 400, Options.getInstance().getMusicOptions().getTempo(), 1);
+        tempo.setId("tempo");
+        tempo.setEditable(true);
+        tempo.setPrefWidth(75);
+        tempo.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                Options.getInstance().getMusicOptions().setTempo(newVal);
+            }
+        });
 
         startIcon = Icons.getButtonIcon(Icons.START);
         var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
         pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
 
-        startBtn = new JButton(startIcon);
-        startBtn.addActionListener(startStopActionListener);
-        add(startBtn);
-        var rewindBtn = new JButton(rewindIcon);
-        rewindBtn.addActionListener(_ -> {
+        startBtn = new Button(null, startIcon);
+        startBtn.setFocusTraversable(false);
+        startBtn.setOnAction(_ -> toggleStartStop());
+
+        rewindBtn = new Button(null, rewindIcon);
+        rewindBtn.setFocusTraversable(false);
+        rewindBtn.setOnAction(_ -> {
             timing.stop();
             transport.reset();
-            startBtn.setIcon(startIcon);
+            startBtn.setGraphic(startIcon);
         });
-        add(rewindBtn);
-        
-        startBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
-        rewindBtn.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
-        tempo.setEnabled(!Options.getInstance().getMidiOptions().isUsingExternalTiming());
-    }
-    
-    transient ActionListener startStopActionListener = _ -> {
 
-            if (timing.isRunning()) {
-                timing.stop();
-                startBtn.setIcon(startIcon);
-            } else {
-                timing.start();
-                startBtn.setIcon(pauseIcon);
-            }
-        };
+        boolean externalTiming = Options.getInstance().getMidiOptions().isUsingExternalTiming();
+        startBtn.setDisable(externalTiming);
+        rewindBtn.setDisable(externalTiming);
+        tempo.setDisable(externalTiming);
+
+        getChildren().addAll(
+                new Label("Time:"),
+                measure,
+                new Label(":"),
+                beat,
+                new Label("."),
+                clockPulse,
+                tick,
+                new Label("Tempo: "),
+                tempo,
+                startBtn,
+                rewindBtn
+        );
+    }
+
+    void toggleStartStop() {
+        if (timing.isRunning()) {
+            timing.stop();
+            startBtn.setGraphic(startIcon);
+        } else {
+            timing.start();
+            startBtn.setGraphic(pauseIcon);
+        }
+    }
 
     @Override
-    public void propertyChange(PropertyChangeEvent evt) {
+    public void propertyChange(java.beans.PropertyChangeEvent evt) {
         var propName = evt.getPropertyName();
-        SwingUtilities.invokeLater(() -> {
+        javafx.application.Platform.runLater(() -> {
             switch (propName) {
-            case Transport.MEASURE_PROPERTY:
-                measure.setText(String.format("%03d", (int) evt.getNewValue()));
-                break;
-            case Transport.BEAT_PROPERTY:
-                beat.setText(String.format("%01d", (int) evt.getNewValue()));
-                break;
-            case Transport.CLOCK_PULSE_PROPERTY:
-                clockPulse.setText(String.format("%02d", (int) evt.getNewValue()));
-                break;
-            case Transport.TICK_PROPERTY:
-                tick.setText(String.format(" (%03d)", (long) evt.getNewValue()));
-                break;
-            default:
+                case Transport.MEASURE_PROPERTY -> measure.setText(String.format("%03d", (int) evt.getNewValue()));
+                case Transport.BEAT_PROPERTY -> beat.setText(String.format("%01d", (int) evt.getNewValue()));
+                case Transport.CLOCK_PULSE_PROPERTY -> clockPulse.setText(String.format("%02d", (int) evt.getNewValue()));
+                case Transport.TICK_PROPERTY -> tick.setText(String.format(" (%03d)", (long) evt.getNewValue()));
+                default -> {
+                    // do nothing
+                }
             }
         });
     }
 
     void initFromOptions() {
-        tempo.setValue(Options.getInstance().getMusicOptions().getTempo());
+        tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
+        boolean externalTiming = Options.getInstance().getMidiOptions().isUsingExternalTiming();
+        startBtn.setDisable(externalTiming);
+        rewindBtn.setDisable(externalTiming);
+        tempo.setDisable(externalTiming);
     }
 
 }

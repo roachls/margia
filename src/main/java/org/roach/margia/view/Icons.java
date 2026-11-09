@@ -1,24 +1,22 @@
 package org.roach.margia.view;
 
-import java.awt.Image;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 @SuppressWarnings("javadoc")
 public class Icons {
     private static final Logger LOGGER = LoggerFactory.getLogger(Icons.class);
     private static final int TOOLBAR_ICON_SIZE = 24;
     private static final int MENU_ICON_SIZE = 18;
-    private static final Map<String, ImageIcon> LARGE_ICONS = new HashMap<>();
-    private static final Map<String, ImageIcon> SMALL_ICONS = new HashMap<>();
-    private static final Map<String, ImageIcon> HUGE_ICONS = new HashMap<>();
+    private static final Map<String, Image> LARGE_ICONS = new HashMap<>();
+    private static final Map<String, Image> SMALL_ICONS = new HashMap<>();
+    private static final Map<String, Image> HUGE_ICONS = new HashMap<>();
     public static final String ABOUT = "about";
     public static final String ADD = "add";
     public static final String ADD_CIRCLE = "add_circle";
@@ -96,11 +94,11 @@ public class Icons {
         for (var key : new String[] { ABOUT, ADD, ADD_CIRCLE, ADD_GRID, CONNECT, COPY, DELETE, DISCONNECT, DESELECT_ALL,
                 ADD_FAN, HELP, KEYBOARD, LISTENING, LOCK_ALL, LOCK, MOVE, MUTE_ALL, MUTE, NOT_LISTENING, OPEN, OPTIONS,
                 PASTE, SAVE, SELECT_ALL, SELECT, SELECT_CONNECTED, UNLOCK, UNLOCK_ALL, UNMUTE, UNMUTE_ALL, EXIT }) {
-            LARGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
-            SMALL_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
+            LARGE_ICONS.put(key, createImage(key, DESCRIPTIONS.get(key), TOOLBAR_ICON_SIZE));
+            SMALL_ICONS.put(key, createImage(key, DESCRIPTIONS.get(key), MENU_ICON_SIZE));
         }
         for (var key : new String[] { PAUSE, START, REWIND }) {
-            HUGE_ICONS.put(key, createImageIcon(key, DESCRIPTIONS.get(key), 25));
+            HUGE_ICONS.put(key, createImage(key, DESCRIPTIONS.get(key), 25));
         }
     }
 
@@ -108,24 +106,30 @@ public class Icons {
         // no instantiation
     }
 
-    public static ImageIcon getMenuIcon(String name) {
-        return LARGE_ICONS.get(name);
+    public static ImageView getToolbarIcon(String name) {
+        var img = SMALL_ICONS.get(name);
+        return img != null ? new ImageView(img) : null;
     }
 
-    public static ImageIcon getToolbarIcon(String name) {
-        return SMALL_ICONS.get(name);
+    public static ImageView getButtonIcon(String name) {
+        var img = HUGE_ICONS.get(name);
+        return img != null ? new ImageView(img) : null;
     }
 
-    public static ImageIcon getButtonIcon(String name) {
-        return HUGE_ICONS.get(name);
+    public static ImageView getMenuIcon(String name) {
+        return getToolbarIcon(name);
     }
 
-    private static ImageIcon createImageIcon(String path, String description, int scale) {
+    private static Image createImage(String path, String description, int scale) {
         try (var resource = Icons.class.getResourceAsStream(String.format("/icons/%s.png", path))) {
-            var image = ImageIO.read(resource);
-            var resizedImage = image.getScaledInstance(scale, scale, Image.SCALE_SMOOTH);
-            return new ImageIcon(resizedImage, description);
-        } catch (IOException e) {
+            if (resource == null) {
+                LOGGER.atError().setMessage("Unable to find image resource {}").addArgument(path).log();
+                return null;
+            }
+            // Parameters: InputStream, requestedWidth, requestedHeight, preserveRatio,
+            // smooth
+            return new Image(resource, scale, scale, true, true);
+        } catch (java.io.IOException e) {
             LOGGER.atError().setCause(e).setMessage("Unable to load image file {}").addArgument(path).log();
             return null;
         }

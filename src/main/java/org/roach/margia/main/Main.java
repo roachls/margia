@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.prefs.BackingStoreException;
 
-import javax.swing.SwingUtilities;
-
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
-import org.roach.margia.controller.timing.ExternalTimingSource;
-import org.roach.margia.controller.timing.InternalTimingSource;
+import org.roach.margia.controller.timing.*;
 import org.roach.margia.model.Key;
 import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
@@ -20,12 +17,17 @@ import org.roach.margia.view.MargiaWindow;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
+import javafx.application.Application;
+import javafx.stage.Stage;
+
 /**
  * Main entry point for Margia
  */
 @SuppressWarnings("java:S106")
-public class Main {
-
+public class Main extends Application {
+    private static TimingSource timing;
+    private static Transport transport;
+    
     /**
      * @param args command-line arguments
      */
@@ -69,14 +71,14 @@ public class Main {
         Key.initFromOptions();
         DieRoller.initFromOptions();
 
-        var transport = Transport.instance();
+        transport = Transport.instance();
         musicians.values().forEach(m -> transport.addPropertyListener(Transport.RESET_PROPERTY, m));
         transport.addPropertyListener(Transport.RESET_PROPERTY, _ -> {
             Key.reset();
             DieRoller.reset();
         });
 
-        var timing = Options.getInstance().getMidiOptions().isUsingExternalTiming()
+        timing = Options.getInstance().getMidiOptions().isUsingExternalTiming()
                 ? new ExternalTimingSource(transport)
                 : new InternalTimingSource(transport);
 
@@ -86,10 +88,13 @@ public class Main {
             MidiController.getInstance().close();
         }));
 
-        SwingUtilities.invokeLater(() -> {
-            var ui = new MargiaWindow(timing, transport);
-            ui.setVisible(true);
-        });
+        launch(args);
     }
 
+    @Override
+    public void start(Stage primaryStage) {
+        // Construct and display MargiaWindow on the JavaFX Application Thread
+        var ui = new MargiaWindow(timing, transport);
+        ui.show();
+    }
 }
