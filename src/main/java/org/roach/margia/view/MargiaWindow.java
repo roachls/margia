@@ -83,22 +83,29 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      *                           true
      */
     public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
-        setUndecorated(true);
+//        setUndecorated(true);
         getContentPane().setLayout(new BorderLayout());
 
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        optionsWindow = new OptionsWindow(this);
-        updateTitle();
+        // Inside MargiaWindow constructor
+        // 1. Initialize the JavaFX toolkit once before touching any JavaFX classes
+        new javafx.embed.swing.JFXPanel();
+        javafx.application.Platform.setImplicitExit(false);
+
         agentPanel = new AgentPanel();
+        javafx.application.Platform.runLater(() -> {
+            optionsWindow = new OptionsWindow();
+            optionsWindow.addPropertyChangeListener(agentPanel);
+            agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
+            agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
+            agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
+            agentPanel.setBounds(0, 0, 1000, 1000);
+        });
+        updateTitle();
         registerListeners();
-        agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
-        agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
-        agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
-        optionsWindow.addPropertyChangeListener(agentPanel);
-        agentPanel.setBounds(0, 0, 1000, 1000);
         getContentPane().add(agentPanel, BorderLayout.CENTER);
 
         var palette1 = createToolPalette();
@@ -430,18 +437,41 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         selectConnected.addActionListener(_ -> agentPanel.selectConnected());
 
         var showUiOptions = new JToggleButton("Options");
-        showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
-        optionsWindow.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                showUiOptions.setSelected(false);
-            }
 
-            @Override
-            public void windowDeactivated(WindowEvent e) {
-                showUiOptions.setSelected(false);
-            }
-        });
+     // 1. Toggle OptionsWindow visibility from Swing EDT -> JavaFX Thread
+     showUiOptions.addActionListener(_ -> {
+         boolean shouldShow = showUiOptions.isSelected();
+         javafx.application.Platform.runLater(() -> {
+             if (optionsWindow != null) {
+                 optionsWindow.setVisible(shouldShow);
+             }
+         });
+     });
+
+     // 2. Sync JToggleButton state from JavaFX Thread -> Swing EDT
+     javafx.application.Platform.runLater(() -> {
+         if (optionsWindow != null) {
+             // Sync initial button state if OptionsWindow auto-opened from saved preferences
+             javax.swing.SwingUtilities.invokeLater(() -> 
+                 showUiOptions.setSelected(optionsWindow.isShowing())
+             );
+
+             // Replaces WindowAdapter.windowClosed()
+             optionsWindow.showingProperty().addListener((_, _, isShowing) -> {
+                 if (!isShowing) {
+                     javax.swing.SwingUtilities.invokeLater(() -> showUiOptions.setSelected(false));
+                 }
+             });
+
+             // Replaces WindowAdapter.windowDeactivated()
+             optionsWindow.focusedProperty().addListener((_, _, isFocused) -> {
+                 if (!isFocused) {
+                     javax.swing.SwingUtilities.invokeLater(() -> showUiOptions.setSelected(false));
+                 }
+             });
+         }
+     });
+
 
         toolbar.add(selectAll);
         toolbar.add(deselectAll);

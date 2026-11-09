@@ -1,16 +1,7 @@
 package org.roach.margia.view;
 
-import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import java.beans.*;
 import java.util.*;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.swing.*;
-import javax.swing.tree.*;
 
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
@@ -19,8 +10,17 @@ import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 
-@SuppressWarnings("java:S1948")
-class OptionsWindow extends JDialog implements PropertyChangeListener {
+import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.stage.Stage;
+import javafx.util.StringConverter;
+
+class OptionsWindow extends Stage implements PropertyChangeListener {
     private static final String HEIGHT_PROPERTY = "_height";
     private static final String WIDTH_PROPERTY = "_width";
     private static final String Y_PROPERTY = "_y";
@@ -28,286 +28,347 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
 
     private static final String MUSICIAN = "Musician ";
+
+    // Note: These sub-panels will eventually become JavaFX Nodes/Panes.
+    // While migrating, if they are still JPanels, wrap them in a SwingNode!
     private UiOptionsPanel uiPanel;
     private MiscPanel miscPanel;
     private MidiPanel midiPanel;
     private MusicPanel globalMusicPanel;
-    private JTree tree;
-    private DefaultMutableTreeNode root;
-    private DefaultMutableTreeNode musiciansNode;
-    private final Map<Integer, DefaultMutableTreeNode> musicianNodes = new HashMap<>();
 
-    private static final double LEFT_COLUMN_WEIGHT = 0.2;
-    private static final double RIGHT_COLUMN_WEIGHT = 1.0 - LEFT_COLUMN_WEIGHT;
+    private TreeView<Object> tree;
+    private TreeItem<Object> root;
+    private TreeItem<Object> musiciansNode;
+    private final Map<Integer, TreeItem<Object>> musicianNodes = new HashMap<>();
 
     public static final String OPTIONS_AGENTS_SELECTED_PROPERTY = "options agents selected";
 
-    OptionsWindow(JFrame parent) {
-        super(parent, "Options");
-        setName(OPTIONS_WINDOW_NAME);
-        addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentMoved(ComponentEvent e) {
-                if (isVisible()) {
-                    var loc = getLocationOnScreen();
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + X_PROPERTY, Integer.toString(loc.x));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + Y_PROPERTY, Integer.toString(loc.y));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY,
-                            Integer.toString(getBounds().width));
-                    Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY,
-                            Integer.toString(getBounds().height));
-                }
-            }
+    // Replaces JDialog's built-in Swing PropertyChangeSupport
+    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
-            @Override
-            public void componentResized(ComponentEvent e) {
+    OptionsWindow() {
+        setTitle("Options");
+
+        // Save window position and size via JavaFX Property Listeners
+        xProperty().addListener((_, _, newVal) -> {
+            if (isShowing()) {
+                Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + X_PROPERTY,
+                        Integer.toString(newVal.intValue()));
+            }
+        });
+        yProperty().addListener((_, _, newVal) -> {
+            if (isShowing()) {
+                Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + Y_PROPERTY,
+                        Integer.toString(newVal.intValue()));
+            }
+        });
+        widthProperty().addListener((_, _, newVal) -> {
+            if (isShowing()) {
                 Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY,
-                        Integer.toString(getBounds().width));
+                        Integer.toString(newVal.intValue()));
+            }
+        });
+        heightProperty().addListener((_, _, newVal) -> {
+            if (isShowing()) {
                 Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY,
-                        Integer.toString(getBounds().height));
+                        Integer.toString(newVal.intValue()));
             }
         });
 
-        createUi();
+        BorderPane mainLayout = createUi();
+        Scene scene = new Scene(mainLayout);
+        setScene(scene);
+
         var x = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + X_PROPERTY, 100);
         var y = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + Y_PROPERTY, 100);
-        var w = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY, 100);
-        var h = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY, 100);
-        this.setLocation(x, y);
-        this.setSize(w, h);
-        setVisible(Persistence.getInstance().getBoolean(OptionsWindow.OPTIONS_WINDOW_NAME + "_visible", false));
+        var w = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + WIDTH_PROPERTY, 600);
+        var h = Persistence.getInstance().getInt(OPTIONS_WINDOW_NAME + HEIGHT_PROPERTY, 400);
+
+        setX(x);
+        setY(y);
+        setWidth(w);
+        setHeight(h);
+
+        if (Persistence.getInstance().getBoolean(OPTIONS_WINDOW_NAME + "_visible", false)) {
+            show();
+        }
+
         updateOptions();
     }
 
-    private void createUi() {
-        AtomicReference<JPanel> selectedPanel = new AtomicReference<>();
-        setLayout(new BorderLayout());
-        root = new DefaultMutableTreeNode("root");
+    @SuppressWarnings("unchecked")
+    private BorderPane createUi() {
+        var borderPane = new BorderPane();
+
+        root = new TreeItem<>("root");
         uiPanel = new UiOptionsPanel();
-        var uiOptions = new DefaultMutableTreeNode(uiPanel);
+        var uiOptions = new TreeItem<Object>(uiPanel);
         midiPanel = new MidiPanel();
-        var midiOptions = new DefaultMutableTreeNode(midiPanel);
+        var midiOptions = new TreeItem<Object>(midiPanel);
         globalMusicPanel = new MusicPanel();
-        var musicOptions = new DefaultMutableTreeNode(globalMusicPanel);
+        var musicOptions = new TreeItem<Object>(globalMusicPanel);
         miscPanel = new MiscPanel();
-        var miscOptions = new DefaultMutableTreeNode(miscPanel);
-        musiciansNode = new DefaultMutableTreeNode("Musicians");
+        var miscOptions = new TreeItem<Object>(miscPanel);
+        musiciansNode = new TreeItem<>("Musicians");
+        musiciansNode.setExpanded(true);
 
-        root.add(uiOptions);
-        root.add(midiOptions);
-        root.add(miscOptions);
-        root.add(musicOptions);
-        root.add(musiciansNode);
-        tree = new JTree(root);
-        tree.setShowsRootHandles(true);
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
+        root.getChildren().addAll(uiOptions, midiOptions, miscOptions, musicOptions, musiciansNode);
 
-        selectedPanel.set(uiPanel);
-        add(uiPanel, BorderLayout.CENTER);
-        tree.addTreeSelectionListener(e -> {
-            remove(selectedPanel.get());
-            var selectedPathCount = tree.getSelectionCount();
-            final var warningPanel = new WarningPanel();
-            if (selectedPathCount == 1) {
-                var path = (DefaultMutableTreeNode) e.getPath().getLastPathComponent();
-                var userObject = path.getUserObject();
-                if (userObject instanceof JPanel panel) {
-                    selectedPanel.set(panel);
-                }
-                add(selectedPanel.get(), BorderLayout.CENTER);
-            } else if (selectedPathCount > 1) {
-                var selectedPaths = tree.getSelectionPaths();
-                var firstObjectType = ((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent()).getUserObject()
-                        .getClass();
-                var areAllPathsOfSameType = Arrays.stream(selectedPaths)
-                        .map(p -> (DefaultMutableTreeNode) p.getLastPathComponent()).map(p -> p.getUserObject())
-                        .map(Object::getClass).allMatch(firstObjectType::equals);
-                if (!areAllPathsOfSameType) {
-                    selectedPanel.set(warningPanel);
-                    add(warningPanel, BorderLayout.CENTER);
+        tree = new TreeView<>(root);
+     // Inside OptionsWindow.createUi(), right after creating `tree = new TreeView<>(root);`
+        tree.setShowRoot(false);
+        tree.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+        // Force TreeView to render item.toString() as text instead of embedding the Node itself
+        tree.setCellFactory(_ -> new TreeCell<>() {
+            @Override
+            protected void updateItem(Object item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
                 } else {
-                    setupMultipleSelection(selectedPaths, selectedPanel);
+                    setText(item.toString());
+                    setGraphic(null);
                 }
             }
-            if (tree.getSelectionCount() > 0) {
-                var selectedPaths = tree.getSelectionPaths();
+        });
+        tree.setPrefWidth(180);
+        borderPane.setLeft(tree);
+
+        tree.setShowRoot(false);
+        tree.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+        // Set initial center view
+        borderPane.setCenter(uiPanel);
+
+        // Listen for multi-selection changes in the JavaFX TreeView
+        tree.getSelectionModel().getSelectedItems().addListener((ListChangeListener<TreeItem<Object>>) _ -> {
+            var selectedItems = tree.getSelectionModel().getSelectedItems();
+            int selectedCount = selectedItems.size();
+
+            if (selectedCount == 1) {
+                var userObject = selectedItems.get(0).getValue();
+                if (userObject instanceof Node node) {
+                    borderPane.setCenter(node);
+                }
+            } else if (selectedCount > 1) {
+                var firstObjectType = selectedItems.get(0).getValue().getClass();
+                boolean areAllSameType = selectedItems.stream().map(TreeItem::getValue).map(Object::getClass)
+                        .allMatch(firstObjectType::equals);
+
+                if (!areAllSameType) {
+                    borderPane.setCenter(new WarningPanel());
+                } else {
+                    setupMultipleSelection(selectedItems, borderPane);
+                }
+            }
+
+            if (selectedCount > 0) {
                 var musicianIdList = new ArrayList<Integer>();
-                for (var selectedPath : selectedPaths) {
-                    var lastPathComponent = (DefaultMutableTreeNode) selectedPath.getLastPathComponent();
-                    var string = lastPathComponent.getUserObject().toString();
-                    if (string != null && string.startsWith(MUSICIAN)) {
-                        var musicianId = Integer.parseInt(string.substring(MUSICIAN.length()));
+                for (var item : selectedItems) {
+                    var valueStr = item.getValue().toString();
+                    if (valueStr != null && valueStr.startsWith(MUSICIAN)) {
+                        var musicianId = Integer.parseInt(valueStr.substring(MUSICIAN.length()));
                         musicianIdList.add(musicianId);
                     }
                 }
-                // fire change of musicianIdList with property OPTIONS_AGENTS_SELECTED_PROPERTY
-                firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
+                pcs.firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
             }
-            revalidate();
-            repaint();
         });
-        var treePane = new JPanel(new BorderLayout());
-        treePane.setBorder(BorderFactory.createEtchedBorder());
-        treePane.add(new JScrollPane(tree), BorderLayout.CENTER);
-        add(treePane, BorderLayout.WEST);
-        tree.setRootVisible(false);
 
-        add(treePane, BorderLayout.WEST);
-        pack();
+        // TreeView in JavaFX has built-in scrolling, no JScrollPane needed
+        tree.setStyle("-fx-border-color: lightgray; -fx-border-width: 1;");
+        borderPane.setLeft(tree);
+
+        return borderPane;
+    }
+
+    // Expose PropertyChangeListener registration so external Swing controllers
+    // still work
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        pcs.addPropertyChangeListener(listener);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        pcs.removePropertyChangeListener(listener);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        if (AgentPanel.AGENT_ADDED_PROPERTY.equals(e.getPropertyName())) {
-            var mc = (MusicianComponent) e.getNewValue();
-            var id = mc.getMusician().getId();
-            var newUiPanel = new MusicianUiPanel(id, mc.getOptions());
-            var newMusicianPanel = new MusicianMusicalOptionsPanel(mc.getMusician().getOptions());
-            var newRulePanel = new MusicianRuleOptionsPanel(id, mc.getMusician().getOptions().getRuleOptions());
-            var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
-            var newNode = new DefaultMutableTreeNode(newOptionsPanel);
-            var model = ((DefaultTreeModel) tree.getModel());
-            model.insertNodeInto(newNode, musiciansNode, musiciansNode.getChildCount());
-            musicianNodes.put(id, newNode);
-            revalidate();
-            repaint();
-        } else if (AgentPanel.AGENT_REMOVED_PROPERTY.equals(e.getPropertyName())) {
-            var mc = (MusicianComponent) e.getNewValue();
-            var id = mc.getMusician().getId();
-            if (musicianNodes.containsKey(id)) {
-                var path = new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) });
-                var model = ((DefaultTreeModel) tree.getModel());
-                model.removeNodeFromParent((DefaultMutableTreeNode) path.getLastPathComponent());
+        // Ensure UI updates run on the JavaFX thread, even if triggered by a Swing EDT
+        // event
+        Platform.runLater(() -> {
+            if (AgentPanel.AGENT_ADDED_PROPERTY.equals(e.getPropertyName())) {
+                System.out.println("************* " + AgentPanel.AGENT_ADDED_PROPERTY);
+                var mc = (MusicianComponent) e.getNewValue();
+                var id = mc.getMusician().getId();
+                var newUiPanel = new MusicianUiPanel(id, mc.getOptions());
+                var newMusicianPanel = new MusicianMusicalOptionsPanel(mc.getMusician().getOptions());
+                var newRulePanel = new MusicianRuleOptionsPanel(id, mc.getMusician().getOptions().getRuleOptions());
+                var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
+
+                var newNode = new TreeItem<Object>(newOptionsPanel);
+
+                // JavaFX TreeItem uses a standard ObservableList; no TreeModel or repaint()
+                // needed
+                musiciansNode.getChildren().add(newNode);
+                musiciansNode.setExpanded(true);
+                musicianNodes.put(id, newNode);
+            } else if (AgentPanel.AGENT_REMOVED_PROPERTY.equals(e.getPropertyName())) {
+                var mc = (MusicianComponent) e.getNewValue();
+                var id = mc.getMusician().getId();
+                var nodeToRemove = musicianNodes.remove(id);
+
+                if (nodeToRemove != null) {
+                    musiciansNode.getChildren().remove(nodeToRemove);
+                }
+
+            } else if (AgentPanel.SELECTED_AGENT_PROPERTY.equals(e.getPropertyName())) {
+                var selectionModel = tree.getSelectionModel();
+                selectionModel.clearSelection();
+
+                var selectedMusicians = (List<Musician>) e.getNewValue();
+                var itemsToSelect = selectedMusicians.stream().map(Musician::getId).map(musicianNodes::get)
+                        .filter(Objects::nonNull).toList();
+
+                if (!itemsToSelect.isEmpty()) {
+                    // Ensure the parent "Musicians" node is expanded so row indices resolve
+                    // properly
+                    musiciansNode.setExpanded(true);
+
+                    for (var item : itemsToSelect) {
+                        selectionModel.select(item);
+                    }
+
+                    int firstRowIndex = tree.getRow(itemsToSelect.get(0));
+                    if (firstRowIndex >= 0) {
+                        tree.scrollTo(firstRowIndex);
+                    }
+                }
             }
-            musicianNodes.remove(id);
-            revalidate();
-            repaint();
-        } else if (AgentPanel.SELECTED_AGENT_PROPERTY.equals(e.getPropertyName())) {
-            tree.clearSelection();
-            var selectedMusicians = (List<Musician>) e.getNewValue();
-            var paths = selectedMusicians.stream().map(Musician::getId).filter(musicianNodes::containsKey)
-                    .map(id -> new TreePath(new Object[] { root, musiciansNode, musicianNodes.get(id) })).toList();
-            tree.setSelectionPaths(paths.toArray(new TreePath[0]));
-            if (!paths.isEmpty())
-                tree.scrollPathToVisible(paths.get(0));
-        }
+        });
     }
 
-    private void setupMultipleSelection(TreePath[] selectedPaths, AtomicReference<JPanel> selectedPanel) {
-        if (!(selectedPaths[0].getLastPathComponent() instanceof DefaultMutableTreeNode))
+    private void setupMultipleSelection(List<TreeItem<Object>> selectedItems, BorderPane borderPane) {
+        if (selectedItems.isEmpty()) {
             return;
-        var userObjects = Arrays.stream(selectedPaths)
-                .map(sp -> ((DefaultMutableTreeNode) sp.getLastPathComponent()).getUserObject()).toList();
+        }
+        var userObjects = selectedItems.stream().map(TreeItem::getValue).toList();
+
         if (userObjects.get(0) instanceof MusicianOptionsPanel) {
             var mups = userObjects.stream().map(MusicianOptionsPanel.class::cast).toList();
-            setupMultipleMusicianUi(mups, selectedPanel);
+            setupMultipleMusicianUi(mups, borderPane);
         }
     }
 
-    private void setupMultipleMusicianUi(List<MusicianOptionsPanel> mups, AtomicReference<JPanel> selectedPanel) {
+    private void setupMultipleMusicianUi(List<MusicianOptionsPanel> mups, BorderPane borderPane) {
         var multipleEditor = new MusicianOptionsPanel(mups);
-        selectedPanel.set(multipleEditor);
-        add(multipleEditor, BorderLayout.CENTER);
+        borderPane.setCenter(multipleEditor);
     }
 
-    @Override
-    public void setVisible(boolean b) {
-        super.setVisible(b);
-        Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_visible", Boolean.toString(this.isVisible()));
+    // Replaces Swing's setVisible(boolean)
+    public void setVisible(boolean visible) {
+        if (visible) {
+            show();
+        } else {
+            hide();
+        }
+        Persistence.getInstance().saveProperty(OPTIONS_WINDOW_NAME + "_visible", Boolean.toString(isShowing()));
     }
 
-    private static class WarningPanel extends JPanel {
+    private static class WarningPanel extends StackPane {
         WarningPanel() {
-            super(new BorderLayout());
-            var warning = new JLabel("All selected objects must be of same type");
-            warning.setHorizontalAlignment(SwingConstants.CENTER);
-            var font = warning.getFont();
-            var boldFont = font.deriveFont(Font.BOLD);
-            warning.setFont(boldFont);
-            add(warning, BorderLayout.CENTER);
+            var warning = new Label("All selected objects must be of same type");
+            warning.setStyle("-fx-font-weight: bold;");
+            getChildren().add(warning);
         }
     }
 
-    private class UiOptionsPanel extends JPanel {
-        private final JSpinner gravity;
-        private final JSpinner windSpeed;
-        private final JSpinner edgeLength;
-        private final JCheckBox showIcons;
-        private final JCheckBox animateBackground;
+    private class UiOptionsPanel extends VBox {
+        private final Spinner<Double> gravity;
+        private final Spinner<Double> windSpeed;
+        private final Spinner<Integer> edgeLength;
+        private final CheckBox showIcons;
+        private final CheckBox animateBackground;
 
         UiOptionsPanel() {
-            setName("UI Options");
-            setBorder(BorderFactory.createTitledBorder("UI Options"));
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
 
+            // Replaces BorderFactory.createTitledBorder("UI Options")
+            var titleLabel = new Label("UI Options");
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            // Configure column widths (replaces LEFT_COLUMN_WEIGHT and RIGHT_COLUMN_WEIGHT)
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
+
+            // Spinners & Listeners
             gravity = createSpinner("Gravity", Options.getInstance().getUiOptions().getGravity(), -20.0, 20.0, 0.1);
-            gravity.addChangeListener(
-                    _ -> Options.getInstance().getUiOptions().setGravity((double) gravity.getValue()));
+            gravity.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    Options.getInstance().getUiOptions().setGravity(newVal);
+                }
+            });
             var gravityLabel = createLabelFor("Gravitational Constant", gravity);
+
             windSpeed = createSpinner("Wind speed (clockwise)", Options.getInstance().getUiOptions().getWindSpeed(),
                     -200.0, 200.0, 0.1);
-            windSpeed.addChangeListener(
-                    _ -> Options.getInstance().getUiOptions().setWindSpeed((double) windSpeed.getValue()));
+            windSpeed.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    Options.getInstance().getUiOptions().setWindSpeed(newVal);
+                }
+            });
             var windSpeedLabel = createLabelFor("WindSpeed", windSpeed);
+
             edgeLength = createSpinner(UiOptions.EDGE_LENGTH_PROPERTY,
                     Options.getInstance().getUiOptions().getEdgeLength(), 20, 300, 1);
-            edgeLength.addChangeListener(
-                    _ -> Options.getInstance().getUiOptions().setEdgeLength((int) edgeLength.getValue()));
+            edgeLength.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    Options.getInstance().getUiOptions().setEdgeLength(newVal);
+                }
+            });
             var edgeLengthLabel = createLabelFor("Edge length", edgeLength);
-            showIcons = new JCheckBox("Show icons");
-            showIcons.setToolTipText("Show/hide additional information on musicians");
+
+            // CheckBoxes & Listeners
+            showIcons = new CheckBox("Show icons");
+            showIcons.setTooltip(new Tooltip("Show/hide additional information on musicians"));
             showIcons.setSelected(Options.getInstance().getUiOptions().isShowNumbers());
-            showIcons.addActionListener(
-                    _ -> Options.getInstance().getUiOptions().setShowNumbers(showIcons.isSelected()));
-            animateBackground = new JCheckBox("Animate background");
-            animateBackground.setToolTipText("Animate background");
+            showIcons.selectedProperty()
+                    .addListener((_, _, newVal) -> Options.getInstance().getUiOptions().setShowNumbers(newVal));
+
+            animateBackground = new CheckBox("Animate background");
+            animateBackground.setTooltip(new Tooltip("Animate background"));
             animateBackground.setSelected(Options.getInstance().getUiOptions().isAnimateBackground());
-            animateBackground.addActionListener(
-                    _ -> Options.getInstance().getUiOptions().setAnimateBackground(animateBackground.isSelected()));
+            animateBackground.selectedProperty()
+                    .addListener((_, _, newVal) -> Options.getInstance().getUiOptions().setAnimateBackground(newVal));
 
-            var row = 0;
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy = row++;
-            add(gravityLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(gravity, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy = row++;
-            add(windSpeedLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(windSpeed, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy = row++;
-            add(edgeLengthLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(edgeLength, c);
-            c.gridy = row++;
-            add(showIcons, c);
-            c.gridy = row++;
-            add(animateBackground, c);
+            // Populate GridPane (note: CheckBoxes align with your original c.gridx = 1
+            // placement)
+            int row = 0;
+            grid.add(gravityLabel, 0, row);
+            grid.add(gravity, 1, row++);
 
-            /*
-             * Add a "filler" component to absorb extra vertical space This pushes all
-             * previous components to the top of the container
-             */
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            grid.add(windSpeedLabel, 0, row);
+            grid.add(windSpeed, 1, row++);
+
+            grid.add(edgeLengthLabel, 0, row);
+            grid.add(edgeLength, 1, row++);
+
+            grid.add(showIcons, 1, row++);
+            grid.add(animateBackground, 1, row++);
+
+            getChildren().addAll(titleLabel, grid);
         }
 
         @Override
@@ -316,48 +377,47 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private class MiscPanel extends JPanel {
-        private final JSpinner randomSeedSpinner;
+    private class MiscPanel extends VBox {
+        private final Spinner<Long> randomSeedSpinner;
 
         MiscPanel() {
-            setBorder(BorderFactory.createTitledBorder("Miscellaneous Options"));
-            setName("Misc Options");
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            setId("Misc Options");
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
+
+            // Replaces BorderFactory.createTitledBorder("Miscellaneous Options")
+            var titleLabel = new Label("Miscellaneous Options");
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
 
             randomSeedSpinner = createSpinner("Random seed", Options.getInstance().getRandomSeed(), -Long.MAX_VALUE,
                     Long.MAX_VALUE, 1L);
-            JComponent editor = randomSeedSpinner.getEditor();
-            if (editor instanceof JSpinner.DefaultEditor defEditor) {
-                JFormattedTextField textField = defEditor.getTextField();
-                textField.setColumns(15); // Set width to 3 columns
-            }
+
+            // Replaces JFormattedTextField.setColumns(15)
+            randomSeedSpinner.getEditor().setPrefColumnCount(15);
+
+            randomSeedSpinner.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    Options.getInstance().setRandomSeed(newVal);
+                }
+            });
+
             var randomSeedLabel = createLabelFor("Random seed", randomSeedSpinner);
-            randomSeedSpinner.addChangeListener(
-                    _ -> Options.getInstance().setRandomSeed(((Double) randomSeedSpinner.getValue()).longValue()));
 
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            add(randomSeedLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(randomSeedSpinner, c);
+            grid.add(randomSeedLabel, 0, 0);
+            grid.add(randomSeedSpinner, 1, 0);
 
-            /*
-             * Add a "filler" component to absorb extra vertical space This pushes all
-             * previous components to the top of the container
-             */
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            getChildren().addAll(titleLabel, grid);
         }
 
         @Override
@@ -366,135 +426,118 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private class MidiPanel extends JPanel {
-        private final JCheckBox external;
-        private final JCheckBox sendMidiTimecode;
-        private final JCheckBox sendPanMessage;
-        private final JSpinner panController;
-        private final JCheckBox panWithRelativeLocations;
-        private final JCheckBox sendVerticalPanMessage;
-        private final JSpinner verticalPanController;
-        private final JCheckBox verticalPanWithRelativeLocations;
+    private class MidiPanel extends VBox {
+        private final CheckBox external;
+        private final CheckBox sendMidiTimecode;
+        private final CheckBox sendPanMessage;
+        private final Spinner<Integer> panController;
+        private final CheckBox panWithRelativeLocations;
+        private final CheckBox sendVerticalPanMessage;
+        private final Spinner<Integer> verticalPanController;
+        private final CheckBox verticalPanWithRelativeLocations;
 
         MidiPanel() {
-            setBorder(BorderFactory.createTitledBorder("MIDI Options"));
-            setName("MIDI Options");
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            setId("MIDI Options");
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
 
-            external = new JCheckBox("Use External MIDI");
-            external.setSelected(Options.getInstance().getMidiOptions().isUsingExternalMidi());
-            sendMidiTimecode = new JCheckBox("Send MIDI Timecode");
-            sendMidiTimecode.addActionListener(
-                    _ -> Options.getInstance().getMidiOptions().setSendingMidiTimecode(sendMidiTimecode.isSelected()));
-            sendMidiTimecode.setEnabled(external.isSelected());
+            var titleLabel = new Label("MIDI Options");
+            titleLabel.setStyle("-fx-font-weight: bold;");
 
-            sendPanMessage = new JCheckBox("Send stereo panning");
-            sendPanMessage.addActionListener(
-                    _ -> Options.getInstance().getMidiOptions().setSendPanMessage(sendPanMessage.isSelected()));
-            sendPanMessage.setEnabled(external.isSelected());
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
+
+            var midiOpts = Options.getInstance().getMidiOptions();
+
+            // Controls & Model Listeners
+            external = new CheckBox("Use External MIDI");
+            external.setSelected(midiOpts.isUsingExternalMidi());
+            external.selectedProperty().addListener((_, _, newVal) -> midiOpts.setUsingExternalMidi(newVal));
+
+            sendMidiTimecode = new CheckBox("Send MIDI Timecode");
+            sendMidiTimecode.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendingMidiTimecode(newVal));
+
+            sendPanMessage = new CheckBox("Send stereo panning");
+            sendPanMessage.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendPanMessage(newVal));
 
             panController = createSpinner("Pan controller", MidiOptions.DEFAULT_PAN_CONTROLLER, 0, 127, 1);
-            panController.addChangeListener(
-                    _ -> Options.getInstance().getMidiOptions().setPanController((int) panController.getValue()));
-            panController.setEnabled(external.isSelected());
+            panController.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    midiOpts.setPanController(newVal);
+                }
+            });
             var panControllerLabel = createLabelFor("Pan controller", panController);
 
-            panWithRelativeLocations = new JCheckBox("Pan with relative locations");
-            panWithRelativeLocations.setToolTipText(
-                    "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen");
-            panWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                    .setPanWithRelativeLocations(panWithRelativeLocations.isSelected()));
-            panWithRelativeLocations.setEnabled(external.isSelected());
+            panWithRelativeLocations = new CheckBox("Pan with relative locations");
+            panWithRelativeLocations.setTooltip(new Tooltip(
+                    "If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen"));
+            panWithRelativeLocations.selectedProperty()
+                    .addListener((_, _, newVal) -> midiOpts.setPanWithRelativeLocations(newVal));
 
-            sendVerticalPanMessage = new JCheckBox("Send vertical panning");
-            sendVerticalPanMessage.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                    .setSendVerticalPanMessage(sendVerticalPanMessage.isSelected()));
-            sendVerticalPanMessage.setEnabled(external.isSelected());
+            sendVerticalPanMessage = new CheckBox("Send vertical panning");
+            sendVerticalPanMessage.selectedProperty()
+                    .addListener((_, _, newVal) -> midiOpts.setSendVerticalPanMessage(newVal));
 
             verticalPanController = createSpinner("Vertical pan controller",
                     MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER, 0, 127, 1);
-            verticalPanController.addChangeListener(_ -> Options.getInstance().getMidiOptions()
-                    .setVerticalPanController((int) verticalPanController.getValue()));
-            verticalPanController.setEnabled(external.isSelected());
+            verticalPanController.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    midiOpts.setVerticalPanController(newVal);
+                }
+            });
             var verticalPanControllerLabel = createLabelFor("Vertical pan controller", verticalPanController);
 
-            verticalPanWithRelativeLocations = new JCheckBox("Vertical pan with relative locations");
-            verticalPanWithRelativeLocations.setToolTipText(
-                    "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen");
-            verticalPanWithRelativeLocations.addActionListener(_ -> Options.getInstance().getMidiOptions()
-                    .setVerticalPanWithRelativeLocations(verticalPanWithRelativeLocations.isSelected()));
-            verticalPanWithRelativeLocations.setEnabled(external.isSelected());
+            verticalPanWithRelativeLocations = new CheckBox(
+                    "Vertical pan with relative locations");
+            verticalPanWithRelativeLocations.setTooltip(new Tooltip(
+                    "If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen"));
+            verticalPanWithRelativeLocations.selectedProperty()
+                    .addListener((_, _, newVal) -> midiOpts.setVerticalPanWithRelativeLocations(newVal));
 
-            external.addActionListener(_ -> {
-                Options.getInstance().getMidiOptions().setUsingExternalMidi(external.isSelected());
-                sendMidiTimecode.setEnabled(external.isSelected());
-                sendPanMessage.setEnabled(external.isSelected());
-                panController.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-                panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-                sendVerticalPanMessage.setEnabled(external.isSelected());
-                verticalPanController.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-                verticalPanWithRelativeLocations
-                        .setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-            });
+            // Declarative Disable Bindings (replaces manual setEnabled cascades)
+            var externalNotSelected = external.selectedProperty().not();
+            var panDisabled = externalNotSelected.or(sendPanMessage.selectedProperty().not());
+            var verticalPanDisabled = externalNotSelected.or(sendVerticalPanMessage.selectedProperty().not());
 
-            sendPanMessage.addActionListener(_ -> {
-                panControllerLabel.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-                panWithRelativeLocations.setEnabled(external.isSelected() && sendPanMessage.isSelected());
-            });
-            sendVerticalPanMessage.addActionListener(_ -> {
-                verticalPanControllerLabel.setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-                verticalPanWithRelativeLocations
-                        .setEnabled(external.isSelected() && sendVerticalPanMessage.isSelected());
-            });
+            sendMidiTimecode.disableProperty().bind(externalNotSelected);
+            sendPanMessage.disableProperty().bind(externalNotSelected);
+            sendVerticalPanMessage.disableProperty().bind(externalNotSelected);
 
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = 1;
-            add(external, c);
-            c.gridy++;
-            add(sendMidiTimecode, c);
-            c.gridy++;
-            add(sendPanMessage, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(panControllerLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(panController, c);
-            c.gridx = 0;
-            c.weightx = 1;
-            c.gridy++;
-            add(panWithRelativeLocations, c);
-            c.gridy++;
-            add(sendVerticalPanMessage, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(verticalPanControllerLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(verticalPanController, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(verticalPanWithRelativeLocations, c);
+            panController.disableProperty().bind(panDisabled);
+            panControllerLabel.disableProperty().bind(panDisabled);
+            panWithRelativeLocations.disableProperty().bind(panDisabled);
 
-            /*
-             * Add a "filler" component to absorb extra vertical space This pushes all
-             * previous components to the top of the container
-             */
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            verticalPanController.disableProperty().bind(verticalPanDisabled);
+            verticalPanControllerLabel.disableProperty().bind(verticalPanDisabled);
+            verticalPanWithRelativeLocations.disableProperty().bind(verticalPanDisabled);
+
+            // Layout Grid (full-width checkboxes span 2 columns so long text isn't clipped
+            // to 20%)
+            int row = 0;
+            grid.add(external, 0, row++, 2, 1);
+            grid.add(sendMidiTimecode, 0, row++, 2, 1);
+            grid.add(sendPanMessage, 0, row++, 2, 1);
+
+            grid.add(panControllerLabel, 0, row);
+            grid.add(panController, 1, row++);
+
+            grid.add(panWithRelativeLocations, 0, row++, 2, 1);
+            grid.add(sendVerticalPanMessage, 0, row++, 2, 1);
+
+            grid.add(verticalPanControllerLabel, 0, row);
+            grid.add(verticalPanController, 1, row++);
+
+            grid.add(verticalPanWithRelativeLocations, 0, row++, 2, 1);
+
+            getChildren().addAll(titleLabel, grid);
         }
 
         @Override
@@ -503,43 +546,42 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private class MusicPanel extends JPanel {
+    private class MusicPanel extends VBox {
         private static final String GLOBAL_MUSIC_OPTIONS = "Global Music Options";
-        private final JSpinner maxQueueSize;
+        private final Spinner<Integer> maxQueueSize;
 
         MusicPanel() {
-            setBorder(BorderFactory.createTitledBorder(GLOBAL_MUSIC_OPTIONS));
-            setName(GLOBAL_MUSIC_OPTIONS);
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            setId(GLOBAL_MUSIC_OPTIONS);
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
+
+            // Replaces BorderFactory.createTitledBorder(GLOBAL_MUSIC_OPTIONS)
+            var titleLabel = new Label(GLOBAL_MUSIC_OPTIONS);
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
 
             maxQueueSize = createSpinner("Max Queue Size", MusicOptions.DEFAULT_MAX_QUEUE_SIZE, 1, 120, 1);
-            maxQueueSize.addChangeListener(
-                    _ -> Options.getInstance().getMusicOptions().setMaxQueueSize((int) maxQueueSize.getValue()));
+            maxQueueSize.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    Options.getInstance().getMusicOptions().setMaxQueueSize(newVal);
+                }
+            });
             var maxQueueSizeLabel = createLabelFor("Max Queue Size", maxQueueSize);
 
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            add(maxQueueSizeLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(maxQueueSize, c);
+            grid.add(maxQueueSizeLabel, 0, 0);
+            grid.add(maxQueueSize, 1, 0);
 
-            /*
-             * Add a "filler" component to absorb extra vertical space This pushes all
-             * previous components to the top of the container
-             */
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            getChildren().addAll(titleLabel, grid);
         }
 
         @Override
@@ -548,7 +590,7 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private class MusicianOptionsPanel extends JPanel {
+    private class MusicianOptionsPanel extends BorderPane {
         private final int id;
         private final MusicianUiPanel musicianUiPanel;
         private final MusicianMusicalOptionsPanel musicPanel;
@@ -556,29 +598,31 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
 
         MusicianOptionsPanel(MusicianUiPanel uiPanel, MusicianMusicalOptionsPanel musicPanel,
                 MusicianRuleOptionsPanel rulePanel) {
-            super(new BorderLayout());
             this.id = musicPanel.id;
             this.musicianUiPanel = uiPanel;
             this.musicPanel = musicPanel;
             this.rulePanel = rulePanel;
-            var tabbedPane = new JTabbedPane();
-            tabbedPane.add(uiPanel);
-            tabbedPane.add(musicPanel);
-            tabbedPane.add(rulePanel);
-            add(tabbedPane, BorderLayout.CENTER);
+            initTabs();
         }
 
         public MusicianOptionsPanel(List<MusicianOptionsPanel> mups) {
-            super(new BorderLayout());
             this.id = -1;
             this.musicianUiPanel = new MusicianUiPanel(mups.stream().map(m -> m.musicianUiPanel).toList());
             this.musicPanel = new MusicianMusicalOptionsPanel(mups.stream().map(m -> m.musicPanel).toList());
             this.rulePanel = new MusicianRuleOptionsPanel(mups.stream().map(m -> m.rulePanel).toList());
-            var tabbedPane = new JTabbedPane();
-            tabbedPane.add(musicianUiPanel);
-            tabbedPane.add(musicPanel);
-            tabbedPane.add(rulePanel);
-            add(tabbedPane, BorderLayout.CENTER);
+            initTabs();
+        }
+
+        private void initTabs() {
+            var tabbedPane = new TabPane();
+            tabbedPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+            var uiTab = new Tab("UI", musicianUiPanel);
+            var musicTab = new Tab("Music", musicPanel);
+            var ruleTab = new Tab("Rules", rulePanel);
+
+            tabbedPane.getTabs().addAll(uiTab, musicTab, ruleTab);
+            setCenter(tabbedPane);
         }
 
         @Override
@@ -587,91 +631,89 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private static class MusicianUiPanel extends JPanel {
+    private static class MusicianUiPanel extends VBox {
         private final MusicianComponentOptions options;
         private final int id;
-        private final JSpinner radius;
+        private final Spinner<Integer> radius;
 
         MusicianUiPanel(int id, MusicianComponentOptions options) {
             this.id = id;
             this.options = options;
-            setName("UI");
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " UI Options"));
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            setId("UI");
+
+            var grid = initContainer(MUSICIAN + id + " UI Options");
 
             radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
-            radius.addChangeListener(_ -> options.setRadius((int) radius.getValue()));
+            radius.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    options.setRadius(newVal);
+                }
+            });
             var radiusLabel = createLabelFor("Radius", radius);
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            add(radiusLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(radius, c);
 
-            // Add a "filler" component to absorb extra vertical space
-            // This pushes all previous components to the top of the container
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            grid.add(radiusLabel, 0, 0);
+            grid.add(radius, 1, 0);
         }
 
-        // called for multiple edits
+        // Called for multiple edits
         MusicianUiPanel(List<MusicianUiPanel> others) {
             this.id = -1; // not used
             this.options = new MusicianComponentOptions();
-            setName("UI");
+            setId("UI");
+
             var idList = others.stream().map(p -> p.id).toList();
             var optionsList = others.stream().map(p -> p.options).toList();
             var firstRadius = optionsList.get(0).getRadius();
             var allRadiiSame = optionsList.stream().map(MusicianComponentOptions::getRadius)
                     .allMatch(r -> firstRadius == r);
-            if (allRadiiSame)
-                options.setRadius(firstRadius);
 
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " UI Options"));
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            if (allRadiiSame) {
+                options.setRadius(firstRadius);
+            }
+
+            var grid = initContainer(MUSICIAN + idList + " UI Options");
 
             radius = createSpinner(MusicianComponentOptions.RADIUS_PROPERTY, options.getRadius(), 1, 50, 1);
-            var normalRadiusBackground = radius.getBackground();
             if (!allRadiiSame) {
-                radius.setBackground(Color.red);
+                // Highlight mismatched values across selected musicians
+                radius.setStyle("-fx-base: #ffcccc;");
+                radius.getEditor().setStyle("-fx-control-inner-background: #ffcccc;");
             }
-            radius.addChangeListener(_ -> {
-                radius.setBackground(normalRadiusBackground);
-                others.forEach(o -> o.radius.setValue(radius.getValue()));
-            });
-            var radiusLabel = createLabelFor("Radius", radius);
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            add(radiusLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(radius, c);
 
-            // Add a "filler" component to absorb extra vertical space
-            // This pushes all previous components to the top of the container
-            c.gridx = 0;
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            radius.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    // Clear highlight once the user sets a unified value
+                    radius.setStyle("");
+                    radius.getEditor().setStyle("");
+                    others.forEach(o -> o.radius.getValueFactory().setValue(newVal));
+                }
+            });
+
+            var radiusLabel = createLabelFor("Radius", radius);
+            grid.add(radiusLabel, 0, 0);
+            grid.add(radius, 1, 0);
+        }
+
+        private GridPane initContainer(String title) {
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
+
+            var titleLabel = new Label(title);
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
+
+            getChildren().addAll(titleLabel, grid);
+            return grid;
         }
 
         @Override
@@ -680,16 +722,16 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         }
     }
 
-    private class MusicianMusicalOptionsPanel extends JPanel {
+    private class MusicianMusicalOptionsPanel extends VBox {
         private static final String LOW_NOTE = "Low note";
         private static final String HIGH_NOTE = "High note";
         private final int id;
         private final MusicianOptions options;
-        private final JComboBox<String> key;
-        private final JSpinner rangeLow;
-        private final JSpinner rangeHi;
-        private JSpinner channel;
-        private JComboBox<String> device;
+        private final ComboBox<String> key;
+        private final Spinner<Integer> rangeLow;
+        private final Spinner<Integer> rangeHi;
+        private Spinner<Integer> channel;
+        private ComboBox<String> device;
 
         @Override
         public String toString() {
@@ -699,256 +741,252 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         MusicianMusicalOptionsPanel(MusicianOptions options) {
             this.id = options.getId();
             this.options = options;
-            setName("Musical");
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " musical options"));
-            setLayout(new GridBagLayout());
+            setId("Musical");
 
-            var keyList = new ArrayList<String>();
-            keyList.add("");
-            Key.BUILTIN_KEYS.keySet().forEach(keyList::add);
-            var keyModel = new DefaultComboBoxModel<String>(keyList.toArray(new String[0]));
-            key = new JComboBox<>(keyModel);
-            key.setSelectedItem(options.getKeyName());
-            key.addActionListener(_ -> options.setKeyName((String) key.getSelectedItem()));
+            var grid = initContainer(MUSICIAN + id + " musical options");
+
+            // Key ComboBox (editable)
+            key = new ComboBox<>();
+            key.getItems().add("");
+            key.getItems().addAll(Key.BUILTIN_KEYS.keySet());
             key.setEditable(true);
-            var keyLabel = new JLabel("Key");
-            keyLabel.setLabelFor(key);
+            key.setMaxWidth(Double.MAX_VALUE);
+            key.setValue(options.getKeyName());
+            key.valueProperty().addListener((_, _, newVal) -> options.setKeyName(newVal));
+            var keyLabel = createLabelFor("Key", key);
 
+            // Note Range & MIDI Channel Spinners
             rangeLow = createSpinner(LOW_NOTE, options.getRange().low(), 0, 127, 1);
-            rangeLow.addChangeListener(_ -> options.setRange(options.getRange().withLow((int) rangeLow.getValue())));
+            rangeLow.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    options.setRange(options.getRange().withLow(newVal));
+                }
+            });
             var rangeLowLabel = createLabelFor(LOW_NOTE, rangeLow);
+
             rangeHi = createSpinner(HIGH_NOTE, options.getRange().high(), 0, 127, 1);
-            rangeHi.addChangeListener(_ -> options.setRange(options.getRange().withHigh((int) rangeHi.getValue())));
+            rangeHi.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    options.setRange(options.getRange().withHigh(newVal));
+                }
+            });
             var rangeHiLabel = createLabelFor(HIGH_NOTE, rangeHi);
+
             channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
-            channel.addChangeListener(_ -> options.setChannel((int) channel.getValue() - 1));
+            channel.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    options.setChannel(newVal - 1);
+                }
+            });
             var channelLabel = createLabelFor("MIDI Channel", channel);
+
+            // MIDI Device ComboBox
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
-            var deviceModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
-            device = new JComboBox<>(deviceModel);
-            device.setSelectedItem(options.getDeviceName());
-            device.addActionListener(_ -> options.setDeviceName((String) device.getSelectedItem()));
-            var deviceLabel = new JLabel("MIDI Device");
-            deviceLabel.setLabelFor(device);
+            device = new ComboBox<>();
+            device.getItems().addAll(availableDevices);
+            device.setMaxWidth(Double.MAX_VALUE);
+            device.setValue(options.getDeviceName());
+            device.valueProperty().addListener((_, _, newVal) -> options.setDeviceName(newVal));
+            var deviceLabel = createLabelFor("MIDI Device", device);
 
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            // Populate GridPane
+            int row = 0;
+            grid.add(keyLabel, 0, row);
+            grid.add(key, 1, row++);
 
-            c.gridx = 0;
-            c.gridy = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            add(keyLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(key, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(rangeLowLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(rangeLow, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(rangeHiLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(rangeHi, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(channelLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(channel, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(deviceLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(device, c);
+            grid.add(rangeLowLabel, 0, row);
+            grid.add(rangeLow, 1, row++);
 
-            // Add a "filler" component to absorb extra vertical space
-            // This pushes all previous components to the top of the container
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            grid.add(rangeHiLabel, 0, row);
+            grid.add(rangeHi, 1, row++);
+
+            grid.add(channelLabel, 0, row);
+            grid.add(channel, 1, row++);
+
+            grid.add(deviceLabel, 0, row);
+            grid.add(device, 1, row++);
+        }
+
+        private GridPane initContainer(String title) {
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
+
+            var titleLabel = new Label(title);
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
+
+            getChildren().addAll(titleLabel, grid);
+            return grid;
         }
 
         MusicianMusicalOptionsPanel(List<MusicianMusicalOptionsPanel> others) {
             this.id = -1; // unused
             this.options = new MusicianOptions();
-            setName("Musical");
+            setId("Musical");
 
             var idList = others.stream().map(p -> p.id).toList();
             var optionsList = others.stream().map(p -> p.options).toList();
+
             var firstKeyName = optionsList.get(0).getKeyName();
             var allKeysSame = optionsList.stream().map(MusicianOptions::getKeyName).allMatch(firstKeyName::equals);
-            if (allKeysSame)
-                options.setKeyName(firstKeyName);
-            else
-                options.setKeyName("");
+            options.setKeyName(allKeysSame ? firstKeyName : "");
+
             var firstLow = optionsList.get(0).getRange().low();
             var allLowsSame = optionsList.stream().map(MusicianOptions::getRange).map(NoteRange::low)
                     .allMatch(l -> firstLow == l);
-            if (allLowsSame)
+            if (allLowsSame) {
                 options.setRange(options.getRange().withLow(firstLow));
+            }
+
             var firstHigh = optionsList.get(0).getRange().high();
             var allHighsSame = optionsList.stream().map(MusicianOptions::getRange).map(NoteRange::high)
                     .allMatch(h -> firstHigh == h);
-            if (allHighsSame)
+            if (allHighsSame) {
                 options.setRange(options.getRange().withHigh(firstHigh));
+            }
+
             var firstChannel = optionsList.get(0).getChannel();
             var allChannelsSame = optionsList.stream().map(MusicianOptions::getChannel)
                     .allMatch(c -> firstChannel == c);
-            if (allChannelsSame)
+            if (allChannelsSame) {
                 options.setChannel(firstChannel);
+            }
+
             var firstDeviceName = optionsList.get(0).getDeviceName();
-            var allDevicesNamesSame = optionsList.stream().map(MusicianOptions::getDeviceName).allMatch(firstDeviceName::equals);
-            if (allDevicesNamesSame)
-                options.setDeviceName(firstDeviceName);
-            else
-                options.setDeviceName("");
+            var allDevicesNamesSame = optionsList.stream().map(MusicianOptions::getDeviceName)
+                    .allMatch(firstDeviceName::equals);
+            options.setDeviceName(allDevicesNamesSame ? firstDeviceName : "");
 
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " musical options"));
-            setLayout(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.BOTH;
-            c.weightx = 0.0;
-            c.weighty = 0.0;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
+            var grid = initContainer(MUSICIAN + idList + " musical options");
 
-            var keyList = new ArrayList<String>();
-            keyList.add("");
-            Key.BUILTIN_KEYS.keySet().forEach(keyList::add);
-            var keyModel = new DefaultComboBoxModel<String>(keyList.toArray(new String[0]));
-            key = new JComboBox<>(keyModel);
-            var normalKeyBackground = key.getBackground();
-            if (!allKeysSame)
-                key.setBackground(Color.red);
-            key.setSelectedItem(options.getKeyName());
-            key.addActionListener(_ -> {
-                if ("".equals(key.getSelectedItem()))
-                    return;
-                options.setKeyName((String) key.getSelectedItem());
-                key.setBackground(normalKeyBackground);
-                others.forEach(o -> o.key.setSelectedItem(key.getSelectedItem()));
-            });
+            // Key ComboBox
+            key = new ComboBox<>();
+            key.getItems().add("");
+            key.getItems().addAll(Key.BUILTIN_KEYS.keySet());
             key.setEditable(true);
-            var keyLabel = new JLabel("Key");
-            keyLabel.setLabelFor(key);
+            key.setMaxWidth(Double.MAX_VALUE);
+            if (!allKeysSame) {
+                key.setStyle("-fx-base: #ffcccc;");
+                key.getEditor().setStyle("-fx-control-inner-background: #ffcccc;");
+            }
+            key.setValue(options.getKeyName());
+            key.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal == null || newVal.isEmpty()) {
+                    return;
+                }
+                options.setKeyName(newVal);
+                key.setStyle("");
+                key.getEditor().setStyle("");
+                others.forEach(o -> o.key.setValue(newVal));
+            });
+            var keyLabel = createLabelFor("Key", key);
 
+            // Low Note Spinner
             rangeLow = createSpinner(LOW_NOTE, options.getRange().low(), 0, 127, 1);
-            var normalRangeLowBackground = rangeLow.getBackground();
-            if (!allLowsSame)
-                rangeLow.setBackground(Color.red);
-            rangeLow.addChangeListener(_ -> {
-                rangeLow.setBackground(normalRangeLowBackground);
-                options.setRange(options.getRange().withLow((int) rangeLow.getValue()));
-                others.forEach(o -> o.rangeLow.setValue(rangeLow.getValue()));
+            if (!allLowsSame) {
+                rangeLow.setStyle("-fx-base: #ffcccc;");
+                rangeLow.getEditor().setStyle("-fx-control-inner-background: #ffcccc;");
+            }
+            rangeLow.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    rangeLow.setStyle("");
+                    rangeLow.getEditor().setStyle("");
+                    options.setRange(options.getRange().withLow(newVal));
+                    others.forEach(o -> o.rangeLow.getValueFactory().setValue(newVal));
+                }
             });
             var rangeLowLabel = createLabelFor(LOW_NOTE, rangeLow);
+
+            // High Note Spinner
             rangeHi = createSpinner(HIGH_NOTE, options.getRange().high(), 0, 127, 1);
-            var normalRangeHiBackground = rangeHi.getBackground();
-            if (!allHighsSame)
-                rangeHi.setBackground(Color.red);
-            rangeHi.addChangeListener(_ -> {
-                rangeHi.setBackground(normalRangeHiBackground);
-                options.setRange(options.getRange().withHigh((int) rangeHi.getValue()));
-                others.forEach(o -> o.rangeHi.setValue(rangeHi.getValue()));
+            if (!allHighsSame) {
+                rangeHi.setStyle("-fx-base: #ffcccc;");
+                rangeHi.getEditor().setStyle("-fx-control-inner-background: #ffcccc;");
+            }
+            rangeHi.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    rangeHi.setStyle("");
+                    rangeHi.getEditor().setStyle("");
+                    options.setRange(options.getRange().withHigh(newVal));
+                    others.forEach(o -> o.rangeHi.getValueFactory().setValue(newVal));
+                }
             });
             var rangeHiLabel = createLabelFor(HIGH_NOTE, rangeHi);
+
+            // MIDI Channel Spinner
             channel = createSpinner("MIDI channel", options.getChannel() + 1, 1, 16, 1);
-            var normalChannelBackground = channel.getBackground();
-            if (!allChannelsSame)
-                channel.setBackground(Color.red);
-            channel.addChangeListener(_ -> {
-                channel.setBackground(normalChannelBackground);
-                options.setChannel((int) channel.getValue() - 1);
-                others.forEach(o -> o.channel.setValue(channel.getValue()));
+            if (!allChannelsSame) {
+                channel.setStyle("-fx-base: #ffcccc;");
+                channel.getEditor().setStyle("-fx-control-inner-background: #ffcccc;");
+            }
+            channel.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    channel.setStyle("");
+                    channel.getEditor().setStyle("");
+                    options.setChannel(newVal - 1);
+                    others.forEach(o -> o.channel.getValueFactory().setValue(newVal));
+                }
             });
             var channelLabel = createLabelFor("MIDI Channel", channel);
+
+            // MIDI Device ComboBox
             var availableDevices = new TreeSet<String>();
             availableDevices.add("");
             availableDevices.addAll(MidiController.getInstance().getAvailableOutputDevices());
-            var deviceModel = new DefaultComboBoxModel<String>(availableDevices.toArray(new String[0]));
-            device = new JComboBox<>(deviceModel);
-            var normalDeviceBackground = device.getBackground();
-            if (!allDevicesNamesSame)
-                device.setBackground(Color.red);
-            device.setSelectedItem(options.getDeviceName());
-            device.addActionListener(_ -> {
-                if ("".equals(device.getSelectedItem()))
+            device = new ComboBox<>();
+            device.getItems().addAll(availableDevices);
+            device.setMaxWidth(Double.MAX_VALUE);
+            if (!allDevicesNamesSame) {
+                device.setStyle("-fx-base: #ffcccc;");
+            }
+            device.setValue(options.getDeviceName());
+            device.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal == null || newVal.isEmpty()) {
                     return;
-                device.setBackground(normalDeviceBackground);
-                options.setDeviceName((String) device.getSelectedItem());
-                others.forEach(o -> o.device.setSelectedItem(device.getSelectedItem()));
+                }
+                device.setStyle("");
+                options.setDeviceName(newVal);
+                others.forEach(o -> o.device.setValue(newVal));
             });
-            var deviceLabel = new JLabel("MIDI Device");
-            deviceLabel.setLabelFor(device);
+            var deviceLabel = createLabelFor("MIDI Device", device);
 
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy = 0;
-            add(keyLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(key, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(rangeLowLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(rangeLow, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(rangeHiLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(rangeHi, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(channelLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(channel, c);
-            c.gridx = 0;
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridy++;
-            add(deviceLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            add(device, c);
+            // Populate GridPane
+            int row = 0;
+            grid.add(keyLabel, 0, row);
+            grid.add(key, 1, row++);
 
-            // Add a "filler" component to absorb extra vertical space
-            // This pushes all previous components to the top of the container
-            c.gridy++;
-            c.weighty = 1.0; // Give all extra vertical space to this row
-            c.fill = GridBagConstraints.BOTH; // Allow the filler to expand
-            add(Box.createVerticalGlue(), c);
+            grid.add(rangeLowLabel, 0, row);
+            grid.add(rangeLow, 1, row++);
 
+            grid.add(rangeHiLabel, 0, row);
+            grid.add(rangeHi, 1, row++);
+
+            grid.add(channelLabel, 0, row);
+            grid.add(channel, 1, row++);
+
+            grid.add(deviceLabel, 0, row);
+            grid.add(device, 1, row++);
         }
     }
 
-    private class MusicianRuleOptionsPanel extends JPanel {
+    private class MusicianRuleOptionsPanel extends VBox {
         private final Map<String, MusicianRule> availableRules;
         private final List<String> ruleNames;
         private final int id;
         private final RuleOptions options;
-        private final JComboBox<String> rule;
+        private final ComboBox<String> rule;
 
         @Override
         public String toString() {
@@ -958,11 +996,9 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
         public MusicianRuleOptionsPanel(int id, RuleOptions options) {
             this.id = id;
             this.options = options;
-            setName("Rule");
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + id + " rule options"));
-            var bl = new BorderLayout();
-            bl.setVgap(5);
-            setLayout(bl);
+            setId("Rule");
+
+            var grid = initContainer(MUSICIAN + id + " rule options");
 
             availableRules = new HashMap<>();
             ruleNames = new ArrayList<>();
@@ -971,33 +1007,50 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
                 ruleNames.add(r.getName());
             });
 
-            var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
-            ruleModel.setSelectedItem("");
-            rule = new JComboBox<>(ruleModel);
-            rule.setSelectedItem(options.getName());
-            rule.addActionListener(_ -> options.setName((String) rule.getSelectedItem()));
+            rule = new ComboBox<>();
+            rule.getItems().addAll(ruleNames);
+            rule.setMaxWidth(Double.MAX_VALUE);
+            rule.setValue(options.getName());
+            rule.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal != null) {
+                    options.setName(newVal);
+                }
+            });
 
-            var ruleLabel = new JLabel("Rule");
-            ruleLabel.setLabelFor(rule);
-            var upperPanel = new JPanel(new GridBagLayout());
-            var c = new GridBagConstraints();
-            c.fill = GridBagConstraints.HORIZONTAL;
-            c.anchor = GridBagConstraints.NORTHWEST;
-            c.insets = new Insets(2, 2, 2, 2);
-            c.weightx = LEFT_COLUMN_WEIGHT;
-            c.gridx = 0;
-            upperPanel.add(ruleLabel, c);
-            c.gridx = 1;
-            c.weightx = RIGHT_COLUMN_WEIGHT;
-            upperPanel.add(rule, c);
-            add(upperPanel, BorderLayout.NORTH);
+            var ruleLabel = createLabelFor("Rule", rule);
+
+            grid.add(ruleLabel, 0, 0);
+            grid.add(rule, 1, 0);
         }
 
-        // multiple selection
+        private GridPane initContainer(String title) {
+            setSpacing(8);
+            setPadding(new Insets(10));
+            setStyle("-fx-border-color: lightgray; -fx-border-width: 1; -fx-border-radius: 4;");
+
+            var titleLabel = new Label(title);
+            titleLabel.setStyle("-fx-font-weight: bold;");
+
+            var grid = new GridPane();
+            grid.setHgap(8);
+            grid.setVgap(6);
+
+            var leftCol = new ColumnConstraints();
+            leftCol.setPercentWidth(20);
+            var rightCol = new ColumnConstraints();
+            rightCol.setPercentWidth(80);
+            grid.getColumnConstraints().addAll(leftCol, rightCol);
+
+            getChildren().addAll(titleLabel, grid);
+            return grid;
+        }
+
+        // Multiple selection
         MusicianRuleOptionsPanel(List<MusicianRuleOptionsPanel> others) {
             this.id = -1; // unused
             this.options = new RuleOptions();
-            setName("Rule");
+            setId("Rule");
+
             availableRules = new HashMap<>();
             ruleNames = new ArrayList<>();
             ServiceLoader.load(MusicianRule.class).forEach(r -> {
@@ -1006,91 +1059,149 @@ class OptionsWindow extends JDialog implements PropertyChangeListener {
             });
 
             var idList = others.stream().map(p -> p.id).toList();
-            setBorder(BorderFactory.createTitledBorder(MUSICIAN + idList + " rule options"));
-            var bl = new BorderLayout();
-            bl.setVgap(5);
-            setLayout(bl);
+            var grid = initContainer(MUSICIAN + idList + " rule options");
 
             var optionsList = others.stream().map(p -> p.options).toList();
             var firstName = optionsList.get(0).getName();
             var allNamesSame = optionsList.stream().map(RuleOptions::getName)
                     .allMatch(name -> Objects.equals(firstName, name));
-            if (allNamesSame)
+
+            if (allNamesSame) {
                 options.setName(firstName == null ? "" : firstName);
-            else
+            } else {
                 options.setName("");
-            var ruleModel = new DefaultComboBoxModel<String>(ruleNames.toArray(new String[0]));
-            ruleModel.setSelectedItem("");
-            rule = new JComboBox<>(ruleModel);
-            var normalRuleBackground = rule.getBackground();
-            if (!allNamesSame)
-                rule.setBackground(Color.red);
-            rule.setSelectedItem(options.getName());
-            rule.addActionListener(_ -> {
-                if ("".equals(rule.getSelectedItem()))
+            }
+
+            rule = new ComboBox<>();
+            rule.getItems().addAll(ruleNames);
+            rule.setMaxWidth(Double.MAX_VALUE);
+
+            if (!allNamesSame) {
+                rule.setStyle("-fx-base: #ffcccc;");
+            }
+
+            rule.setValue(options.getName());
+            rule.valueProperty().addListener((_, _, newVal) -> {
+                if (newVal == null || newVal.isEmpty()) {
                     return;
-                rule.setBackground(normalRuleBackground);
-                options.setName((String) rule.getSelectedItem());
-                others.forEach(o -> o.rule.setSelectedItem(rule.getSelectedItem()));
+                }
+                rule.setStyle("");
+                options.setName(newVal);
+                others.forEach(o -> o.rule.setValue(newVal));
             });
 
-            var ruleLabel = new JLabel("Rule");
-            ruleLabel.setLabelFor(rule);
-            var upperPanel = new JPanel(new GridLayout(1, 2));
-            upperPanel.add(ruleLabel);
-            upperPanel.add(rule);
-            add(upperPanel, BorderLayout.NORTH);
+            var ruleLabel = createLabelFor("Rule", rule);
+
+            grid.add(ruleLabel, 0, 0);
+            grid.add(rule, 1, 0);
         }
 
     }
 
-    private static JLabel createLabelFor(String propertyName, JSpinner spinner) {
-        var spinnerLabel = new JLabel(propertyName.replace('_', ' '));
-        spinnerLabel.setLabelFor(spinner);
+    private static Label createLabelFor(String propertyName, Node target) {
+        var spinnerLabel = new Label(propertyName.replace('_', ' '));
+        spinnerLabel.setLabelFor(target);
         return spinnerLabel;
     }
 
-    private static JSpinner createSpinner(String propertyName, double defValue, double min, double max, double step) {
-        var model = new SpinnerNumberModel(defValue, min, max, step);
-        var spinner = new JSpinner(model);
-        spinner.setName(propertyName);
+    private static Spinner<Double> createSpinner(String propertyName, double defValue, double min,
+            double max, double step) {
+        var spinner = new Spinner<Double>(min, max, defValue, step);
+        spinner.setId(propertyName);
+        spinner.setEditable(true);
+        spinner.setMaxWidth(Double.MAX_VALUE);
         return spinner;
     }
 
-    private static JSpinner createSpinner(String propertyName, int defValue, int min, int max, int step) {
-        var model = new SpinnerNumberModel(defValue, min, max, step);
-        var spinner = new JSpinner(model);
-        spinner.setName(propertyName);
+    private static Spinner<Integer> createSpinner(String propertyName, int defValue, int min,
+            int max, int step) {
+        var spinner = new Spinner<Integer>(min, max, defValue, step);
+        spinner.setId(propertyName);
+        spinner.setEditable(true);
+        spinner.setMaxWidth(Double.MAX_VALUE);
         return spinner;
     }
 
-    private static JSpinner createSpinner(String propertyName, long defValue, long min, long max, long step) {
-        var model = new SpinnerNumberModel(defValue, min, max, step);
-        var spinner = new JSpinner(model);
-        spinner.setName(propertyName);
+    private static Spinner<Long> createSpinner(String propertyName, long defValue, long min,
+            long max, long step) {
+        var valueFactory = new LongSpinnerValueFactory(min, max, defValue, step);
+        var spinner = new Spinner<Long>(valueFactory);
+        spinner.setId(propertyName);
+        spinner.setEditable(true);
+        spinner.setMaxWidth(Double.MAX_VALUE);
         return spinner;
     }
 
     void updateOptions() {
-        var options = Options.getInstance();
-        uiPanel.gravity.setValue(options.getUiOptions().getGravity());
-        uiPanel.showIcons.setSelected(options.getUiOptions().isShowNumbers());
-        uiPanel.edgeLength.setValue(options.getUiOptions().getEdgeLength());
-        uiPanel.windSpeed.setValue(options.getUiOptions().getWindSpeed());
-        uiPanel.animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
+        Platform.runLater(() -> {
+            var options = Options.getInstance();
 
-        miscPanel.randomSeedSpinner.setValue((double) options.getRandomSeed());
+            uiPanel.gravity.getValueFactory().setValue(options.getUiOptions().getGravity());
+            uiPanel.showIcons.setSelected(options.getUiOptions().isShowNumbers());
+            uiPanel.edgeLength.getValueFactory().setValue(options.getUiOptions().getEdgeLength());
+            uiPanel.windSpeed.getValueFactory().setValue(options.getUiOptions().getWindSpeed());
+            uiPanel.animateBackground.setSelected(options.getUiOptions().isAnimateBackground());
 
-        midiPanel.external.setSelected(options.getMidiOptions().isUsingExternalMidi());
-        midiPanel.sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
-        midiPanel.sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
-        midiPanel.panController.setValue(options.getMidiOptions().getPanController());
-        midiPanel.panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
-        midiPanel.sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
-        midiPanel.verticalPanController.setValue(options.getMidiOptions().getVerticalPanController());
-        midiPanel.verticalPanWithRelativeLocations
-                .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
+            miscPanel.randomSeedSpinner.getValueFactory().setValue(options.getRandomSeed());
 
-        globalMusicPanel.maxQueueSize.setValue(options.getMusicOptions().getMaxQueueSize());
+            midiPanel.external.setSelected(options.getMidiOptions().isUsingExternalMidi());
+            midiPanel.sendMidiTimecode.setSelected(options.getMidiOptions().isSendingMidiTimecode());
+            midiPanel.sendPanMessage.setSelected(options.getMidiOptions().isSendPanMessage());
+            midiPanel.panController.getValueFactory().setValue(options.getMidiOptions().getPanController());
+            midiPanel.panWithRelativeLocations.setSelected(options.getMidiOptions().isPanWithRelativeLocations());
+            midiPanel.sendVerticalPanMessage.setSelected(options.getMidiOptions().isSendVerticalPanMessage());
+            midiPanel.verticalPanController.getValueFactory()
+                    .setValue(options.getMidiOptions().getVerticalPanController());
+            midiPanel.verticalPanWithRelativeLocations
+                    .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
+
+            globalMusicPanel.maxQueueSize.getValueFactory().setValue(options.getMusicOptions().getMaxQueueSize());
+        });
     }
+
+    private static class LongSpinnerValueFactory extends SpinnerValueFactory<Long> {
+        private final long min;
+        private final long max;
+        private final long amountToStepBy;
+
+        LongSpinnerValueFactory(long min, long max, long initialValue, long amountToStepBy) {
+            this.min = min;
+            this.max = max;
+            this.amountToStepBy = amountToStepBy;
+
+            setConverter(new StringConverter<>() {
+                @Override
+                public String toString(Long value) {
+                    return value == null ? "" : value.toString();
+                }
+
+                @Override
+                public Long fromString(String text) {
+                    if (text == null || text.isBlank()) {
+                        return initialValue;
+                    }
+                    try {
+                        return Math.clamp(Long.parseLong(text.trim()), min, max);
+                    } catch (NumberFormatException e) {
+                        return getValue() != null ? getValue() : initialValue;
+                    }
+                }
+            });
+
+            setValue(Math.clamp(initialValue, min, max));
+        }
+
+        @Override
+        public void decrement(int steps) {
+            long current = getValue() != null ? getValue() : min;
+            setValue(Math.clamp(current - (steps * amountToStepBy), min, max));
+        }
+
+        @Override
+        public void increment(int steps) {
+            long current = getValue() != null ? getValue() : min;
+            setValue(Math.clamp(current + (steps * amountToStepBy), min, max));
+        }
+    }
+
 }
