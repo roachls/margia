@@ -1,16 +1,10 @@
 package org.roach.margia.view;
 
-import java.awt.*;
-import java.awt.font.TextLayout;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
-import javax.swing.JComponent;
-import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -21,16 +15,23 @@ import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
+import javafx.animation.PauseTransition;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+
 /**
  * GUI element that displays an agent as a colored circle
  */
 @SuppressWarnings({ "java:S1948", "java:S115" })
-public class MusicianComponent extends JComponent implements PropertyChangeListener, ChangeListener {
-    private static final float[] FRACTIONS = new float[] { 0.0f, 1.0f };
+public class MusicianComponent extends Pane implements PropertyChangeListener, ChangeListener {
     private final Musician musician;
     private Color color;
     private static int tickLengthMillis;
-    private Timer timer;
+
+    // Replaces javax.swing.Timer for one-shot note flash/highlight decay
+    private PauseTransition flashTimer;
     private boolean selected;
 
     private Vector2D velocity = new Vector2D(0, 0);
@@ -40,8 +41,9 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     private final MusicianComponentOptions options;
 
     private static boolean showNumbers = Options.getInstance().getUiOptions().isShowNumbers();
+
     /**
-     * listener for the show numbers property
+     * Listener for the show numbers property
      */
     static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = (boolean) ((ChangeSource) e.getSource())
             .newValue();
@@ -53,28 +55,36 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
         tickLengthMillis = Length.getMillisForTempo(1, tempo).getValue().intValue();
     }
 
-    static final Stroke SELECTED_STROKE = new BasicStroke(2.0f);
+    static final double SELECTED_LINE_WIDTH = 2.0;
 
-    private static final Font LOCK_FONT = new Font("SansSerif", Font.PLAIN, 15);
+    private static final Font LOCK_FONT = Font.font("SansSerif", 15);
 
     private static final double ρ = 0.00009;
 
+    // Drawing surface sized to match this component's diameter
+    private final Canvas canvas = new Canvas();
+
     /**
-     * @param musician         the {@link Musician} being displayed
-     * @param tickLengthMillis length of a tick in milliseconds
+     * @param musician the {@link Musician} being displayed
      */
     MusicianComponent(Musician musician) {
         this.musician = musician;
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
                 _ -> new MusicianComponentOptions());
+
+        // Bind canvas dimensions to the Pane's width/height
+        canvas.widthProperty().bind(widthProperty());
+        canvas.heightProperty().bind(heightProperty());
+        getChildren().add(canvas);
+
         options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY, this);
         options.addChangeListener(MusicianComponentOptions.POSITION_PROPERTY, new PositionChangeListener());
-        updatePosition();
-        this.setName("Musician_" + musician.getId());
-        musician.addPropertyChangeListener(this);
-        this.color = Color.black;
-        updateSize(options.getRadius());
 
+        updatePosition();
+        setId("Musician_" + musician.getId());
+        musician.addPropertyChangeListener(this);
+        this.color = Color.BLACK;
+        updateSize(options.getRadius());
     }
 
     private class PositionChangeListener implements ChangeListener {
@@ -127,105 +137,135 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     }
 
+    // Replace the PauseTransition field from earlier with Timeline since this timer
+    // repeats to fade brightness
+    private javafx.animation.Timeline fadeTimeline;
+
     @Override
     @SuppressWarnings("java:S1301")
     public void propertyChange(PropertyChangeEvent evt) {
-        var brightness = new AtomicReference<Float>(1.0f);
-        switch (evt.getPropertyName()) {
-        case Musician.LAST_CHORD_PROPERTY:
-            Chord chord = (Chord) evt.getNewValue();
-            if (timer != null)
-                timer.stop();
-            if (Musician.REST.equals(chord)) {
-                this.color = Color.black;
-                repaint();
-            } else {
-                // Hue depends on average MIDI note played (over the who chord), relative to the
-                // full range of the musician
-                float normalizedHue = chord.averageNote() / 127.0f;
-                // Saturation depends on velocity of MIDI note
-                float normalizedSaturation = chord.getVelocity() / 127f;
-                // Start the brightness at full (1.0) and decrease it to 0 over the life of the
-                // note
-                var noteInfoMillis = tickLengthMillis * chord.getLength();
-                var delayMillis = 1000 / noteInfoMillis;
-                var brightnessOffset = 1.0f / noteInfoMillis;
-                brightness.set(1.0f);
-                timer = new Timer(delayMillis, _ -> {
-                    color = Color.getHSBColor(normalizedHue, normalizedSaturation, brightness.get());
-                    brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0f, b - f));
-                    repaint();
-                });
-                timer.start();
+        javafx.application.Platform.runLater(() -> {
+            var brightness = new java.util.concurrent.atomic.AtomicReference<>(1.0);
+            switch (evt.getPropertyName()) {
+            case Musician.LAST_CHORD_PROPERTY -> {
+                Chord chord = (Chord) evt.getNewValue();
+                if (fadeTimeline != null) {
+                    fadeTimeline.stop();
+                }
+                if (Musician.REST.equals(chord)) {
+                    this.color = javafx.scene.paint.Color.BLACK;
+                    draw();
+                } else {
+                    // JavaFX Color.hsb expects hue in, saturation in, brightness in [0, 1]
+                    double hueDegrees = (chord.averageNote() / 127.0) * 360.0;
+                    double normalizedSaturation = Math.clamp(chord.getVelocity() / 127.0, 0.0, 1.0);
+
+                    var noteInfoMillis = tickLengthMillis * chord.getLength();
+                    var delayMillis = Math.max(1.0, 1000.0 / noteInfoMillis);
+                    var brightnessOffset = 1.0 / noteInfoMillis;
+                    brightness.set(1.0);
+
+                    fadeTimeline = new javafx.animation.Timeline(
+                            new javafx.animation.KeyFrame(javafx.util.Duration.millis(delayMillis), _ -> {
+                                color = javafx.scene.paint.Color.hsb(hueDegrees, normalizedSaturation,
+                                        brightness.get());
+                                brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0.0, b - f));
+                                draw();
+                            }));
+                    fadeTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+                    fadeTimeline.play();
+                }
             }
-            break;
-        default:
-        }
+            default -> {
+                // TODO
+            }
+            }
+        });
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        var g2d = (Graphics2D) g.create();
-        // Enable anti-aliasing for shapes/lines
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    void draw() {
+        double w = getWidth();
+        double h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
 
-        // Enable anti-aliasing for text (use VALUE_TEXT_ANTIALIAS_GASP for potentially
-        // better results)
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+        var gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, w, h);
 
-        g2d.setColor(color);
-        var radius = options.getRadius();
-        var paint = new RadialGradientPaint(new Point2D.Float(radius + 3f, radius + 3f), radius, FRACTIONS,
-                new Color[] { Color.white, color });
-        g2d.setPaint(paint);
-        g2d.fillOval(0, 0, getWidth(), getHeight());
+        double radius = options.getRadius();
+
+        // Radial gradient from offset highlight (radius + 3, radius + 3) to outer color
+        var gradient = new javafx.scene.paint.RadialGradient(0, // focusAngle
+                0, // focusDistance
+                radius + 3.0, // centerX
+                radius + 3.0, // centerY
+                radius, // radius
+                false, // proportional (false = pixel coordinates, matching Swing's
+                       // RadialGradientPaint)
+                javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0.0, javafx.scene.paint.Color.WHITE),
+                new javafx.scene.paint.Stop(1.0, color));
+
+        gc.setFill(gradient);
+        gc.fillOval(0, 0, w, h);
 
         if (showNumbers) {
-            // Create a TextLayout to get the text's shape
-            var font = new Font("Serif", Font.BOLD, 12 * radius / 20);
-            var frc = g2d.getFontRenderContext();
-            var tl = new TextLayout(Integer.toString(musician.getId()), font, frc);
+            var font = javafx.scene.text.Font.font("Serif", javafx.scene.text.FontWeight.BOLD, 12.0 * radius / 20.0);
+            String idText = Integer.toString(musician.getId());
 
-            // Get the outline shape
-            // AffineTransform is used to position the text at (x, y)
-            var transform = AffineTransform.getTranslateInstance(radius - 6d, radius + 3d);
-            Shape shape = tl.getOutline(transform);
+            // Measure text bounds using a temporary Text node (replaces
+            // TextLayout.getOutline)
+            var textHelper = new javafx.scene.text.Text(idText);
+            textHelper.setFont(font);
+            var bounds = textHelper.getLayoutBounds();
 
-            // draw an oval around the text
-            g2d.setColor(Color.BLACK); // Outline color
-            g2d.fillOval(shape.getBounds().x - 1, shape.getBounds().y - 1, shape.getBounds().width + 2,
-                    shape.getBounds().height + 2);
-            g2d.setColor(Color.white); // Fill color
-            // draw the text
-            g2d.fill(shape);
+            double textX = radius - 6.0;
+            double textY = radius + 3.0; // Baseline Y coordinate
 
-            // draw icons for locked/listening
+            // Draw black background oval around the ID number
+            gc.setFill(javafx.scene.paint.Color.BLACK);
+            gc.fillOval(textX - 1.0, textY - bounds.getHeight() + 2.0, bounds.getWidth() + 2.0,
+                    bounds.getHeight() + 2.0);
+
+            // Draw white ID number
+            gc.setFont(font);
+            gc.setFill(javafx.scene.paint.Color.WHITE);
+            gc.fillText(idText, textX, textY);
+
+            // Draw status icons for locked / not listening
             String status = "";
-            if (options.isLocked())
+            if (options.isLocked()) {
                 status += "🔒";
-            if (!musician.isListening())
+            }
+            if (!musician.isListening()) {
                 status += "🎤\u033D";
-            g2d.setFont(LOCK_FONT);
-            g2d.setColor(Color.yellow);
-            g2d.drawString(status, 0, getHeight());
-            g2d.setFont(font);
+            }
+            if (!status.isEmpty()) {
+                gc.setFont(LOCK_FONT);
+                gc.setFill(javafx.scene.paint.Color.YELLOW);
+                gc.fillText(status, 0, h - 2.0);
+            }
         }
+
         if (musician.isMuted()) {
-            // draw a semi-transparent gray oval over the whole thing
-            g2d.setColor(new Color(0.5f, 0.5f, 0.5f, 0.8f));
-            g2d.fillOval(0, 0, getWidth(), getHeight());
+            // Semi-transparent gray oval over the whole circle
+            gc.setFill(javafx.scene.paint.Color.color(0.5, 0.5, 0.5, 0.8));
+            gc.fillOval(0, 0, w, h);
         }
+
         if (selected) {
-            g2d.setColor(Color.red);
-            g2d.setStroke(SELECTED_STROKE);
-            g2d.drawRect(0, 0, getWidth() - 2, getHeight() - 2);
+            gc.setStroke(javafx.scene.paint.Color.RED);
+            gc.setLineWidth(SELECTED_LINE_WIDTH);
+            gc.setLineDashes(null); // Ensure solid line
+            gc.strokeRect(1.0, 1.0, w - 2.0, h - 2.0);
         }
     }
 
-    private void updateLocation() {
+    void updateLocation() {
         var position = options.getPosition();
-        setLocation((int) position.getX(), (int) position.getY());
+        setLayoutX(position.getX());
+        setLayoutY(position.getY());
     }
 
     /**
@@ -242,20 +282,19 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * @param circleRadius radius of displayed circle
      */
     void updateSize(int circleRadius) {
-        var diameter = getDiameter();
-        var dim = new Dimension(diameter, diameter);
-        setPreferredSize(dim);
-        setMinimumSize(dim);
-        setSize(dim);
-        setMaximumSize(dim);
+        double diameter = getDiameter();
+        setPrefSize(diameter, diameter);
+        setMinSize(diameter, diameter);
+        setMaxSize(diameter, diameter);
+        resize(diameter, diameter);
+        draw();
     }
 
     @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof
-
-        ChangeSource(String property, Object newVal) && MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
-            this.updateSize((int) newVal);
+    public void stateChanged(javax.swing.event.ChangeEvent e) {
+        if (e.getSource() instanceof ChangeSource(String property, Object newVal)
+                && MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
+            javafx.application.Platform.runLater(() -> this.updateSize((int) newVal));
         }
     }
 
@@ -288,7 +327,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
     @Override
     public String toString() {
         return "MusicianComponent [musician=" + musician + ", color=" + color + ", tickLengthMillis=" + tickLengthMillis
-                + ", timer=" + timer + ", options=" + options + ", velocity=" + velocity + ", force=" + force + "]";
+                + ", options=" + options + ", velocity=" + velocity + ", force=" + force + "]";
     }
 
     /**
@@ -298,7 +337,10 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
 
     boolean isSelected() { return selected; }
 
-    void setSelected(boolean selected) { this.selected = selected; }
+    void setSelected(boolean selected) {
+        this.selected = selected;
+        draw();
+    }
 
     /**
      * Mass is ρ * 4/3 * πr^3, where ρ = density
@@ -360,7 +402,7 @@ public class MusicianComponent extends JComponent implements PropertyChangeListe
      * @param width
      * @param height
      */
-    void clampPosition(int width, int height) {
+    void clampPosition(double width, double height) {
         var radius = options.getRadius();
         if (width <= radius * 4d || height <= radius * 4d)
             return;

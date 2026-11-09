@@ -1,6 +1,5 @@
 package org.roach.margia.main;
 
-import java.awt.Frame;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.prefs.BackingStoreException;
@@ -89,8 +88,6 @@ public class Main {
 
         SwingUtilities.invokeLater(() -> {
             var ui = new MargiaWindow(timing, transport);
-//            ui.setExtendedState(Frame.MAXIMIZED_BOTH);
-            ui.setResizable(false);
             ui.setVisible(true);
         });
     }

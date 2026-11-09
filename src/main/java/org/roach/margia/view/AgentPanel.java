@@ -1,23 +1,16 @@
 package org.roach.margia.view;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.roach.margia.command.*;
+import org.roach.margia.command.Command;
+import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.rules.StateBasedRule;
@@ -26,59 +19,88 @@ import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
+import javafx.application.Platform;
+import javafx.geometry.Bounds;
+import javafx.geometry.Point2D;
+import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+
 /**
  * GUI element that displays multiple {@link Musician Musicians} in a
- * {@link JPanel}
+ * {@link Pane}
  */
-@SuppressWarnings({ "java:S1948" })
-public class AgentPanel extends JPanel implements ActionListener, ChangeListener, PropertyChangeListener {
+public class AgentPanel extends Pane implements ChangeListener, PropertyChangeListener {
     int numMusicians;
     private final Map<Integer, MusicianComponent> musicianComponents = new TreeMap<>();
     private List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
     private int tickLengthMillis;
-    private Point startSelection;
-    private Point endSelection;
+    private Point2D startSelection;
+    private Point2D endSelection;
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
     static final String SELECTED_AGENT_PROPERTY = "selected_agent";
     static final String AGENT_ADDED_PROPERTY = "agent_added";
     static final String AGENT_REMOVED_PROPERTY = "agent_removed";
-    private Point dragStart;
-    private Point dragEnd;
+    private Point2D dragStart;
+    private Point2D dragEnd;
     private List<MusicianComponent> copiedComponents;
     private MusicianComponentOptions copiedComponentOptions;
     private MusicianOptions copiedMusicianOptions;
     private static final Random RANDOM = new SecureRandom();
 
-    private static final Stroke SELECTION_LINE_STROKE = new BasicStroke(2.0f, BasicStroke.CAP_BUTT,
-            BasicStroke.JOIN_ROUND, 10.0f, new float[] { 10.0f, 10.0f }, 0.0f);
+    // Dashed stroke settings for JavaFX GraphicsContext / Shape
+    private static final double SELECTION_LINE_WIDTH = 2.0;
+    private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
 
     private static final Object ANIMATE_LOCK = new Object();
-    private static final float ANIMATE_SPEED = 0.015f;
-    private static final float[] GRAD_FRACTIONS = new float[] { 0f, ANIMATE_SPEED, ANIMATE_SPEED * 4, 1f };
-    private static final Color[] GRAD_COLORS = new Color[] { Color.white, Color.gray, Color.blue, Color.white };
+    private static final double ANIMATE_SPEED = 0.015;
+    private static final double[] GRAD_FRACTIONS = new double[] { 0.0, ANIMATE_SPEED, ANIMATE_SPEED * 4, 1.0 };
+    private static final Color[] GRAD_COLORS = new Color[] { Color.WHITE, Color.GRAY, Color.BLUE, Color.WHITE };
+
+    // Background layer for custom 2D drawing (replaces paintComponent)
+    private final Canvas backgroundCanvas = new Canvas();
+
+    // Replaces JPanel's built-in Swing PropertyChangeSupport
+    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     /**
-     * constructor
+     * Constructor
      */
     public AgentPanel() {
-        setLayout(null);
+        // Replaces setBackground(Color.LIGHT_GRAY) and setDoubleBuffered(true)
+        setStyle("-fx-background-color: lightgray;");
+
+        // Bind canvas size to fill AgentPanel automatically and update Global screen
+        // dimensions
+        backgroundCanvas.widthProperty().bind(widthProperty());
+        backgroundCanvas.heightProperty().bind(heightProperty());
+        getChildren().add(backgroundCanvas);
+
+        widthProperty().addListener((_, _, newWidth) -> Global.setScreenWidth(newWidth.intValue()));
+        heightProperty().addListener((_, _, newHeight) -> Global.setScreenHeight(newHeight.intValue()));
+
+        // Wire mouse handlers (replacing MouseAdapter)
+        setupMouseHandlers();
+
         Options.getInstance().getUiOptions().addChangeListener(UiOptions.EDGE_LENGTH_PROPERTY, this);
-        setDoubleBuffered(true);
-        setBackground(Color.LIGHT_GRAY);
-        this.addMouseListener(mouseAdapter);
-        this.addMouseMotionListener(mouseAdapter);
-        this.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                super.componentResized(e);
-                Global.setScreenHeight(getHeight());
-                Global.setScreenWidth(getWidth());
-            }
-        });
         Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
+    }
+
+    // Add this field to AgentPanel to replace javax.swing.Timer
+    private javafx.animation.Timeline animationTimeline;
+
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        pcs.addPropertyChangeListener(propertyName, listener);
+    }
+
+    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        pcs.removePropertyChangeListener(propertyName, listener);
     }
 
     void init() {
@@ -86,6 +108,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         this.tickLengthMillis = 60000 / (defTempo * 24);
         this.numMusicians = MusicianList.getInstance().numMusicians();
         this.musicianComponents.clear();
+
+        // Clear previous musician nodes while keeping backgroundCanvas at index 0
+        getChildren().retainAll(backgroundCanvas);
     }
 
     void initMusicians() {
@@ -95,84 +120,124 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
         calcEdges();
 
-        // Use a Timer for animation
-        new Timer(20, this).start();
+        // Replaces: new Timer(20, this).start();
+        if (animationTimeline != null) {
+            animationTimeline.stop();
+        }
+        animationTimeline = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(20), _ -> onAnimationTick()));
+        animationTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        animationTimeline.play();
     }
 
     private MusicianComponent addMusicianComponent(Musician musician) {
         var n = new MusicianComponent(musician);
         var compOptions = n.getOptions();
         if (compOptions.getPosition().x == 0.0 && compOptions.getPosition().y == 0.0) {
-            compOptions.setPosition(new Point2D.Double(RANDOM.nextInt(n.getDiameter(), getWidth() - n.getDiameter()),
-                    RANDOM.nextInt(n.getDiameter(), getHeight() - n.getDiameter())));
-            n.updatePosition();
+            // Fallback bounds if AgentPanel hasn't completed its first layout pass yet
+            int panelWidth = getWidth() > n.getDiameter() * 2 ? (int) getWidth() : 800;
+            int panelHeight = getHeight() > n.getDiameter() * 2 ? (int) getHeight() : 600;
+
+            compOptions.setPosition(
+                    new java.awt.geom.Point2D.Double(RANDOM.nextInt(n.getDiameter(), panelWidth - n.getDiameter()),
+                            RANDOM.nextInt(n.getDiameter(), panelHeight - n.getDiameter())));
+            n.updateLocation();
         }
         musicianComponents.put(musician.getId(), n);
-        add(n);
+        Platform.runLater(() -> getChildren().add(n));
         numMusicians = musicianComponents.size();
-        firePropertyChange(AGENT_ADDED_PROPERTY, null, n);
+        pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, n);
         return n;
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
+    // Called every 20ms by animationTimeline (replaces actionPerformed)
+    private void onAnimationTick() {
         updatePhysics();
-        repaint();
+        drawBackground();
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        var g2d = (Graphics2D) g;
-        // Enable anti-aliasing for shapes/lines
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        synchronized (ANIMATE_LOCK) {
-            var gradient = new RadialGradientPaint(getWidth() / 2f, getHeight() / 2f, getWidth(), GRAD_FRACTIONS,
-                    GRAD_COLORS);
-            g2d.setPaint(gradient);
-            g2d.fillRect(0, 0, getWidth(), getHeight());
+    // Replaces paintComponent(Graphics g)
+    private void drawBackground() {
+        double w = getWidth();
+        double h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
         }
-        var transform = new AffineTransform();
+
+        var gc = backgroundCanvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, w, h);
+
+        // 1. Animated radial background gradient
+        synchronized (ANIMATE_LOCK) {
+            var stops = new javafx.scene.paint.Stop[GRAD_FRACTIONS.length];
+            for (int i = 0; i < GRAD_FRACTIONS.length; i++) {
+                stops[i] = new javafx.scene.paint.Stop(GRAD_FRACTIONS[i], GRAD_COLORS[i]);
+            }
+            var gradient = new javafx.scene.paint.RadialGradient(0, 0, w / 2.0, h / 2.0, w, false, // proportional =
+                                                                                                   // false (pixel
+                                                                                                   // coordinates)
+                    javafx.scene.paint.CycleMethod.NO_CYCLE, stops);
+            gc.setFill(gradient);
+            gc.fillRect(0, 0, w, h);
+        }
+
+        // 2. Curved edges & arrowheads between musicians
         for (Edge edge : edges) {
-            transform.setToIdentity();
-            var g2d2 = (Graphics2D) g2d.create();
-            g2d.setColor(edge.source.getColor());
-            // center of source component
+            gc.save();
+            var edgeColor = edge.source.getColor();
+            gc.setStroke(edgeColor);
+            gc.setFill(edgeColor);
+            gc.setLineWidth(1.0);
+            gc.setLineDashes(null);
+
             var sCenter = edge.source.getCenter();
-            // center of target component
             var tCenter = edge.target.getCenter();
-            // calculate distance from source to target
             var vector = new Vector2D(sCenter, tCenter);
             var angle = vector.angle();
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
-            var line = new QuadCurve2D.Double(0, 0, 5, dist / 2d, 0, dist);
-            var path = new Path2D.Double();
-            path.moveTo(0, dist - 5);
-            path.lineTo(3, dist - 5);
-            path.lineTo(0, dist);
-            path.lineTo(-3, dist - 5);
-            path.closePath();
-            transform.translate(sCenter.x, sCenter.y);
-            transform.rotate(angle - Math.PI / 2d);
-            g2d2.transform(transform);
-            g2d2.setColor(edge.source.getColor());
-            g2d2.draw(line);
-            g2d2.fill(path);
+
+            // JavaFX GraphicsContext.rotate() expects degrees, whereas Swing uses radians
+            gc.translate(sCenter.x, sCenter.y);
+            gc.rotate(Math.toDegrees(angle - Math.PI / 2.0));
+
+            // Draw quadratic curve (replaces QuadCurve2D.Double(0, 0, 5, dist / 2d, 0,
+            // dist))
+            gc.beginPath();
+            gc.moveTo(0, 0);
+            gc.quadraticCurveTo(5.0, dist / 2.0, 0, dist);
+            gc.stroke();
+
+            // Draw filled arrowhead triangle at target radius
+            gc.beginPath();
+            gc.moveTo(0, dist - 5.0);
+            gc.lineTo(3.0, dist - 5.0);
+            gc.lineTo(0, dist);
+            gc.lineTo(-3.0, dist - 5.0);
+            gc.closePath();
+            gc.fill();
+
+            gc.restore();
         }
 
+        // 3. Connection line while dragging an edge between nodes
         if (startSelection != null && endSelection != null) {
-            g2d.setColor(Color.red);
-            g2d.setStroke(SELECTION_LINE_STROKE);
-            g2d.drawLine((int) startSelection.getX(), (int) startSelection.getY(), (int) endSelection.getX(),
-                    (int) endSelection.getY());
+            gc.save();
+            gc.setStroke(javafx.scene.paint.Color.RED);
+            gc.setLineWidth(SELECTION_LINE_WIDTH);
+            gc.setLineDashes(SELECTION_LINE_DASHES);
+            gc.strokeLine(startSelection.getX(), startSelection.getY(), endSelection.getX(), endSelection.getY());
+            gc.restore();
         }
 
+        // 4. Multi-select bounding rectangle
         if (dragStart != null && dragEnd != null) {
-            g2d.setColor(Color.yellow);
-            g2d.setStroke(SELECTION_LINE_STROKE);
+            gc.save();
+            gc.setStroke(javafx.scene.paint.Color.YELLOW);
+            gc.setLineWidth(SELECTION_LINE_WIDTH);
+            gc.setLineDashes(SELECTION_LINE_DASHES);
             var rect = makeSelectionRectangle(dragStart, dragEnd);
-            g2d.drawRect(rect.x, rect.y, rect.width, rect.height);
+            gc.strokeRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
+            gc.restore();
         }
     }
 
@@ -180,10 +245,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         boolean wrap = false;
         synchronized (ANIMATE_LOCK) {
             for (var i = 1; i < GRAD_FRACTIONS.length - 1; i++) {
-                if (GRAD_FRACTIONS[i] + ANIMATE_SPEED < 1f)
+                if (GRAD_FRACTIONS[i] + ANIMATE_SPEED < 1.0) {
                     GRAD_FRACTIONS[i] += ANIMATE_SPEED;
-                else
+                } else {
                     wrap = true;
+                }
             }
         }
         if (wrap) {
@@ -191,7 +257,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 for (var i = GRAD_COLORS.length - 1; i > 0; i--) {
                     GRAD_COLORS[i] = GRAD_COLORS[i - 1];
                 }
-                GRAD_COLORS[0] = new Color((float) Math.random(), (float) Math.random(), (float) Math.random());
+                // JavaFX Color.color() takes double values in [0.0, 1.0]
+                GRAD_COLORS[0] = javafx.scene.paint.Color.color(Math.random(), Math.random(), Math.random());
                 GRAD_FRACTIONS[2] = GRAD_FRACTIONS[1];
                 GRAD_FRACTIONS[1] = ANIMATE_SPEED;
             }
@@ -199,6 +266,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     private void calcEdges() {
+        edges.clear();
         for (var musEntry : MusicianList.getInstance().getMusicians().entrySet()) {
             var id = musEntry.getKey();
             var mus = musEntry.getValue();
@@ -219,8 +287,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             for (var n2 : musicianComponents.values().stream().filter(n -> !n.equals(n1)).toList()) {
                 var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
                 double distance = n1.getCenter().distance(n2.getCenter());
-                if (distance == 0) // prevent division by 0
+                if (distance == 0) { // prevent division by 0
                     continue;
+                }
 
                 // Repulsion force (inverse square law)
                 double force = K_REPULSION / (distance * distance);
@@ -248,13 +317,14 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             }
         }
 
-        // apply gravity and wind
-        var center = new Point2D.Double(getWidth() / 2d, getHeight() / 2d);
+        // Apply gravity and wind
+        var center = new java.awt.geom.Point2D.Double(getWidth() / 2.0, getHeight() / 2.0);
         for (var n1 : musicianComponents.values()) {
             var vec = new Vector2D(center, n1.getCenter());
             var dist = n1.getCenter().distance(center);
-            if (dist == 0.0) // prevent division by zero
+            if (dist == 0.0) { // prevent division by zero
                 continue;
+            }
 
             var gravity = Options.getInstance().getUiOptions().getGravity();
             var force = n1.getMass() * gravity / dist;
@@ -262,8 +332,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             n1.setForce(n1.getForce().subtract(forceVec));
 
             /*
-             * 5. wind - blow objects clockwise We take the gravity, negate it so it points
-             * away from the center, and rotate it clockwise 90 degrees
+             * 5. wind - blow objects clockwise. We take the gravity, negate it so it points
+             * away from the center, and rotate it clockwise 90 degrees.
              */
             var windVec = forceVec.flip().rotateClockwise90().normalize()
                     .multiply(Options.getInstance().getUiOptions().getWindSpeed());
@@ -291,67 +361,89 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
     }
 
-    private final MouseAdapter mouseAdapter = new MouseAdapter() {
+    private final MouseHandler mouseHandler = new MouseHandler();
+
+    private void setupMouseHandlers() {
+        setOnMousePressed(mouseHandler::mousePressed);
+        setOnMouseDragged(mouseHandler::mouseDragged);
+        setOnMouseReleased(mouseHandler::mouseReleased);
+        setOnMouseMoved(mouseHandler::mouseMoved);
+    }
+
+    private class MouseHandler {
         private MusicianComponent source;
         private MusicianComponent movingComponent;
-        // position of cursor in movingComponent space
-        private Point movingComponentXY;
-        private static final int BUTTON1 = InputEvent.BUTTON1_DOWN_MASK;
+        // Position of cursor in movingComponent local space
+        private javafx.geometry.Point2D movingComponentXY;
 
-        @Override
-        public void mousePressed(MouseEvent e) {
-            if (e.getButton() == MouseEvent.BUTTON1) {
+        void mousePressed(MouseEvent e) {
+            if (e.getButton() == MouseButton.PRIMARY) {
                 leftMouseButtonPressed(e);
             }
         }
 
         private void leftMouseButtonPressed(MouseEvent e) {
-            if (e.getModifiersEx() == BUTTON1) {
+            // Replaces e.getModifiersEx() == BUTTON1 (no Shift, Ctrl, Alt, or Meta
+            // modifiers held)
+            if (!e.isShiftDown() && !e.isControlDown() && !e.isAltDown() && !e.isMetaDown()) {
                 leftMousePressedSingleSelectionMode(e);
             }
         }
 
         private void leftMousePressedSingleSelectionMode(MouseEvent e) {
-            var comp = getComponentAt(e.getPoint());
-            if (comp instanceof MusicianComponent mc) {
+            var clickPoint = new javafx.geometry.Point2D(e.getX(), e.getY());
+            var mc = findMusicianAt(e.getX(), e.getY());
+            if (mc != null) {
                 mc.setSelected(false);
                 switch (mode) {
-                case CONNECT:
+                case CONNECT -> {
                     if (source != null) {
                         source.setSelected(false);
                     }
                     source = mc;
                     mc.setSelected(true);
                     isConnecting = true;
-                    startSelection = e.getPoint();
-                    setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
-                    break;
-                case MOVE:
+                    startSelection = clickPoint;
+                    setCursor(javafx.scene.Cursor.CROSSHAIR);
+                }
+                case MOVE -> {
                     mc.setSelected(true);
                     movingComponent = mc;
-                    movingComponentXY = SwingUtilities.convertPoint(AgentPanel.this, e.getPoint(), mc);
-                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-                    break;
-                default:
-                    break;
+                    // Replaces SwingUtilities.convertPoint(AgentPanel.this, e.getPoint(), mc)
+                    movingComponentXY = mc.parentToLocal(e.getX(), e.getY());
+                    setCursor(javafx.scene.Cursor.MOVE);
+                }
+                default -> {
+                }
                 }
                 notifyListenersOfSelection();
             } else {
                 deselectAllMusicians();
-                dragStart = e.getPoint();
+                dragStart = clickPoint;
             }
         }
 
-        @Override
-        public void mouseReleased(MouseEvent e) {
-            if (e.getButton() == MouseEvent.BUTTON1) {
+        // Helper replacing Swing's Container.getComponentAt(Point)
+        private MusicianComponent findMusicianAt(double x, double y) {
+            var children = getChildren();
+            // Iterate in reverse so top-most overlapping musicians are hit first
+            for (int i = children.size() - 1; i >= 0; i--) {
+                if (children.get(i) instanceof MusicianComponent mc && mc.getBoundsInParent().contains(x, y)) {
+                    return mc;
+                }
+            }
+            return null;
+        }
+
+        void mouseReleased(MouseEvent e) {
+            if (e.getButton() == MouseButton.PRIMARY) {
                 leftMouseButtonReleased(e);
             }
         }
 
         private void leftMouseButtonReleased(MouseEvent e) {
             if (dragStart != null && dragEnd != null) {
-                // shift held down
+                // Multi-select drag rectangle completed
                 var rectangle = makeSelectionRectangle(dragStart, dragEnd);
                 var selectedComponents = getComponentsInRectangle(rectangle);
                 dragStart = null;
@@ -360,7 +452,6 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             } else {
                 leftMouseButtonReleasedSingleSelection(e);
             }
-
         }
 
         private void handleMultipleSelection(List<MusicianComponent> selectedMusicians) {
@@ -369,29 +460,29 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         }
 
         private void leftMouseButtonReleasedSingleSelection(MouseEvent e) {
-            var comp = getComponentAt(e.getPoint());
+            var mc = findMusicianAt(e.getX(), e.getY());
             switch (mode) {
-            case ADD:
-                if (comp instanceof AgentPanel)
+            case ADD -> {
+                // In Swing, getComponentAt returned AgentPanel when clicking empty space;
+                // in JavaFX, findMusicianAt returns null when no MusicianComponent is under the
+                // cursor.
+                if (mc == null) {
                     handleAdd(e);
-                break;
-            case CONNECT:
-                handleMusicianConnection(comp);
-                break;
-            case MOVE:
-                handleMusicianMove(e);
-                break;
-            case SELECT:
-                if (!e.isControlDown())
+                }
+            }
+            case CONNECT -> handleMusicianConnection(mc);
+            case MOVE -> handleMusicianMove(e);
+            case SELECT -> {
+                if (!e.isControlDown()) {
                     deselectAll();
-                if (comp instanceof MusicianComponent mc) {
+                }
+                if (mc != null) {
                     mc.setSelected(true);
                     notifyListenersOfSelection();
                 }
-                break;
-            default:
-                break;
-
+            }
+            default -> {
+            }
             }
         }
 
@@ -399,19 +490,19 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             if (movingComponent != null) {
                 var mcOpts = movingComponent.getOptions();
                 mcOpts.setLocked(false);
-                mcOpts.setPosition(
-                        new Point2D.Double(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
+                mcOpts.setPosition(new java.awt.geom.Point2D.Double(e.getX() - movingComponentXY.getX(),
+                        e.getY() - movingComponentXY.getY()));
                 mcOpts.setLocked(true);
                 movingComponent.setSelected(false);
-                setCursor(Cursor.getDefaultCursor());
+                setCursor(javafx.scene.Cursor.DEFAULT);
             }
             movingComponent = null;
         }
 
-        private void handleMusicianConnection(Component comp) {
-            if (isConnecting && comp instanceof MusicianComponent target && !target.equals(source)) {
+        private void handleMusicianConnection(MusicianComponent target) {
+            if (isConnecting && target != null && !target.equals(source)) {
                 isConnecting = false;
-                // check if already connected, and if so, disconnect; otherwise, connect
+                // Check if already connected; if so, disconnect; otherwise, connect
                 edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
                         .findAny().ifPresentOrElse(connection -> {
                             connection.source.getMusician().removePeer(connection.target.getMusician());
@@ -425,14 +516,17 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 this.source = null;
                 startSelection = null;
                 endSelection = null;
-                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
-            } else if (comp == AgentPanel.this) {
-                if (source != null)
+                AgentPanel.this.setCursor(javafx.scene.Cursor.DEFAULT);
+            } else if (target == null) {
+                // Replaces `else if (comp == AgentPanel.this)` when released on empty space
+                isConnecting = false;
+                if (source != null) {
                     source.setSelected(false);
+                }
                 this.source = null;
                 startSelection = null;
                 endSelection = null;
-                AgentPanel.this.setCursor(Cursor.getDefaultCursor());
+                AgentPanel.this.setCursor(javafx.scene.Cursor.DEFAULT);
             }
         }
 
@@ -445,44 +539,42 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             numMusicians = MusicianList.getInstance().numMusicians();
             var musicianComponent = new MusicianComponent(musician);
             musicianComponents.put(musician.getId(), musicianComponent);
-            musicianComponent.getOptions().setPosition(new Point2D.Double(e.getX(), e.getY()));
-            add(musicianComponent);
-            firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
+            musicianComponent.getOptions().setPosition(new java.awt.geom.Point2D.Double(e.getX(), e.getY()));
+            musicianComponent.updateLocation();
+            getChildren().add(musicianComponent);
+            pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
             Options.getInstance().setDirty();
         }
 
-        @Override
-        public void mouseDragged(MouseEvent e) {
+        // Add this line inside setupMouseHandlers() alongside mousePressed,
+        // mouseDragged, and mouseReleased:
+        // setOnMouseMoved(mouseHandler::mouseMoved);
+
+        void mouseDragged(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
-                endSelection = e.getPoint();
-            } else if (mode == EditMode.MOVE && e.getModifiersEx() == BUTTON1 && movingComponent != null) {
+                endSelection = new javafx.geometry.Point2D(e.getX(), e.getY());
+            } else if (mode == EditMode.MOVE && e.isPrimaryButtonDown() && movingComponent != null) {
                 var mcOpts = movingComponent.getOptions();
                 mcOpts.setLocked(false);
-                mcOpts.setPosition(
-                        new Point2D.Double(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
+                mcOpts.setPosition(new java.awt.geom.Point2D.Double(e.getX() - movingComponentXY.getX(),
+                        e.getY() - movingComponentXY.getY()));
                 mcOpts.setLocked(true);
             } else if (mode == EditMode.SELECT) {
-                dragEnd = e.getPoint();
+                dragEnd = new javafx.geometry.Point2D(e.getX(), e.getY());
             }
         }
 
-        @Override
-        public void mouseMoved(MouseEvent e) {
+        void mouseMoved(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
-                endSelection = e.getPoint();
+                endSelection = new javafx.geometry.Point2D(e.getX(), e.getY());
             }
         }
 
-        private List<MusicianComponent> getComponentsInRectangle(Rectangle targetRect) {
+        private List<MusicianComponent> getComponentsInRectangle(Bounds targetRect) {
             List<MusicianComponent> componentsInArea = new ArrayList<>();
-            Component[] components = getComponents(); // Get all components in the panel.
 
-            for (Component component : components) {
-                // Get the bounds of the current component.
-                var componentBounds = component.getBounds();
-
-                // Check if the component's bounds intersect with the target rectangle.
-                if (componentBounds.intersects(targetRect) && component instanceof MusicianComponent mc) {
+            for (Node node : getChildren()) {
+                if (node instanceof MusicianComponent mc && mc.getBoundsInParent().intersects(targetRect)) {
                     componentsInArea.add(mc);
                 }
             }
@@ -495,7 +587,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             notifyListenersOfSelection();
         }
 
-    };
+    }
 
     static class Edge {
         private final MusicianComponent source;
@@ -510,32 +602,33 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     @Override
-    public void stateChanged(ChangeEvent e) {
+    public void stateChanged(javax.swing.event.ChangeEvent e) {
         if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
             switch (key) {
-            case UiOptions.EDGE_LENGTH_PROPERTY:
+            case UiOptions.EDGE_LENGTH_PROPERTY -> {
                 var len = (int) newValue;
                 edges.forEach(edge -> edge.idealLength = len);
-                break;
-            case MusicOptions.TEMPO_PROPERTY:
-                var diff = (int) newValue;
-                if (diff != 0) {
-                    this.tickLengthMillis = 60000 / ((int) newValue * 24);
+            }
+            case MusicOptions.TEMPO_PROPERTY -> {
+                var tempo = (int) newValue;
+                if (tempo != 0) {
+                    this.tickLengthMillis = 60000 / (tempo * 24);
                     MusicianComponent.setTickLengthMillis(tickLengthMillis);
                 }
-                break;
-            default:
-                break;
+            }
+            default -> {
+            }
             }
         }
     }
 
-    private static Rectangle makeSelectionRectangle(Point p1, Point p2) {
-        var x = Math.min(p1.x, p2.x);
-        var y = Math.min(p1.y, p2.y);
-        var width = Math.abs(p1.x - p2.x);
-        var height = Math.abs(p1.y - p2.y);
-        return new Rectangle(x, y, width, height);
+    private static javafx.geometry.Bounds makeSelectionRectangle(javafx.geometry.Point2D p1,
+            javafx.geometry.Point2D p2) {
+        var x = Math.min(p1.getX(), p2.getX());
+        var y = Math.min(p1.getY(), p2.getY());
+        var width = Math.abs(p1.getX() - p2.getX());
+        var height = Math.abs(p1.getY() - p2.getY());
+        return new javafx.geometry.BoundingBox(x, y, width, height);
     }
 
     void setEditMode(EditMode mode) { this.mode = mode; }
@@ -563,19 +656,23 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             var id = mc.getMusician().getId();
             MusicianList.getInstance().removeMusician(mc.getMusician());
             numMusicians = MusicianList.getInstance().numMusicians();
-            musicianComponents.remove(mc.getMusician().getId());
-            var edgeIter = edges.iterator();
-            while (edgeIter.hasNext()) {
-                var edge = edgeIter.next();
-                if (edge.source.equals(mc) || edge.target.equals(mc))
-                    edgeIter.remove();
-            }
-            remove(mc);
+            musicianComponents.remove(id);
+
+            // Remove any edges connected to this musician
+            edges.removeIf(edge -> edge.source.equals(mc) || edge.target.equals(mc));
+
+            // Remove the node from the JavaFX Pane's children
+            getChildren().remove(mc);
+
             Options.getInstance().getMusicians().remove(id);
             Options.getInstance().getUiOptions().getMusicianComponents().remove(id);
             Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(Integer.valueOf(id)));
-            firePropertyChange(AGENT_REMOVED_PROPERTY, null, mc);
+
+            pcs.firePropertyChange(AGENT_REMOVED_PROPERTY, null, mc);
         }
+
+        // Redraw canvas immediately so removed edges disappear right away
+        drawBackground();
     }
 
     enum EditMode {
@@ -590,7 +687,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     private void notifyListenersOfSelection() {
         var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                 .map(MusicianComponent::getMusician).toList();
-        firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
+        pcs.firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
     }
 
     void deselectAll() {
@@ -750,7 +847,7 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
         private final List<MusicianComponent> deletedMusicians;
         private final Map<Integer, MusicianOptions> deletedMusicianOptions;
         private final Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions;
-        // key = id of deleted musician, value = list of musicians with the deleted
+        // Key = id of deleted musician, value = list of musicians with the deleted
         // musician as a peer
         private final Map<Integer, List<Integer>> mapOfOthersToThese;
 
@@ -770,14 +867,19 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                 var id = mc.getMusician().getId();
                 MusicianList.getInstance().addMusician(mc.getMusician());
                 numMusicians = MusicianList.getInstance().numMusicians();
-                musicianComponents.put(mc.getMusician().getId(), mc);
-                add(mc);
+                musicianComponents.put(id, mc);
+
+                // Replaces Swing's add(mc)
+                getChildren().add(mc);
+                mc.updateLocation();
+                mc.draw();
+
                 Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
                 Options.getInstance().getUiOptions().getMusicianComponents().put(id,
                         deletedMusicianComponentOptions.get(id));
-                firePropertyChange(AGENT_ADDED_PROPERTY, null, mc);
+                pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, mc);
             }
-            // restore peers
+            // Restore peers
             for (var otherEntry : mapOfOthersToThese.entrySet()) {
                 var listOfOthers = otherEntry.getValue();
                 for (var otherId : listOfOthers) {
@@ -785,13 +887,13 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
                             .addPeer(musicianComponents.get(otherEntry.getKey()).getMusician());
                 }
             }
-            // re-calc edges
+            // Re-calc edges
             synchronized (edges) {
                 edges.clear();
                 calcEdges();
             }
+            drawBackground();
         }
-
     }
 
     class ConnectSelectedCommand implements Command {
@@ -877,8 +979,9 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     void paste() {
-        if (this.copiedComponents == null)
+        if (this.copiedComponents == null) {
             return;
+        }
         for (var componentToCopy : copiedComponents) {
             var musicianIdToCopy = componentToCopy.getMusician().getId();
             var musicianToCopyOpts = componentToCopy.getMusician().getOptions()
@@ -888,7 +991,8 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
             addMusicianComponent(newMusician);
             Options.getInstance().getUiOptions().copyMusicianComponentOptions(musicianIdToCopy, newMusician.getId());
         }
-        invalidate();
+        requestLayout();
+        drawBackground();
         this.copiedComponents = null;
         deselectAll();
     }
@@ -904,10 +1008,11 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
     }
 
     void reset() {
-        this.musicianComponents.values().forEach(this::remove);
+        this.musicianComponents.values().forEach(mc -> getChildren().remove(mc));
         this.musicianComponents.clear();
         this.edges.clear();
         this.numMusicians = 0;
+        drawBackground();
     }
 
     void addCircle(int numToAdd) {
@@ -1097,16 +1202,23 @@ public class AgentPanel extends JPanel implements ActionListener, ChangeListener
 
     @SuppressWarnings("unchecked")
     @Override
-    public void propertyChange(PropertyChangeEvent evt) {
+    public void propertyChange(java.beans.PropertyChangeEvent evt) {
         if (Transport.TICK_PROPERTY.equals(evt.getPropertyName())
-                && Options.getInstance().getUiOptions().isAnimateBackground())
+                && Options.getInstance().getUiOptions().isAnimateBackground()) {
+            // animateBackground() only mutates synchronized gradient arrays (read by
+            // drawBackground on FX thread)
             animateBackground();
-        else if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
+        } else if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
             var selectedMusicianIds = (List<Integer>) evt.getNewValue();
-            deselectAll();
-            for (var id : selectedMusicianIds) {
-                musicianComponents.get(id).setSelected(true);
-            }
+            javafx.application.Platform.runLater(() -> {
+                deselectAll();
+                for (var id : selectedMusicianIds) {
+                    var mc = musicianComponents.get(id);
+                    if (mc != null) {
+                        mc.setSelected(true);
+                    }
+                }
+            });
         }
     }
 

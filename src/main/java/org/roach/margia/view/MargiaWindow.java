@@ -83,30 +83,31 @@ public class MargiaWindow extends JFrame implements ChangeListener {
      *                           true
      */
     public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
-//        setUndecorated(true);
         getContentPane().setLayout(new BorderLayout());
 
         setupMenu();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         transportPanel = new TransportPanel(timing, transport);
         getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        // Inside MargiaWindow constructor
-        // 1. Initialize the JavaFX toolkit once before touching any JavaFX classes
-        new javafx.embed.swing.JFXPanel();
+
+        var agentJfxPanel = new javafx.embed.swing.JFXPanel();
+        agentJfxPanel.setBounds(0, 0, 1000, 1000);
         javafx.application.Platform.setImplicitExit(false);
 
-        agentPanel = new AgentPanel();
         javafx.application.Platform.runLater(() -> {
+            agentPanel = new AgentPanel();
+            agentPanel.setPrefSize(1000, 1000);
+            agentJfxPanel.setScene(new javafx.scene.Scene(agentPanel));
+
             optionsWindow = new OptionsWindow();
-            optionsWindow.addPropertyChangeListener(agentPanel);
             agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
             agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
             agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
-            agentPanel.setBounds(0, 0, 1000, 1000);
+            optionsWindow.addPropertyChangeListener(agentPanel);
         });
         updateTitle();
         registerListeners();
-        getContentPane().add(agentPanel, BorderLayout.CENTER);
+        getContentPane().add(agentJfxPanel, BorderLayout.CENTER);
 
         var palette1 = createToolPalette();
         add(palette1, BorderLayout.PAGE_START);

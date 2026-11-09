@@ -48,6 +48,7 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
 
     OptionsWindow() {
         setTitle("Options");
+        setAlwaysOnTop(true);
 
         // Save window position and size via JavaFX Property Listeners
         xProperty().addListener((_, _, newVal) -> {
@@ -94,6 +95,27 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         }
 
         updateOptions();
+        syncExistingMusicians();
+    }
+
+    void syncExistingMusicians() {
+        for (var musician : MusicianList.getInstance().getMusicians().values()) {
+            var id = musician.getId();
+            if (musicianNodes.containsKey(id)) {
+                continue;
+            }
+            var compOptions = Options.getInstance().getUiOptions().getMusicianComponents()
+                    .computeIfAbsent(id, _ -> new MusicianComponentOptions());
+            var newUiPanel = new MusicianUiPanel(id, compOptions);
+            var newMusicianPanel = new MusicianMusicalOptionsPanel(musician.getOptions());
+            var newRulePanel = new MusicianRuleOptionsPanel(id, musician.getOptions().getRuleOptions());
+            var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
+
+            var newNode = new TreeItem<Object>(newOptionsPanel);
+            musiciansNode.getChildren().add(newNode);
+            musicianNodes.put(id, newNode);
+        }
+        musiciansNode.setExpanded(true);
     }
 
     @SuppressWarnings("unchecked")
