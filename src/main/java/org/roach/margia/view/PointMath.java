@@ -1,6 +1,6 @@
 package org.roach.margia.view;
 
-import java.awt.geom.Point2D;
+import javafx.geometry.Point2D;
 
 /**
  * Utilities for dealing with {@link Point2D points}
@@ -29,8 +29,8 @@ public class PointMath {
      * @param vec   vector
      * @return a new {@link Point2D} moved by the given vector
      */
-    public static Point2D.Double movePoint(Point2D point, Vector2D vec) {
-        return new Point2D.Double(point.getX() + vec.x(), point.getY() + vec.y());
+    public static Point2D movePoint(Point2D point, Vector2D vec) {
+        return new Point2D(point.getX() + vec.x(), point.getY() + vec.y());
     }
 
 }

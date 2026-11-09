@@ -1,21 +1,18 @@
 package org.roach.margia.view;
 
-import java.awt.geom.Point2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;
-
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
-import javafx.animation.PauseTransition;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -25,13 +22,11 @@ import javafx.scene.text.Font;
  * GUI element that displays an agent as a colored circle
  */
 @SuppressWarnings({ "java:S1948", "java:S115" })
-public class MusicianComponent extends Pane implements PropertyChangeListener, ChangeListener {
+public class MusicianComponent extends Pane implements PropertyChangeListener {
     private final Musician musician;
     private Color color;
     private static int tickLengthMillis;
 
-    // Replaces javax.swing.Timer for one-shot note flash/highlight decay
-    private PauseTransition flashTimer;
     private boolean selected;
 
     private Vector2D velocity = new Vector2D(0, 0);
@@ -45,9 +40,8 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
     /**
      * Listener for the show numbers property
      */
-    static final ChangeListener SHOW_NUMBERS_LISTENER = e -> showNumbers = (boolean) ((ChangeSource) e.getSource())
-            .newValue();
-    static final ChangeListener TEMPO_LISTENER = _ -> tickLengthMillis = Length
+    static final ChangeListener<Boolean> SHOW_NUMBERS_LISTENER = (_, _, newVal) -> showNumbers = newVal;
+    static final ChangeListener<? super Number> TEMPO_LISTENER = (_, _, _) -> tickLengthMillis = Length
             .getMillisForTempo(1, Options.getInstance().getMusicOptions().getTempo()).getValue().intValue();
 
     static {
@@ -77,8 +71,9 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
         canvas.heightProperty().bind(heightProperty());
         getChildren().add(canvas);
 
-        options.addChangeListener(MusicianComponentOptions.RADIUS_PROPERTY, this);
-        options.addChangeListener(MusicianComponentOptions.POSITION_PROPERTY, new PositionChangeListener());
+        options.radiusProperty().addListener(
+                (_, _, newVal) -> javafx.application.Platform.runLater(() -> this.updateSize(newVal.intValue())));
+        options.positionProperty().addListener(new PositionChangeListener());
 
         updatePosition();
         setId("Musician_" + musician.getId());
@@ -87,49 +82,47 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
         updateSize(options.getRadius());
     }
 
-    private class PositionChangeListener implements ChangeListener {
+    private class PositionChangeListener implements ChangeListener<Point2D> {
 
         @Override
-        public void stateChanged(ChangeEvent e) {
+        public void changed(ObservableValue<? extends Point2D> observable, Point2D oldValue, Point2D newValue) {
             if (musician.isMuted())
                 return;
-            if (e.getSource() instanceof ChangeSource(_, Point2D.Double pos)) {
-                if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
-                    sendStereoPanning(pos);
-                }
-                if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()) {
-                    sendVerticalPanning(pos);
-                }
+            if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
+                sendStereoPanning(newValue);
+            }
+            if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()) {
+                sendVerticalPanning(newValue);
             }
         }
 
-        private void sendVerticalPanning(Point2D.Double pos) {
+        private void sendVerticalPanning(Point2D pos) {
             double height;
             int verticalPanValue;
             if (Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
                 height = Global.getMaxComponentY() - Global.getMinComponentY();
                 // get distance from max because we want the "top" (i.e., smaller y's) to send
                 // higher numbers
-                verticalPanValue = height == 0 ? 63 : (int) (127d * (Global.getMaxComponentY() - pos.y) / height);
+                verticalPanValue = height == 0 ? 63 : (int) (127d * (Global.getMaxComponentY() - pos.getY()) / height);
             } else {
                 height = Global.getScreenHeight();
                 // use "height - pos.y" instead of just pos.y because we want the "top" (i.e.,
                 // smaller y's) to send higher numbers
-                verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.y) / height);
+                verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.getY()) / height);
             }
             MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getVerticalPanController(), verticalPanValue);
         }
 
-        private void sendStereoPanning(Point2D.Double pos) {
+        private void sendStereoPanning(Point2D pos) {
             double width;
             int panValue;
             if (Options.getInstance().getMidiOptions().isPanWithRelativeLocations()) {
                 width = Global.getMaxComponentX() - Global.getMinComponentX();
-                panValue = width == 0 ? 63 : (int) (127d * (pos.x - Global.getMinComponentX()) / width);
+                panValue = width == 0 ? 63 : (int) (127d * (pos.getX() - Global.getMinComponentX()) / width);
             } else {
                 width = Global.getScreenWidth();
-                panValue = width == 0 ? 63 : (int) (127d * pos.x / width);
+                panValue = width == 0 ? 63 : (int) (127d * pos.getX() / width);
             }
             MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getPanController(), panValue);
@@ -177,7 +170,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
                 }
             }
             default -> {
-                // TODO
+                // do nothing
             }
             }
         });
@@ -290,14 +283,6 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
         draw();
     }
 
-    @Override
-    public void stateChanged(javax.swing.event.ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String property, Object newVal)
-                && MusicianComponentOptions.RADIUS_PROPERTY.equals(property)) {
-            javafx.application.Platform.runLater(() -> this.updateSize((int) newVal));
-        }
-    }
-
     /**
      * @param tickLengthMillis tick length in milliseconds, used for animations
      */
@@ -352,7 +337,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
         return (4d / 3d) * Math.PI * Math.pow(r, 3) * ρ;
     }
 
-    Point2D.Double getPosition() { return options.getPosition(); }
+    Point2D getPosition() { return options.getPosition(); }
 
     void updatePosition() {
         updateLocation();
@@ -384,9 +369,9 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
         this.force = new Vector2D(0, 0);
     }
 
-    Point2D.Double getCenter() {
+    Point2D getCenter() {
         var position = options.getPosition();
-        return new Point2D.Double(position.x + getWidth() / 2.0, position.y + getHeight() / 2.0);
+        return new Point2D(position.getX() + getWidth() / 2.0, position.getY() + getHeight() / 2.0);
     }
 
     void applyForces() {
@@ -411,7 +396,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener, C
          * not the center, which is why we multiply radius by 3 for the bounds.
          */
         var position = options.getPosition();
-        options.setPosition(new Point2D.Double(Math.clamp(position.getX(), radius, width - radius * 3.0),
+        options.setPosition(new Point2D(Math.clamp(position.getX(), radius, width - radius * 3.0),
                 Math.clamp(position.getY(), radius, height - radius * 3.0)));
         updatePosition();
     }

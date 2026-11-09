@@ -1,13 +1,10 @@
 package org.roach.margia.model;
 
-import java.awt.geom.Point2D;
-
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.roach.margia.view.MusicianComponent;
+
+import javafx.beans.property.*;
+import javafx.geometry.Point2D;
 
 /**
  * UI Options for {@link MusicianComponent}s
@@ -20,9 +17,8 @@ import org.roach.margia.view.MusicianComponent;
  */
 public class MusicianComponentOptions {
     private boolean locked;
-    private final Point2D.Double position = new Point2D.Double();
-    private int radius = MusicianComponentOptions.DEFAULT_RADIUS;
-    private final ChangeEmitter emitter = new ChangeEmitter();
+    private final ObjectProperty<Point2D> position = new SimpleObjectProperty<Point2D>(Point2D.ZERO);
+    private IntegerProperty radius = new SimpleIntegerProperty(MusicianComponentOptions.DEFAULT_RADIUS);
     /**
      * property to update position
      */
@@ -39,7 +35,7 @@ public class MusicianComponentOptions {
     /**
      * @return the position
      */
-    public Point2D.Double getPosition() { return position; }
+    public Point2D getPosition() { return position.get(); }
 
     /**
      * @return the locked
@@ -61,12 +57,15 @@ public class MusicianComponentOptions {
      * 
      * @param position new position
      */
-    public void setPosition(Point2D.Double position) {
-        var oldPosition = new Point2D.Double(this.position.x, this.position.y);
-        this.position.setLocation(position);
-        if (!oldPosition.equals(this.position)) {
-            emitter.fireChangeEvent(POSITION_PROPERTY, new ChangeSource(POSITION_PROPERTY, this.position));
-        }
+    public void setPosition(Point2D position) {
+        this.position.set(position);
+    }
+
+    /**
+     * @return the position property
+     */
+    public ObjectProperty<Point2D> positionProperty() {
+        return this.position;
     }
 
     @Override
@@ -77,26 +76,24 @@ public class MusicianComponentOptions {
     /**
      * @return the radius
      */
-    public int getRadius() { return radius; }
+    public int getRadius() { return radius.get(); }
 
     /**
      * @param radius the radius to set
      */
     public void setRadius(int radius) {
-        var oldRadius = this.radius;
-        this.radius = radius;
+        var oldRadius = this.radius.get();
+        this.radius.set(radius);
         if (oldRadius != radius) {
-            emitter.fireChangeEvent(RADIUS_PROPERTY, new ChangeSource(RADIUS_PROPERTY, this.radius));
             Options.getInstance().setDirty();
         }
     }
 
     /**
-     * @param property name of property
-     * @param listener listener of property
+     * @return the radius property
      */
-    public void addChangeListener(String property, ChangeListener listener) {
-        this.emitter.addChangeListener(property, listener);
+    public IntegerProperty radiusProperty() {
+        return this.radius;
     }
 
     MusicianComponentOptions copy() {
@@ -113,6 +110,6 @@ public class MusicianComponentOptions {
      */
     public void copyInto(MusicianComponentOptions options) {
         options.setLocked(this.locked);
-        options.setRadius(this.radius);
+        options.setRadius(this.radius.get());
     }
 }

@@ -5,19 +5,18 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.prefs.BackingStoreException;
 
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.*;
-import org.roach.margia.view.ChangeEmitter;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 
 /**
  * Singleton instance where all options are stored
@@ -31,15 +30,13 @@ public class Options {
      * Property fired to notify listeners that something has changed
      */
     public static final String DIRTY_PROPERTY = "dirty";
-    private final ChangeEmitter emitter;
-    private boolean dirty;
+    private BooleanProperty dirty = new SimpleBooleanProperty();
     private Path saveDir;
     private Path filename;
     private static Options INSTANCE;
     private StoredOptions storedOptions;
 
     private Options() {
-        this.emitter = new ChangeEmitter();
         this.storedOptions = new StoredOptions();
         this.saveDir = Path.of(Persistence.getInstance().getString(SAVE_DIR_PROPERTY, System.getProperty("user.home")));
     }
@@ -61,10 +58,10 @@ public class Options {
      */
     public void store(OutputStream os) throws IOException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.registerModule(new JavaFXMapperModule());
 
         mapper.writeValue(os, storedOptions);
-        this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, false));
+        this.dirty.set(false);
     }
 
     /**
@@ -75,6 +72,7 @@ public class Options {
      */
     public void load(InputStream is) throws IOException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.registerModule(new JavaFXMapperModule());
 
         StoredOptions loadedOpts;
         try {
@@ -91,29 +89,26 @@ public class Options {
         restoreMusicians();
         MusicianList.getInstance().getMusicians().keySet().stream().max(Integer::compare)
                 .ifPresent(maxId -> MusicianOptions.ID_GENERATOR.set(maxId + 1));
-        this.dirty = false;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
+        this.dirty.set(false);
     }
 
     /**
      * @return true if any property has changed since the last save/load
      */
-    public boolean isDirty() { return dirty; }
+    public boolean isDirty() { return dirty.get(); }
 
     /**
      * Mark options as dirty indicating that they haven't been saved to file
      */
     public void setDirty() {
-        this.dirty = true;
-        emitter.fireChangeEvent(DIRTY_PROPERTY, new ChangeSource(DIRTY_PROPERTY, true));
+        this.dirty.set(true);
     }
 
     /**
-     * @param property the property being listened to
-     * @param listener the listener
+     * @return the dirty property
      */
-    public void addChangeListener(String property, ChangeListener listener) {
-        emitter.addChangeListener(property, listener);
+    public BooleanProperty dirtyProperty() {
+        return this.dirty;
     }
 
     /**

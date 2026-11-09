@@ -2,23 +2,18 @@ package org.roach.margia.view;
 
 import static org.roach.margia.view.Icons.*;
 
-import java.awt.GraphicsEnvironment;
-import java.awt.HeadlessException;
 import java.nio.file.Path;
-
-import javax.swing.event.ChangeListener;
 
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.*;
+import org.roach.margia.model.Key;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
 import org.roach.margia.util.MargiaFileUtils;
 import org.roach.margia.view.AgentPanel.EditMode;
 import org.roach.margia.view.AgentPanel.FanDirection;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +29,7 @@ import javafx.stage.Stage;
  * The main program window
  */
 @SuppressWarnings({ "java:S1948" })
-public class MargiaWindow extends Stage implements ChangeListener {
+public class MargiaWindow extends Stage {
     private static final String MARGIA_EXTENSION = ".margia";
     private static final String ABOUT_MESSAGE = """
             <html>
@@ -80,8 +75,6 @@ public class MargiaWindow extends Stage implements ChangeListener {
     /**
      * @param timing    the {@link TimingSource}
      * @param transport the {@link Transport}
-     * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
-     *                           true
      */
     public MargiaWindow(TimingSource timing, Transport transport) {
         rootLayout = new BorderPane();
@@ -129,11 +122,9 @@ public class MargiaWindow extends Stage implements ChangeListener {
     }
 
     private void registerListeners() {
-        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
-                MusicianComponent.SHOW_NUMBERS_LISTENER);
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY,
-                MusicianComponent.TEMPO_LISTENER);
-        Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
+        Options.getInstance().getUiOptions().showNumbersProperty().addListener(MusicianComponent.SHOW_NUMBERS_LISTENER);
+        Options.getInstance().getMusicOptions().tempoProperty().addListener(MusicianComponent.TEMPO_LISTENER);
+        Options.getInstance().dirtyProperty().addListener((_, _, _) -> Platform.runLater(this::updateTitle));
     }
 
     // Register in MargiaWindow constructor:
@@ -836,14 +827,6 @@ public class MargiaWindow extends Stage implements ChangeListener {
 
         // If the user cancels
         return null;
-    }
-
-    @Override
-    public void stateChanged(javax.swing.event.ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object value) && key.equals(Options.DIRTY_PROPERTY)
-                && (boolean) value) {
-            javafx.application.Platform.runLater(this::updateTitle);
-        }
     }
 
     private void updateTitle() {

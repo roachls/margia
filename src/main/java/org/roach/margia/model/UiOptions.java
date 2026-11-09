@@ -2,11 +2,9 @@ package org.roach.margia.model;
 
 import java.util.*;
 
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
+
+import javafx.beans.property.*;
 
 /**
  * UI-related options
@@ -18,11 +16,9 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  * {@code foo(Foo f)} for a setter.
  */
 public class UiOptions {
-    final ChangeEmitter emitter = new ChangeEmitter();
-
-    private boolean showNumbers = true;
+    private BooleanProperty showNumbers = new SimpleBooleanProperty(true);
     private double gravity = DEFAULT_GRAVITATIONAL_CONSTANT;
-    private int edgeLength = DEFAULT_EDGE_LENGTH;
+    private final IntegerProperty edgeLength = new SimpleIntegerProperty(DEFAULT_EDGE_LENGTH);
     private double windSpeed = DEFAULT_WINDSPEED;
     private boolean animateBackground = false;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
@@ -49,27 +45,32 @@ public class UiOptions {
     /**
      * @return true if numbers of musicians should be displayed
      */
-    public boolean isShowNumbers() { return showNumbers; }
+    public boolean isShowNumbers() { return showNumbers.get(); }
 
     /**
      * @param showNumbers the showNumbers to set
      */
     public void setShowNumbers(boolean showNumbers) {
-        var oldShowNumbers = this.showNumbers;
-        this.showNumbers = showNumbers;
+        var oldShowNumbers = this.showNumbers.get();
+        this.showNumbers.set(showNumbers);
         if (oldShowNumbers != showNumbers) {
-            emitter.fireChangeEvent(SHOW_NUMBERS_PROPERTY, new ChangeSource(SHOW_NUMBERS_PROPERTY, this.showNumbers));
             Options.getInstance().setDirty();
         }
     }
     
     /**
+     * @return the show numbers property
+     */
+    public BooleanProperty showNumbersProperty() { return this.showNumbers; }
+
+    /**
      * @return {@code true} if the background should be animated
      */
     public boolean isAnimateBackground() { return this.animateBackground; }
-    
+
     /**
-     * @param animateBackground {@code true} means that the background should be animated
+     * @param animateBackground {@code true} means that the background should be
+     *                          animated
      */
     public void setAnimateBackground(boolean animateBackground) {
         var oldAnim = this.animateBackground;
@@ -97,19 +98,23 @@ public class UiOptions {
     /**
      * @return the edgeLength
      */
-    public int getEdgeLength() { return edgeLength; }
+    public int getEdgeLength() { return edgeLength.get(); }
 
     /**
      * @param edgeLength the edgeLength to set
      */
     public void setEdgeLength(int edgeLength) {
-        var oldEdgeLength = this.edgeLength;
-        this.edgeLength = edgeLength;
+        var oldEdgeLength = this.edgeLength.get();
+        this.edgeLength.set(edgeLength);
         if (oldEdgeLength != edgeLength) {
-            emitter.fireChangeEvent(EDGE_LENGTH_PROPERTY, new ChangeSource(EDGE_LENGTH_PROPERTY, this.edgeLength));
             Options.getInstance().setDirty();
         }
     }
+    
+    /**
+     * @return the edge length property
+     */
+    public IntegerProperty edgeLengthProperty() { return edgeLength; }
 
     /**
      * @return the windSpeed; positive numbers are clockwise, negative numbers are
@@ -169,14 +174,6 @@ public class UiOptions {
                     "Somehow tried to make a copy of musician component " + musicianIdToCopy + " which doesn't exist");
         var copy = orig.copy();
         musicianComponents.put(id, copy);
-    }
-
-    /**
-     * @param property property being listened for
-     * @param listener listener
-     */
-    public void addChangeListener(String property, ChangeListener listener) {
-        emitter.addChangeListener(property, listener);
     }
 
 }

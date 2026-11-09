@@ -7,8 +7,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.command.Command;
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.Musician;
@@ -17,23 +15,24 @@ import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
+import javafx.animation.*;
 import javafx.application.Platform;
-import javafx.geometry.Bounds;
-import javafx.geometry.Point2D;
+import javafx.geometry.*;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
+import javafx.scene.paint.*;
+import javafx.scene.shape.Rectangle;
 
 /**
  * GUI element that displays multiple {@link Musician Musicians} in a
  * {@link Pane}
  */
-public class AgentPanel extends Pane implements ChangeListener, PropertyChangeListener {
+public class AgentPanel extends Pane implements PropertyChangeListener {
     int numMusicians;
     private final Map<Integer, MusicianComponent> musicianComponents = new TreeMap<>();
     private List<Edge> edges = new ArrayList<>();
@@ -73,14 +72,16 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
      * Constructor
      */
     public AgentPanel() {
-        // Replaces setBackground(Color.LIGHT_GRAY) and setDoubleBuffered(true)
         setStyle("-fx-background-color: lightgray;");
 
-        // Bind canvas size to fill AgentPanel automatically and update Global screen
-        // dimensions
         backgroundCanvas.widthProperty().bind(widthProperty());
         backgroundCanvas.heightProperty().bind(heightProperty());
         getChildren().add(backgroundCanvas);
+
+        var clipRect = new Rectangle();
+        clipRect.widthProperty().bind(widthProperty());
+        clipRect.heightProperty().bind(heightProperty());
+        setClip(clipRect);
 
         widthProperty().addListener((_, _, newWidth) -> Global.setScreenWidth(newWidth.intValue()));
         heightProperty().addListener((_, _, newHeight) -> Global.setScreenHeight(newHeight.intValue()));
@@ -88,17 +89,33 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         // Wire mouse handlers (replacing MouseAdapter)
         setupMouseHandlers();
 
-        Options.getInstance().getUiOptions().addChangeListener(UiOptions.EDGE_LENGTH_PROPERTY, this);
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
+        Options.getInstance().getUiOptions().edgeLengthProperty().addListener((_, _, newVal) -> {
+            int len = newVal.intValue();
+            edges.forEach(edge -> edge.idealLength = len);
+        });
+        Options.getInstance().getMusicOptions().tempoProperty().addListener((_, _, newVal) -> {
+            var tempo = newVal.intValue();
+            if (tempo != 0) {
+                this.tickLengthMillis = 60000 / (tempo * 24);
+                MusicianComponent.setTickLengthMillis(tickLengthMillis);
+            }
+        });
     }
 
-    // Add this field to AgentPanel to replace javax.swing.Timer
-    private javafx.animation.Timeline animationTimeline;
+    private Timeline animationTimeline;
 
+    /**
+     * @param propertyName property to listen to
+     * @param listener     listener of property
+     */
     public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
         pcs.addPropertyChangeListener(propertyName, listener);
     }
 
+    /**
+     * @param propertyName property to listen to
+     * @param listener     listener to remove
+     */
     public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
         pcs.removePropertyChangeListener(propertyName, listener);
     }
@@ -124,23 +141,21 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         if (animationTimeline != null) {
             animationTimeline.stop();
         }
-        animationTimeline = new javafx.animation.Timeline(
-                new javafx.animation.KeyFrame(javafx.util.Duration.millis(20), _ -> onAnimationTick()));
-        animationTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        animationTimeline = new Timeline(new KeyFrame(javafx.util.Duration.millis(20), _ -> onAnimationTick()));
+        animationTimeline.setCycleCount(Animation.INDEFINITE);
         animationTimeline.play();
     }
 
     private MusicianComponent addMusicianComponent(Musician musician) {
         var n = new MusicianComponent(musician);
         var compOptions = n.getOptions();
-        if (compOptions.getPosition().x == 0.0 && compOptions.getPosition().y == 0.0) {
+        if (compOptions.getPosition().getX() == 0.0 && compOptions.getPosition().getY() == 0.0) {
             // Fallback bounds if AgentPanel hasn't completed its first layout pass yet
             int panelWidth = getWidth() > n.getDiameter() * 2 ? (int) getWidth() : 800;
             int panelHeight = getHeight() > n.getDiameter() * 2 ? (int) getHeight() : 600;
 
-            compOptions.setPosition(
-                    new java.awt.geom.Point2D.Double(RANDOM.nextInt(n.getDiameter(), panelWidth - n.getDiameter()),
-                            RANDOM.nextInt(n.getDiameter(), panelHeight - n.getDiameter())));
+            compOptions.setPosition(new Point2D(RANDOM.nextInt(n.getDiameter(), panelWidth - n.getDiameter()),
+                    RANDOM.nextInt(n.getDiameter(), panelHeight - n.getDiameter())));
             n.updateLocation();
         }
         musicianComponents.put(musician.getId(), n);
@@ -169,14 +184,14 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
 
         // 1. Animated radial background gradient
         synchronized (ANIMATE_LOCK) {
-            var stops = new javafx.scene.paint.Stop[GRAD_FRACTIONS.length];
+            var stops = new Stop[GRAD_FRACTIONS.length];
             for (int i = 0; i < GRAD_FRACTIONS.length; i++) {
-                stops[i] = new javafx.scene.paint.Stop(GRAD_FRACTIONS[i], GRAD_COLORS[i]);
+                stops[i] = new Stop(GRAD_FRACTIONS[i], GRAD_COLORS[i]);
             }
-            var gradient = new javafx.scene.paint.RadialGradient(0, 0, w / 2.0, h / 2.0, w, false, // proportional =
-                                                                                                   // false (pixel
-                                                                                                   // coordinates)
-                    javafx.scene.paint.CycleMethod.NO_CYCLE, stops);
+            var gradient = new RadialGradient(0, 0, w / 2.0, h / 2.0, w, false, // proportional =
+                                                                                // false (pixel
+                                                                                // coordinates)
+                    CycleMethod.NO_CYCLE, stops);
             gc.setFill(gradient);
             gc.fillRect(0, 0, w, h);
         }
@@ -197,7 +212,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
 
             // JavaFX GraphicsContext.rotate() expects degrees, whereas Swing uses radians
-            gc.translate(sCenter.x, sCenter.y);
+            gc.translate(sCenter.getX(), sCenter.getY());
             gc.rotate(Math.toDegrees(angle - Math.PI / 2.0));
 
             // Draw quadratic curve (replaces QuadCurve2D.Double(0, 0, 5, dist / 2d, 0,
@@ -222,7 +237,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         // 3. Connection line while dragging an edge between nodes
         if (startSelection != null && endSelection != null) {
             gc.save();
-            gc.setStroke(javafx.scene.paint.Color.RED);
+            gc.setStroke(Color.RED);
             gc.setLineWidth(SELECTION_LINE_WIDTH);
             gc.setLineDashes(SELECTION_LINE_DASHES);
             gc.strokeLine(startSelection.getX(), startSelection.getY(), endSelection.getX(), endSelection.getY());
@@ -232,7 +247,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         // 4. Multi-select bounding rectangle
         if (dragStart != null && dragEnd != null) {
             gc.save();
-            gc.setStroke(javafx.scene.paint.Color.YELLOW);
+            gc.setStroke(Color.YELLOW);
             gc.setLineWidth(SELECTION_LINE_WIDTH);
             gc.setLineDashes(SELECTION_LINE_DASHES);
             var rect = makeSelectionRectangle(dragStart, dragEnd);
@@ -258,7 +273,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
                     GRAD_COLORS[i] = GRAD_COLORS[i - 1];
                 }
                 // JavaFX Color.color() takes double values in [0.0, 1.0]
-                GRAD_COLORS[0] = javafx.scene.paint.Color.color(Math.random(), Math.random(), Math.random());
+                GRAD_COLORS[0] = Color.color(Math.random(), Math.random(), Math.random());
                 GRAD_FRACTIONS[2] = GRAD_FRACTIONS[1];
                 GRAD_FRACTIONS[1] = ANIMATE_SPEED;
             }
@@ -318,7 +333,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         }
 
         // Apply gravity and wind
-        var center = new java.awt.geom.Point2D.Double(getWidth() / 2.0, getHeight() / 2.0);
+        var center = new Point2D(getWidth() / 2.0, getHeight() / 2.0);
         for (var n1 : musicianComponents.values()) {
             var vec = new Vector2D(center, n1.getCenter());
             var dist = n1.getCenter().distance(center);
@@ -347,17 +362,17 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         }
 
         if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
-            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
-                    .min(Double::compare).ifPresent(Global::setMinComponentX);
-            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().x)
-                    .max(Double::compare).ifPresent(Global::setMaxComponentX);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getX()).min(Double::compare).ifPresent(Global::setMinComponentX);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getX()).max(Double::compare).ifPresent(Global::setMaxComponentX);
         }
         if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()
                 && Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
-            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
-                    .min(Double::compare).ifPresent(Global::setMinComponentY);
-            Options.getInstance().getUiOptions().getMusicianComponents().values().stream().map(mc -> mc.getPosition().y)
-                    .max(Double::compare).ifPresent(Global::setMaxComponentY);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getY()).min(Double::compare).ifPresent(Global::setMinComponentY);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getY()).max(Double::compare).ifPresent(Global::setMaxComponentY);
         }
     }
 
@@ -374,7 +389,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         private MusicianComponent source;
         private MusicianComponent movingComponent;
         // Position of cursor in movingComponent local space
-        private javafx.geometry.Point2D movingComponentXY;
+        private Point2D movingComponentXY;
 
         void mousePressed(MouseEvent e) {
             if (e.getButton() == MouseButton.PRIMARY) {
@@ -391,7 +406,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         }
 
         private void leftMousePressedSingleSelectionMode(MouseEvent e) {
-            var clickPoint = new javafx.geometry.Point2D(e.getX(), e.getY());
+            var clickPoint = new Point2D(e.getX(), e.getY());
             var mc = findMusicianAt(e.getX(), e.getY());
             if (mc != null) {
                 mc.setSelected(false);
@@ -404,16 +419,17 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
                     mc.setSelected(true);
                     isConnecting = true;
                     startSelection = clickPoint;
-                    setCursor(javafx.scene.Cursor.CROSSHAIR);
+                    setCursor(Cursor.CROSSHAIR);
                 }
                 case MOVE -> {
                     mc.setSelected(true);
                     movingComponent = mc;
                     // Replaces SwingUtilities.convertPoint(AgentPanel.this, e.getPoint(), mc)
                     movingComponentXY = mc.parentToLocal(e.getX(), e.getY());
-                    setCursor(javafx.scene.Cursor.MOVE);
+                    setCursor(Cursor.MOVE);
                 }
                 default -> {
+                    // do nothing
                 }
                 }
                 notifyListenersOfSelection();
@@ -482,6 +498,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
                 }
             }
             default -> {
+                // do nothing
             }
             }
         }
@@ -490,11 +507,11 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
             if (movingComponent != null) {
                 var mcOpts = movingComponent.getOptions();
                 mcOpts.setLocked(false);
-                mcOpts.setPosition(new java.awt.geom.Point2D.Double(e.getX() - movingComponentXY.getX(),
-                        e.getY() - movingComponentXY.getY()));
+                mcOpts.setPosition(
+                        new Point2D(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
                 mcOpts.setLocked(true);
                 movingComponent.setSelected(false);
-                setCursor(javafx.scene.Cursor.DEFAULT);
+                setCursor(Cursor.DEFAULT);
             }
             movingComponent = null;
         }
@@ -516,7 +533,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
                 this.source = null;
                 startSelection = null;
                 endSelection = null;
-                AgentPanel.this.setCursor(javafx.scene.Cursor.DEFAULT);
+                AgentPanel.this.setCursor(Cursor.DEFAULT);
             } else if (target == null) {
                 // Replaces `else if (comp == AgentPanel.this)` when released on empty space
                 isConnecting = false;
@@ -526,7 +543,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
                 this.source = null;
                 startSelection = null;
                 endSelection = null;
-                AgentPanel.this.setCursor(javafx.scene.Cursor.DEFAULT);
+                AgentPanel.this.setCursor(Cursor.DEFAULT);
             }
         }
 
@@ -539,7 +556,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
             numMusicians = MusicianList.getInstance().numMusicians();
             var musicianComponent = new MusicianComponent(musician);
             musicianComponents.put(musician.getId(), musicianComponent);
-            musicianComponent.getOptions().setPosition(new java.awt.geom.Point2D.Double(e.getX(), e.getY()));
+            musicianComponent.getOptions().setPosition(new Point2D(e.getX(), e.getY()));
             musicianComponent.updateLocation();
             getChildren().add(musicianComponent);
             pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
@@ -552,21 +569,21 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
 
         void mouseDragged(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
-                endSelection = new javafx.geometry.Point2D(e.getX(), e.getY());
+                endSelection = new Point2D(e.getX(), e.getY());
             } else if (mode == EditMode.MOVE && e.isPrimaryButtonDown() && movingComponent != null) {
                 var mcOpts = movingComponent.getOptions();
                 mcOpts.setLocked(false);
-                mcOpts.setPosition(new java.awt.geom.Point2D.Double(e.getX() - movingComponentXY.getX(),
-                        e.getY() - movingComponentXY.getY()));
+                mcOpts.setPosition(
+                        new Point2D(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
                 mcOpts.setLocked(true);
             } else if (mode == EditMode.SELECT) {
-                dragEnd = new javafx.geometry.Point2D(e.getX(), e.getY());
+                dragEnd = new Point2D(e.getX(), e.getY());
             }
         }
 
         void mouseMoved(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
-                endSelection = new javafx.geometry.Point2D(e.getX(), e.getY());
+                endSelection = new Point2D(e.getX(), e.getY());
             }
         }
 
@@ -601,34 +618,12 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
         }
     }
 
-    @Override
-    public void stateChanged(javax.swing.event.ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object newValue)) {
-            switch (key) {
-            case UiOptions.EDGE_LENGTH_PROPERTY -> {
-                var len = (int) newValue;
-                edges.forEach(edge -> edge.idealLength = len);
-            }
-            case MusicOptions.TEMPO_PROPERTY -> {
-                var tempo = (int) newValue;
-                if (tempo != 0) {
-                    this.tickLengthMillis = 60000 / (tempo * 24);
-                    MusicianComponent.setTickLengthMillis(tickLengthMillis);
-                }
-            }
-            default -> {
-            }
-            }
-        }
-    }
-
-    private static javafx.geometry.Bounds makeSelectionRectangle(javafx.geometry.Point2D p1,
-            javafx.geometry.Point2D p2) {
+    private static Bounds makeSelectionRectangle(Point2D p1, Point2D p2) {
         var x = Math.min(p1.getX(), p2.getX());
         var y = Math.min(p1.getY(), p2.getY());
         var width = Math.abs(p1.getX() - p2.getX());
         var height = Math.abs(p1.getY() - p2.getY());
-        return new javafx.geometry.BoundingBox(x, y, width, height);
+        return new BoundingBox(x, y, width, height);
     }
 
     void setEditMode(EditMode mode) { this.mode = mode; }
@@ -1210,7 +1205,7 @@ public class AgentPanel extends Pane implements ChangeListener, PropertyChangeLi
             animateBackground();
         } else if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
             var selectedMusicianIds = (List<Integer>) evt.getNewValue();
-            javafx.application.Platform.runLater(() -> {
+            Platform.runLater(() -> {
                 deselectAll();
                 for (var id : selectedMusicianIds) {
                     var mc = musicianComponents.get(id);

@@ -2,11 +2,10 @@ package org.roach.margia.model;
 
 import java.util.Objects;
 
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
+
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 
 /**
  * Music-related options
@@ -18,12 +17,11 @@ import org.roach.margia.view.ChangeEmitter.ChangeSource;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicOptions {
-    private int tempo = DEFAULT_TEMPO;
+    private IntegerProperty tempo = new SimpleIntegerProperty(DEFAULT_TEMPO);
     private int tempoMinimum = 1;
     private int tempoMaximum = 300;
     private int maxQueueSize = DEFAULT_MAX_QUEUE_SIZE;
 
-    private final ChangeEmitter emitter = new ChangeEmitter();
     /**
      * Default tempo
      */
@@ -40,19 +38,23 @@ public class MusicOptions {
     /**
      * @return the tempo
      */
-    public int getTempo() { return tempo; }
+    public int getTempo() { return tempo.get(); }
 
     /**
      * @param tempo the tempo to set
      */
     public void setTempo(int tempo) {
-        var oldTempo = this.tempo;
-        this.tempo = tempo;
+        var oldTempo = this.tempo.get();
+        this.tempo.set(tempo);
         if (oldTempo != tempo) {
-            emitter.fireChangeEvent(TEMPO_PROPERTY, new ChangeSource(TEMPO_PROPERTY, tempo));
             Options.getInstance().setDirty();
         }
     }
+    
+    /**
+     * @return the tempo property
+     */
+    public IntegerProperty tempoProperty() { return this.tempo; }
 
     /**
      * @return the tempoMinimum
@@ -96,14 +98,6 @@ public class MusicOptions {
      *                     new events
      */
     public void setMaxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; }
-
-    /**
-     * @param property name of property
-     * @param listener listener of property
-     */
-    public void addChangeListener(String property, ChangeListener listener) {
-        this.emitter.addChangeListener(property, listener);
-    }
 
     @Override
     public String toString() {

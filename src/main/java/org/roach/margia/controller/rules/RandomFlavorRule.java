@@ -7,7 +7,6 @@ import org.roach.margia.actions.*;
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.states.NeverTransitionState;
 import org.roach.margia.model.*;
-import org.roach.margia.view.ChordFlavor;
 
 /**
  * Random-note generator

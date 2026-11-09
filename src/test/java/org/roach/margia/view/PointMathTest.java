@@ -2,19 +2,20 @@ package org.roach.margia.view;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.awt.geom.Point2D;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
+
+import javafx.geometry.Point2D;
 
 class PointMathTest {
 
     @ParameterizedTest
     @MethodSource("unitVectorArgs")
     void testUnitVector(double x1, double y1, double x2, double y2, double ex, double ey) {
-        var p1 = new Point2D.Double(x1, y1);
-        var p2 = new Point2D.Double(x2, y2);
+        var p1 = new Point2D(x1, y1);
+        var p2 = new Point2D(x2, y2);
         var u = PointMath.unitVector(p1, p2);
         assertEquals(1.0, u.magnitude(), 1e-6);
         assertEquals(ex, u.x(), 1e-6);
@@ -40,9 +41,9 @@ class PointMathTest {
     @ParameterizedTest
     @CsvSource({ "0,0,0,0,0,0", "0,0,1,1,1,1", "4,5,6,7,10,12", "-1.2,4.6,10,3.2,8.8,7.8" })
     void testMovePoint(double x1, double y1, double x2, double y2, double ex, double ey) {
-        var p1 = new Point2D.Double(x1, y1);
+        var p1 = new Point2D(x1, y1);
         var v = new Vector2D(x2, y2);
-        var expected = new Point2D.Double(ex, ey);
+        var expected = new Point2D(ex, ey);
         var newPos = PointMath.movePoint(p1, v);
         assertEquals(expected, newPos);
     }
