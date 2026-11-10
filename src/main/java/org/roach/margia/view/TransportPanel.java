@@ -6,6 +6,8 @@ import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.storage.Options;
 
+import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -27,6 +29,7 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
     private final Button rewindBtn;
     private final ImageView startIcon;
     private final ImageView pauseIcon;
+    private ObjectProperty<Integer> tempoObjectProperty;
 
     /**
      * @param timing    the {@link TimingSource}
@@ -49,11 +52,8 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
         tempo.setId("tempo");
         tempo.setEditable(true);
         tempo.setPrefWidth(75);
-        tempo.valueProperty().addListener((_, _, newVal) -> {
-            if (newVal != null) {
-                Options.getInstance().getMusicOptions().setTempo(newVal);
-            }
-        });
+        tempoObjectProperty = Options.getInstance().getMusicOptions().tempoProperty().asObject();
+        tempo.getValueFactory().valueProperty().bindBidirectional(tempoObjectProperty);
 
         startIcon = Icons.getButtonIcon(Icons.START);
         var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
@@ -76,19 +76,8 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
         rewindBtn.setDisable(externalTiming);
         tempo.setDisable(externalTiming);
 
-        getChildren().addAll(
-                new Label("Time:"),
-                measure,
-                new Label(":"),
-                beat,
-                new Label("."),
-                clockPulse,
-                tick,
-                new Label("Tempo: "),
-                tempo,
-                startBtn,
-                rewindBtn
-        );
+        getChildren().addAll(new Label("Time:"), measure, new Label(":"), beat, new Label("."), clockPulse, tick,
+                new Label("Tempo: "), tempo, startBtn, rewindBtn);
     }
 
     void toggleStartStop() {
@@ -104,21 +93,21 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
     @Override
     public void propertyChange(java.beans.PropertyChangeEvent evt) {
         var propName = evt.getPropertyName();
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             switch (propName) {
-                case Transport.MEASURE_PROPERTY -> measure.setText(String.format("%03d", (int) evt.getNewValue()));
-                case Transport.BEAT_PROPERTY -> beat.setText(String.format("%01d", (int) evt.getNewValue()));
-                case Transport.CLOCK_PULSE_PROPERTY -> clockPulse.setText(String.format("%02d", (int) evt.getNewValue()));
-                case Transport.TICK_PROPERTY -> tick.setText(String.format(" (%03d)", (long) evt.getNewValue()));
-                default -> {
-                    // do nothing
-                }
+            case Transport.MEASURE_PROPERTY -> measure.setText(String.format("%03d", (int) evt.getNewValue()));
+            case Transport.BEAT_PROPERTY -> beat.setText(String.format("%01d", (int) evt.getNewValue()));
+            case Transport.CLOCK_PULSE_PROPERTY -> clockPulse.setText(String.format("%02d", (int) evt.getNewValue()));
+            case Transport.TICK_PROPERTY -> tick.setText(String.format(" (%03d)", (long) evt.getNewValue()));
+            default -> {
+                // do nothing
+            }
             }
         });
     }
 
     void initFromOptions() {
-        tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
+//        tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
         boolean externalTiming = Options.getInstance().getMidiOptions().isUsingExternalTiming();
         startBtn.setDisable(externalTiming);
         rewindBtn.setDisable(externalTiming);

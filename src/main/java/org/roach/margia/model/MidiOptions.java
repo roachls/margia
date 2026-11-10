@@ -269,4 +269,25 @@ public class MidiOptions {
                 && verticalPanController == other.verticalPanController
                 && verticalPanWithRelativeLocations == other.verticalPanWithRelativeLocations;
     }
+
+    /**
+     * Copy values from another {@link MidiOptions}
+     * 
+     * @param other the other {@link MidiOptions}
+     */
+    public void copyFrom(MidiOptions other) {
+        this.usingExternalMidi = other.usingExternalMidi;
+        this.devicesToSendTiming.clear();
+        this.devicesToSendTiming.addAll(other.devicesToSendTiming);
+        this.sendingMidiTimecode = other.sendingMidiTimecode;
+        this.tempoController = other.tempoController;
+        this.sendPanMessage = other.sendPanMessage;
+        this.panController = other.panController;
+        this.panWithRelativeLocations = other.panWithRelativeLocations;
+        this.sendVerticalPanMessage = other.sendVerticalPanMessage;
+        this.verticalPanController = other.verticalPanController;
+        this.verticalPanWithRelativeLocations = other.verticalPanWithRelativeLocations;
+        this.usingExternalTiming = other.usingExternalTiming;
+        this.externalTimingDevice = other.externalTimingDevice;
+    }
 }

@@ -82,7 +82,7 @@ public class Options {
             return;
         }
         if (loadedOpts != null) {
-            this.storedOptions = loadedOpts;
+            this.storedOptions.copyFrom(loadedOpts);
         }
         MidiController.getInstance().scanForMidiOutputDevices();
         MidiController.getInstance().scanForMidiInputDevices();

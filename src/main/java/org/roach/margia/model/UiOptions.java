@@ -57,11 +57,13 @@ public class UiOptions {
             Options.getInstance().setDirty();
         }
     }
-    
+
     /**
      * @return the show numbers property
      */
-    public BooleanProperty showNumbersProperty() { return this.showNumbers; }
+    public BooleanProperty showNumbersProperty() {
+        return this.showNumbers;
+    }
 
     /**
      * @return {@code true} if the background should be animated
@@ -110,11 +112,13 @@ public class UiOptions {
             Options.getInstance().setDirty();
         }
     }
-    
+
     /**
      * @return the edge length property
      */
-    public IntegerProperty edgeLengthProperty() { return edgeLength; }
+    public IntegerProperty edgeLengthProperty() {
+        return edgeLength;
+    }
 
     /**
      * @return the windSpeed; positive numbers are clockwise, negative numbers are
@@ -174,6 +178,21 @@ public class UiOptions {
                     "Somehow tried to make a copy of musician component " + musicianIdToCopy + " which doesn't exist");
         var copy = orig.copy();
         musicianComponents.put(id, copy);
+    }
+
+    /**
+     * Copy values from another {@link UiOptions}
+     * 
+     * @param other the other {@link UiOptions}
+     */
+    public void copyFrom(UiOptions other) {
+        this.showNumbers.set(other.showNumbers.get());
+        this.gravity = other.gravity;
+        this.edgeLength.set(other.edgeLength.get());
+        this.windSpeed = other.windSpeed;
+        this.animateBackground = other.animateBackground;
+        this.musicianComponents.clear();
+        this.musicianComponents.putAll(other.musicianComponents);
     }
 
 }

@@ -16,8 +16,10 @@ public interface TimingSource {
 
     /**
      * re-read Options to get latest tempo
+     * 
+     * @param tempo tempo to update to
      */
-    default void updateTempo() {
+    default void updateTempo(int tempo) {
         // implementation-specific
     }
 

@@ -34,15 +34,14 @@ public class InternalTimingSource implements TimingSource, MidiReceiver {
     public InternalTimingSource(Transport transport) {
         this.transport = transport;
         clockExecutor = Executors.newSingleThreadScheduledExecutor();
-        Options.getInstance().getMusicOptions().tempoProperty().addListener((_, _, _) -> {
-            updateTempo();
+        Options.getInstance().getMusicOptions().tempoProperty().addListener((_, _, newVal) -> {
+            updateTempo(newVal.intValue());
         });
-        updateTempo();
+        updateTempo(Options.getInstance().getMusicOptions().getTempo());
     }
 
     @Override
-    public void updateTempo() {
-        var tempo = Options.getInstance().getMusicOptions().getTempo();
+    public void updateTempo(int tempo) {
         this.tickLengthMicros = new AtomicReference<>(
                 Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
 
@@ -121,7 +120,7 @@ public class InternalTimingSource implements TimingSource, MidiReceiver {
                 var input = message.getData2();
                 var newTempo = (int) (input / 127d * (max - min) + min);
                 Options.getInstance().getMusicOptions().setTempo(newTempo);
-                updateTempo();
+                updateTempo(newTempo);
             } else {
 //                System.out.printf("Control change: %d %d%n", message.getData1(), message.getData2());
             }

@@ -17,7 +17,7 @@ import javafx.beans.property.SimpleIntegerProperty;
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicOptions {
-    private IntegerProperty tempo = new SimpleIntegerProperty(DEFAULT_TEMPO);
+    private final IntegerProperty tempo = new SimpleIntegerProperty(DEFAULT_TEMPO);
     private int tempoMinimum = 1;
     private int tempoMaximum = 300;
     private int maxQueueSize = DEFAULT_MAX_QUEUE_SIZE;
@@ -30,10 +30,6 @@ public class MusicOptions {
      * default maximum queue size
      */
     public static final int DEFAULT_MAX_QUEUE_SIZE = 12;
-    /**
-     * the property fired when the tempo changes
-     */
-    public static final String TEMPO_PROPERTY = "music.tempo";
 
     /**
      * @return the tempo
@@ -50,11 +46,13 @@ public class MusicOptions {
             Options.getInstance().setDirty();
         }
     }
-    
+
     /**
      * @return the tempo property
      */
-    public IntegerProperty tempoProperty() { return this.tempo; }
+    public IntegerProperty tempoProperty() {
+        return this.tempo;
+    }
 
     /**
      * @return the tempoMinimum
@@ -121,5 +119,17 @@ public class MusicOptions {
         MusicOptions other = (MusicOptions) obj;
         return maxQueueSize == other.maxQueueSize && tempo == other.tempo && tempoMaximum == other.tempoMaximum
                 && tempoMinimum == other.tempoMinimum;
+    }
+
+    /**
+     * Copy another {@link MusicOptions} into this one
+     * 
+     * @param other The {@link MusicianOptions} to copy from
+     */
+    public void copyFrom(MusicOptions other) {
+        this.setTempo(other.getTempo());
+        this.setTempoMinimum(other.getTempoMinimum());
+        this.setTempoMaximum(other.getTempoMaximum());
+        this.setMaxQueueSize(other.getMaxQueueSize());
     }
 }

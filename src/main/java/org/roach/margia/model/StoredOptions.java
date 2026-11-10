@@ -57,4 +57,16 @@ public class StoredOptions {
      */
     public void setRandomSeed(long randomSeed) { this.randomSeed = randomSeed; }
 
+    /**
+     * Copy from another {@link StoredOptions}
+     * @param other the other {@link StoredOptions} to copy from
+     */
+    public void copyFrom(StoredOptions other) {
+        this.musicOptions.copyFrom(other.musicOptions);
+        this.midiOptions.copyFrom(other.midiOptions);
+        this.uiOptions.copyFrom(other.uiOptions);
+        this.musicians.clear();
+        this.musicians.putAll(other.musicians);
+    }
+
 }
