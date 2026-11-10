@@ -1,6 +1,7 @@
 package org.roach.margia.view;
 
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
@@ -8,8 +9,8 @@ import org.roach.margia.storage.Options;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -19,14 +20,15 @@ import javafx.scene.layout.HBox;
  * {@link TimingSource}
  */
 public class TransportPanel extends HBox implements PropertyChangeListener {
-    private final Label measure;
-    private final Label beat;
-    private final Label clockPulse;
-    private final Label tick;
-    private final Spinner<Integer> tempo;
-    private transient TimingSource timing;
-    private final Button startBtn;
-    private final Button rewindBtn;
+    @FXML private Label measure;
+    @FXML private Label beat;
+    @FXML private Label clockPulse;
+    @FXML private Label tick;
+    @FXML private Spinner<Integer> tempo;
+    @FXML private Button startBtn;
+    @FXML private Button rewindBtn;
+    private final transient TimingSource timing;
+    private final Transport transport;
     private final ImageView startIcon;
     private final ImageView pauseIcon;
     private ObjectProperty<Integer> tempoObjectProperty;
@@ -36,50 +38,38 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
      * @param transport the {@link Transport}
      */
     public TransportPanel(TimingSource timing, Transport transport) {
-        super(3); // 3px horizontal spacing between children
-        setAlignment(Pos.CENTER);
-        setPadding(new Insets(3));
         this.timing = timing;
+        this.transport = transport;
 
-        transport.addPropertyListener(this);
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("TransportPanel.fxml"));
+        fxmlLoader.setRoot(this);
+        fxmlLoader.setController(this);
 
-        measure = new Label("000");
-        beat = new Label("0");
-        clockPulse = new Label("00");
-        tick = new Label(" (000)");
+        try {
+            fxmlLoader.load();
+        } catch (IOException exception) {
+            throw new RuntimeException("Failed to load TransportPanel.fxml", exception);
+        }
 
-        tempo = new Spinner<>(1, 400, Options.getInstance().getMusicOptions().getTempo(), 1);
-        tempo.setId("tempo");
-        tempo.setEditable(true);
-        tempo.setPrefWidth(75);
+        // Initialize state and bindings after FXML nodes are injected
+        this.transport.addPropertyListener(this);
+
+        tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
         tempoObjectProperty = Options.getInstance().getMusicOptions().tempoProperty().asObject();
         tempo.getValueFactory().valueProperty().bindBidirectional(tempoObjectProperty);
 
         startIcon = Icons.getButtonIcon(Icons.START);
-        var rewindIcon = Icons.getButtonIcon(Icons.REWIND);
         pauseIcon = Icons.getButtonIcon(Icons.PAUSE);
-
-        startBtn = new Button(null, startIcon);
-        startBtn.setFocusTraversable(false);
-        startBtn.setOnAction(_ -> toggleStartStop());
-
-        rewindBtn = new Button(null, rewindIcon);
-        rewindBtn.setFocusTraversable(false);
-        rewindBtn.setOnAction(_ -> {
-            timing.stop();
-            transport.reset();
-            startBtn.setGraphic(startIcon);
-        });
+        startBtn.setGraphic(startIcon);
+        rewindBtn.setGraphic(Icons.getButtonIcon(Icons.REWIND));
 
         boolean externalTiming = Options.getInstance().getMidiOptions().isUsingExternalTiming();
         startBtn.setDisable(externalTiming);
         rewindBtn.setDisable(externalTiming);
         tempo.setDisable(externalTiming);
-
-        getChildren().addAll(new Label("Time:"), measure, new Label(":"), beat, new Label("."), clockPulse, tick,
-                new Label("Tempo: "), tempo, startBtn, rewindBtn);
     }
-
+    
+    @FXML
     void toggleStartStop() {
         if (timing.isRunning()) {
             timing.stop();
@@ -88,6 +78,13 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
             timing.start();
             startBtn.setGraphic(pauseIcon);
         }
+    }
+    
+    @FXML
+    private void handleRewind() {
+        timing.stop();
+        transport.reset();
+        startBtn.setGraphic(startIcon);
     }
 
     @Override

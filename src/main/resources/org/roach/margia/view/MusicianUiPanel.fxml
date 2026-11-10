@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="javafx.scene.layout.VBox" styleClass="options-section"
+         xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+
+    <Label fx:id="titleLabel" styleClass="section-title" />
+
+    <GridPane hgap="8.0" vgap="6.0">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="20.0" />
+            <ColumnConstraints percentWidth="80.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints />
+        </rowConstraints>
+
+        <Label text="Radius" labelFor="$radius" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <Spinner fx:id="radius" id="radius" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="1" max="50" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+    </GridPane>
+</fx:root>

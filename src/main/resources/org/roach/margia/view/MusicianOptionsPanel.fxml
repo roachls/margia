@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.BorderPane?>
+
+<fx:root type="javafx.scene.layout.BorderPane" xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab fx:id="uiTab" text="UI" />
+                <Tab fx:id="musicTab" text="Music" />
+                <Tab fx:id="ruleTab" text="Rules" />
+            </tabs>
+        </TabPane>
+    </center>
+</fx:root>

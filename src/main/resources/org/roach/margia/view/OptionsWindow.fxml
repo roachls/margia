@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TreeItem?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import org.roach.margia.view.MidiPanel?>
+<?import org.roach.margia.view.MiscPanel?>
+<?import org.roach.margia.view.MusicPanel?>
+<?import org.roach.margia.view.UiOptionsPanel?>
+
+<BorderPane fx:id="borderPane" stylesheets="@options.css"
+            xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <fx:define>
+        <StackPane fx:id="warningPanel">
+            <Label text="All selected objects must be of same type" styleClass="section-title" />
+        </StackPane>
+    </fx:define>
+    <left>
+        <TreeView fx:id="tree" prefWidth="180.0" showRoot="false" styleClass="options-tree">
+            <root>
+                <TreeItem fx:id="root" value="root">
+                    <children>
+                        <TreeItem>
+                            <value>
+                                <UiOptionsPanel fx:id="uiPanel" />
+                            </value>
+                        </TreeItem>
+                        <TreeItem>
+                            <value>
+                                <MidiPanel fx:id="midiPanel" />
+                            </value>
+                        </TreeItem>
+                        <TreeItem>
+                            <value>
+                                <MiscPanel fx:id="miscPanel" />
+                            </value>
+                        </TreeItem>
+                        <TreeItem>
+                            <value>
+                                <MusicPanel fx:id="globalMusicPanel" />
+                            </value>
+                        </TreeItem>
+                        <TreeItem fx:id="musiciansNode" value="Musicians" expanded="true" />
+                    </children>
+                </TreeItem>
+            </root>
+        </TreeView>
+    </left>
+    <center>
+        <fx:reference source="uiPanel" />
+    </center>
+</BorderPane>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="javafx.scene.layout.VBox" styleClass="options-section"
+         xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+
+    <Label fx:id="titleLabel" text="Musical Options" styleClass="section-title" />
+
+    <GridPane hgap="8.0" vgap="6.0">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="20.0" />
+            <ColumnConstraints percentWidth="80.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+        </rowConstraints>
+
+        <!-- Row 0: Key -->
+        <Label text="Key" labelFor="$key" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <ComboBox fx:id="key" editable="true" maxWidth="1.7976931348623157E308"
+                  GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+        <!-- Row 1: Low note -->
+        <Label text="Low note" labelFor="$rangeLow" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <Spinner fx:id="rangeLow" id="Low note" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="127" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 2: High note -->
+        <Label text="High note" labelFor="$rangeHi" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <Spinner fx:id="rangeHi" id="High note" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="127" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 3: MIDI Channel -->
+        <Label text="MIDI Channel" labelFor="$channel" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+        <Spinner fx:id="channel" id="MIDI channel" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="3">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="1" max="16" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 4: MIDI Device -->
+        <Label text="MIDI Device" labelFor="$device" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+        <ComboBox fx:id="device" maxWidth="1.7976931348623157E308"
+                  GridPane.columnIndex="1" GridPane.rowIndex="4" />
+    </GridPane>
+</fx:root>

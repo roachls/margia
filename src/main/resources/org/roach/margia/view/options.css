@@ -1,0 +1,28 @@
+/* Shared Options Section Panel (UiOptionsPanel, MidiPanel, MiscPanel, MusicPanel, Musician*Panels) */
+.options-section {
+    -fx-border-color: lightgray;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-padding: 10;
+    -fx-spacing: 8;
+}
+
+/* Bold Section & Warning Headers */
+.section-title {
+    -fx-font-weight: bold;
+}
+
+/* OptionsWindow Navigation Tree */
+.options-tree {
+    -fx-border-color: lightgray;
+    -fx-border-width: 1;
+}
+
+/* Multi-Selection Mismatch Highlighting */
+.mismatch {
+    -fx-base: #ffcccc;
+}
+
+.mismatch .text-input {
+    -fx-control-inner-background: #ffcccc;
+}
