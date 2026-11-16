@@ -102,7 +102,7 @@
                     <ToggleButton fx:id="moveModeBtn" focusTraversable="false" toggleGroup="$modeGroup"/>
                     <ToggleButton fx:id="connectModeBtn" focusTraversable="false" toggleGroup="$modeGroup"/>
                     <Separator/>
-                    <ToggleButton fx:id="showUiOptions" text="Options" onAction="#onToggleOptionsClicked"/>
+                    <Button fx:id="showUiOptions" text="Options" focusTraversable="false" onAction="#onShowOptionsClicked"/>
                     <Separator/>
                     <HBox fx:id="addPanel" alignment="CENTER_LEFT" spacing="2.0">
                         <children>

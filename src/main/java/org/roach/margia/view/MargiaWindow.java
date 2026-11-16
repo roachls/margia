@@ -177,7 +177,7 @@ public class MargiaWindow extends Stage {
     @FXML
     private ToggleGroup modeGroup;
     @FXML
-    private ToggleButton showUiOptions;
+    private Button showUiOptions;
 
     @FXML
     private HBox addPanel;
@@ -269,10 +269,7 @@ public class MargiaWindow extends Stage {
             }
         });
 
-        // Initialize OptionsWindow and sync visibility with toolbar toggle button
         optionsWindow = new OptionsWindow(this);
-        showUiOptions.setSelected(optionsWindow.isShowing());
-        optionsWindow.showingProperty().addListener((_, _, isShowing) -> showUiOptions.setSelected(isShowing));
     }
 
     private void assignIconsAndTooltips() {
@@ -500,9 +497,10 @@ public class MargiaWindow extends Stage {
     }
 
     @FXML
-    private void onToggleOptionsClicked() {
+    private void onShowOptionsClicked() {
         if (optionsWindow != null) {
-            optionsWindow.setVisible(showUiOptions.isSelected());
+            optionsWindow.setVisible(true);
+            optionsWindow.toFront();
         }
     }
 
