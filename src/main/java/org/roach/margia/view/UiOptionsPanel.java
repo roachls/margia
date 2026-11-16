@@ -10,14 +10,25 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Spinner;
 import javafx.scene.layout.VBox;
 
+/**
+ * Panel for selecting global UI options
+ */
 public class UiOptionsPanel extends VBox {
 
-    @FXML Spinner<Double> gravity;
-    @FXML Spinner<Double> windSpeed;
-    @FXML Spinner<Integer> edgeLength;
-    @FXML CheckBox showIcons;
-    @FXML CheckBox animateBackground;
+    @FXML
+    Spinner<Double> gravity;
+    @FXML
+    Spinner<Double> windSpeed;
+    @FXML
+    Spinner<Integer> edgeLength;
+    @FXML
+    CheckBox showIcons;
+    @FXML
+    CheckBox animateBackground;
 
+    /**
+     * constructor
+     */
     public UiOptionsPanel() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("UiOptionsPanel.fxml"));
         loader.setRoot(this);
@@ -60,11 +71,9 @@ public class UiOptionsPanel extends VBox {
             }
         });
 
-        showIcons.selectedProperty().addListener((_, _, newVal) ->
-                uiOptions.setShowNumbers(newVal));
+        showIcons.selectedProperty().addListener((_, _, newVal) -> uiOptions.setShowNumbers(newVal));
 
-        animateBackground.selectedProperty().addListener((_, _, newVal) ->
-                uiOptions.setAnimateBackground(newVal));
+        animateBackground.selectedProperty().addListener((_, _, newVal) -> uiOptions.setAnimateBackground(newVal));
     }
 
     @Override

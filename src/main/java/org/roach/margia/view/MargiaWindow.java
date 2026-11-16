@@ -4,9 +4,7 @@ import static org.roach.margia.view.Icons.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.prefs.BackingStoreException;
 
 import org.roach.margia.command.CommandCaretaker;
@@ -30,17 +28,9 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
-import javafx.stage.Window;
+import javafx.scene.input.*;
+import javafx.scene.layout.*;
+import javafx.stage.*;
 
 /**
  * The main program window
@@ -253,7 +243,6 @@ public class MargiaWindow extends Stage {
             System.exit(0);
         });
 
-        // Safe to call directly now since listeners are already registered
         agentPanel.init();
         agentPanel.initMusicians();
         transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
@@ -649,7 +638,6 @@ public class MargiaWindow extends Stage {
         return result.isPresent() && result.get() == ButtonType.OK;
     }
 
-    // --- Keyboard Shortcuts & Lifecycle ---
     private void handleGlobalKeyReleased(KeyEvent e) {
         if (e.getTarget() instanceof TextInputControl) {
             return;
@@ -792,7 +780,6 @@ public class MargiaWindow extends Stage {
         alert.showAndWait();
     }
 
-    // --- File Open & Save Operations ---
     private void openSettingsFromFileUserPrompt() {
         var newSaveLocation = getFilePathFromUser(this, "Select file", FileAction.LOAD);
         if (newSaveLocation == null) {

@@ -2,16 +2,23 @@ package org.roach.margia.view;
 
 import java.io.IOException;
 import java.util.List;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.BorderPane;
 
+/**
+ * Panel for displaying musician options
+ */
 public class MusicianOptionsPanel extends BorderPane {
 
-    @FXML private Tab uiTab;
-    @FXML private Tab musicTab;
-    @FXML private Tab ruleTab;
+    @FXML
+    private Tab uiTab;
+    @FXML
+    private Tab musicTab;
+    @FXML
+    private Tab ruleTab;
 
     private final int id;
     private final MusicianUiPanel musicianUiPanel;
@@ -27,6 +34,11 @@ public class MusicianOptionsPanel extends BorderPane {
         loadFxml();
     }
 
+    /**
+     * multi-selection constructor
+     * 
+     * @param mups {@link MusicianOptionsPanel}
+     */
     public MusicianOptionsPanel(List<MusicianOptionsPanel> mups) {
         this.id = -1;
         this.musicianUiPanel = new MusicianUiPanel(mups.stream().map(m -> m.musicianUiPanel).toList());

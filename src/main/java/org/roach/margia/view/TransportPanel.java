@@ -20,13 +20,20 @@ import javafx.scene.layout.HBox;
  * {@link TimingSource}
  */
 public class TransportPanel extends HBox implements PropertyChangeListener {
-    @FXML private Label measure;
-    @FXML private Label beat;
-    @FXML private Label clockPulse;
-    @FXML private Label tick;
-    @FXML private Spinner<Integer> tempo;
-    @FXML private Button startBtn;
-    @FXML private Button rewindBtn;
+    @FXML
+    private Label measure;
+    @FXML
+    private Label beat;
+    @FXML
+    private Label clockPulse;
+    @FXML
+    private Label tick;
+    @FXML
+    private Spinner<Integer> tempo;
+    @FXML
+    private Button startBtn;
+    @FXML
+    private Button rewindBtn;
     private final transient TimingSource timing;
     private final Transport transport;
     private final ImageView startIcon;
@@ -68,7 +75,7 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
         rewindBtn.setDisable(externalTiming);
         tempo.setDisable(externalTiming);
     }
-    
+
     @FXML
     void toggleStartStop() {
         if (timing.isRunning()) {
@@ -79,7 +86,7 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
             startBtn.setGraphic(pauseIcon);
         }
     }
-    
+
     @FXML
     private void handleRewind() {
         timing.stop();

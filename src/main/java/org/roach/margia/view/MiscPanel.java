@@ -1,17 +1,25 @@
 package org.roach.margia.view;
 
 import java.io.IOException;
+
+import org.roach.margia.storage.Options;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Spinner;
 import javafx.scene.layout.VBox;
-import org.roach.margia.storage.Options;
 
+/**
+ * Panel for choosing miscellaneous options
+ */
 public class MiscPanel extends VBox {
 
     @FXML
     Spinner<Long> randomSeedSpinner;
 
+    /**
+     * Construct a new {@link MiscPanel}
+     */
     public MiscPanel() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("MiscPanel.fxml"));
         loader.setRoot(this);

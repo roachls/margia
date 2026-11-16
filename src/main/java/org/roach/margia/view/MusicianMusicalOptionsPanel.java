@@ -3,32 +3,41 @@ package org.roach.margia.view;
 import java.io.IOException;
 import java.util.List;
 import java.util.TreeSet;
+
+import org.roach.margia.controller.MidiController;
+import org.roach.margia.model.*;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Control;
-import javafx.scene.control.Label;
-import javafx.scene.control.Spinner;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import org.roach.margia.controller.MidiController;
-import org.roach.margia.model.Key;
-import org.roach.margia.model.MusicianOptions;
-import org.roach.margia.model.NoteRange;
 
+/**
+ * Panel for choosing musician musical options
+ */
 public class MusicianMusicalOptionsPanel extends VBox {
     private static final String MISMATCH_CONTROL_STYLE = "-fx-base: #ffcccc;";
     private static final String MISMATCH_EDITOR_STYLE = "-fx-control-inner-background: #ffcccc;";
 
-    @FXML private Label titleLabel;
-    @FXML private ComboBox<String> key;
-    @FXML private Spinner<Integer> rangeLow;
-    @FXML private Spinner<Integer> rangeHi;
-    @FXML private Spinner<Integer> channel;
-    @FXML private ComboBox<String> device;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private ComboBox<String> key;
+    @FXML
+    private Spinner<Integer> rangeLow;
+    @FXML
+    private Spinner<Integer> rangeHi;
+    @FXML
+    private Spinner<Integer> channel;
+    @FXML
+    private ComboBox<String> device;
 
     final int id;
     private final MusicianOptions options;
 
+    /**
+     * @param options {@link MusicianOptions} to initialize the panel with
+     */
     public MusicianMusicalOptionsPanel(MusicianOptions options) {
         this.id = options.getId();
         this.options = options;
@@ -94,8 +103,7 @@ public class MusicianMusicalOptionsPanel extends VBox {
         }
 
         var firstChannel = optionsList.get(0).getChannel();
-        var allChannelsSame = optionsList.stream().map(MusicianOptions::getChannel)
-                .allMatch(c -> firstChannel == c);
+        var allChannelsSame = optionsList.stream().map(MusicianOptions::getChannel).allMatch(c -> firstChannel == c);
         if (allChannelsSame) {
             options.setChannel(firstChannel);
         }
@@ -165,7 +173,7 @@ public class MusicianMusicalOptionsPanel extends VBox {
         });
     }
 
-    private void setMismatchHighlight(Control control, boolean mismatch) {
+    private static void setMismatchHighlight(Control control, boolean mismatch) {
         String controlStyle = mismatch ? MISMATCH_CONTROL_STYLE : "";
         String editorStyle = mismatch ? MISMATCH_EDITOR_STYLE : "";
         control.setStyle(controlStyle);

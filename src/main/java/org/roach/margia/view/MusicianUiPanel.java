@@ -2,21 +2,34 @@ package org.roach.margia.view;
 
 import java.io.IOException;
 import java.util.List;
+
+import org.roach.margia.model.MusicianComponentOptions;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import javafx.scene.layout.VBox;
-import org.roach.margia.model.MusicianComponentOptions;
 
+/**
+ * Panel for displaying musician UI options
+ */
 public class MusicianUiPanel extends VBox {
 
-    @FXML private Label titleLabel;
-    @FXML private Spinner<Integer> radius;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private Spinner<Integer> radius;
 
     private final MusicianComponentOptions options;
     private final int id;
 
+    /**
+     * Constructor
+     * 
+     * @param id      id of musician
+     * @param options options to display
+     */
     public MusicianUiPanel(int id, MusicianComponentOptions options) {
         this.id = id;
         this.options = options;
@@ -41,8 +54,7 @@ public class MusicianUiPanel extends VBox {
         var idList = others.stream().map(p -> p.id).toList();
         var optionsList = others.stream().map(p -> p.options).toList();
         var firstRadius = optionsList.get(0).getRadius();
-        var allRadiiSame = optionsList.stream()
-                .map(MusicianComponentOptions::getRadius)
+        var allRadiiSame = optionsList.stream().map(MusicianComponentOptions::getRadius)
                 .allMatch(r -> firstRadius == r);
 
         if (allRadiiSame) {

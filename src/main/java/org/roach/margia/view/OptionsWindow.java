@@ -5,7 +5,8 @@ import java.io.IOException;
 import java.util.*;
 
 import org.roach.margia.controller.Musician;
-import org.roach.margia.model.*;
+import org.roach.margia.model.MusicianComponentOptions;
+import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 
@@ -16,7 +17,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
@@ -244,7 +246,7 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         });
     }
 
-    private void setupMultipleSelection(List<TreeItem<Object>> selectedItems, BorderPane borderPane) {
+    private static void setupMultipleSelection(List<TreeItem<Object>> selectedItems, BorderPane borderPane) {
         if (selectedItems.isEmpty()) {
             return;
         }
@@ -256,7 +258,7 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         }
     }
 
-    private void setupMultipleMusicianUi(List<MusicianOptionsPanel> mups, BorderPane borderPane) {
+    private static void setupMultipleMusicianUi(List<MusicianOptionsPanel> mups, BorderPane borderPane) {
         var multipleEditor = new MusicianOptionsPanel(mups);
         borderPane.setCenter(multipleEditor);
     }

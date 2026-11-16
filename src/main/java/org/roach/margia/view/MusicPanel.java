@@ -1,19 +1,27 @@
 package org.roach.margia.view;
 
 import java.io.IOException;
+
+import org.roach.margia.model.MusicOptions;
+import org.roach.margia.storage.Options;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Spinner;
 import javafx.scene.layout.VBox;
-import org.roach.margia.model.MusicOptions;
-import org.roach.margia.storage.Options;
 
+/**
+ * Panel for selecting global music options
+ */
 public class MusicPanel extends VBox {
     private static final String GLOBAL_MUSIC_OPTIONS = "Global Music Options";
 
     @FXML
     Spinner<Integer> maxQueueSize;
 
+    /**
+     * Constructor
+     */
     public MusicPanel() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("MusicPanel.fxml"));
         loader.setRoot(this);

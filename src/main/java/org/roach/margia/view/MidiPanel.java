@@ -1,29 +1,45 @@
 package org.roach.margia.view;
 
 import java.io.IOException;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.Spinner;
-import javafx.scene.layout.VBox;
+
 import org.roach.margia.model.MidiOptions;
 import org.roach.margia.storage.Options;
 
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+
+/**
+ * The panel for choosing MIDI options for a musician
+ */
 public class MidiPanel extends VBox {
 
-    @FXML CheckBox external;
-    @FXML CheckBox sendMidiTimecode;
-    @FXML CheckBox sendPanMessage;
-    @FXML Spinner<Integer> panController;
-    @FXML CheckBox panWithRelativeLocations;
-    @FXML CheckBox sendVerticalPanMessage;
-    @FXML Spinner<Integer> verticalPanController;
-    @FXML CheckBox verticalPanWithRelativeLocations;
+    @FXML
+    CheckBox external;
+    @FXML
+    CheckBox sendMidiTimecode;
+    @FXML
+    CheckBox sendPanMessage;
+    @FXML
+    Spinner<Integer> panController;
+    @FXML
+    CheckBox panWithRelativeLocations;
+    @FXML
+    CheckBox sendVerticalPanMessage;
+    @FXML
+    Spinner<Integer> verticalPanController;
+    @FXML
+    CheckBox verticalPanWithRelativeLocations;
 
-    @FXML private Label panControllerLabel;
-    @FXML private Label verticalPanControllerLabel;
+    @FXML
+    private Label panControllerLabel;
+    @FXML
+    private Label verticalPanControllerLabel;
 
+    /**
+     * Construct a new {@link MidiPanel}
+     */
     public MidiPanel() {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("MidiPanel.fxml"));
         loader.setRoot(this);
@@ -46,14 +62,11 @@ public class MidiPanel extends VBox {
         verticalPanController.getValueFactory().setValue(MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER);
 
         // Attach model listeners
-        external.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setUsingExternalMidi(newVal));
+        external.selectedProperty().addListener((_, _, newVal) -> midiOpts.setUsingExternalMidi(newVal));
 
-        sendMidiTimecode.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setSendingMidiTimecode(newVal));
+        sendMidiTimecode.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendingMidiTimecode(newVal));
 
-        sendPanMessage.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setSendPanMessage(newVal));
+        sendPanMessage.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendPanMessage(newVal));
 
         panController.valueProperty().addListener((_, _, newVal) -> {
             if (newVal != null) {
@@ -61,11 +74,11 @@ public class MidiPanel extends VBox {
             }
         });
 
-        panWithRelativeLocations.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setPanWithRelativeLocations(newVal));
+        panWithRelativeLocations.selectedProperty()
+                .addListener((_, _, newVal) -> midiOpts.setPanWithRelativeLocations(newVal));
 
-        sendVerticalPanMessage.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setSendVerticalPanMessage(newVal));
+        sendVerticalPanMessage.selectedProperty()
+                .addListener((_, _, newVal) -> midiOpts.setSendVerticalPanMessage(newVal));
 
         verticalPanController.valueProperty().addListener((_, _, newVal) -> {
             if (newVal != null) {
@@ -73,8 +86,8 @@ public class MidiPanel extends VBox {
             }
         });
 
-        verticalPanWithRelativeLocations.selectedProperty().addListener((_, _, newVal) ->
-                midiOpts.setVerticalPanWithRelativeLocations(newVal));
+        verticalPanWithRelativeLocations.selectedProperty()
+                .addListener((_, _, newVal) -> midiOpts.setVerticalPanWithRelativeLocations(newVal));
 
         // Declarative Disable Bindings
         var externalNotSelected = external.selectedProperty().not();
