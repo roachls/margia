@@ -109,9 +109,12 @@ public class MusicianMusicalOptionsPanel extends VBox {
         }
 
         var firstDeviceName = optionsList.get(0).getDeviceName();
-        var allDevicesNamesSame = optionsList.stream().map(MusicianOptions::getDeviceName)
-                .allMatch(firstDeviceName::equals);
-        options.setDeviceName(allDevicesNamesSame ? firstDeviceName : "");
+        boolean allDevicesNamesSame = true;
+        if (firstDeviceName != null) {
+            allDevicesNamesSame = optionsList.stream().map(MusicianOptions::getDeviceName)
+                    .allMatch(firstDeviceName::equals);
+            options.setDeviceName(allDevicesNamesSame ? firstDeviceName : "");
+        }
 
         titleLabel.setText(OptionsWindow.MUSICIAN + idList + " musical options");
 

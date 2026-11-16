@@ -398,8 +398,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         }
 
         private void leftMouseButtonPressed(MouseEvent e) {
-            // Replaces e.getModifiersEx() == BUTTON1 (no Shift, Ctrl, Alt, or Meta
-            // modifiers held)
             if (!e.isShiftDown() && !e.isControlDown() && !e.isAltDown() && !e.isMetaDown()) {
                 leftMousePressedSingleSelectionMode(e);
             }
@@ -439,7 +437,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
 
-        // Helper replacing Swing's Container.getComponentAt(Point)
         private MusicianComponent findMusicianAt(double x, double y) {
             var children = getChildren();
             // Iterate in reverse so top-most overlapping musicians are hit first
@@ -479,9 +476,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             var mc = findMusicianAt(e.getX(), e.getY());
             switch (mode) {
             case ADD -> {
-                // In Swing, getComponentAt returned AgentPanel when clicking empty space;
-                // in JavaFX, findMusicianAt returns null when no MusicianComponent is under the
-                // cursor.
                 if (mc == null) {
                     handleAdd(e);
                 }
@@ -562,10 +556,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
             Options.getInstance().setDirty();
         }
-
-        // Add this line inside setupMouseHandlers() alongside mousePressed,
-        // mouseDragged, and mouseReleased:
-        // setOnMouseMoved(mouseHandler::mouseMoved);
 
         void mouseDragged(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
@@ -1014,6 +1004,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         if (numToAdd < 3)
             return;
         var list = IntStream.range(0, numToAdd).mapToObj(_ -> Musician.newInstance()).toList();
+        for (Musician m : list) {
+            m.getOptions().setMuted(true);
+        }
         list.forEach(m -> MusicianList.getInstance().addMusician(m));
         for (int i = 0; i < list.size() - 1; i++) {
             list.get(i).addPeer(list.get(i + 1));
@@ -1070,6 +1063,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             for (var y = 0; y < numRows; y++) {
                 for (var x = 0; x < numCols; x++) {
                     arr[y][x] = Musician.newInstance();
+                    arr[y][x].getOptions().setMuted(true);
                     MusicianList.getInstance().addMusician(arr[y][x]);
                     arr[y][x].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
                     list.add(arr[y][x]);
@@ -1144,6 +1138,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             var arr = new Musician[num];
             for (var y = 0; y < num; y++) {
                 arr[y] = Musician.newInstance();
+                arr[y].getOptions().setMuted(true);
                 MusicianList.getInstance().addMusician(arr[y]);
                 arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
             }
@@ -1183,6 +1178,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             var list = new ArrayList<Musician>();
             for (var i = 0; i < n; i++) {
                 var m = Musician.newInstance();
+                m.getOptions().setMuted(true);
                 list.add(m);
                 MusicianList.getInstance().addMusician(m);
             }

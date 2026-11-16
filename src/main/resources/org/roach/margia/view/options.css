@@ -26,3 +26,8 @@
 .mismatch .text-input {
     -fx-control-inner-background: #ffcccc;
 }
+
+.tree-cell {
+    -fx-background-color: -fx-control-inner-background;
+}
+

@@ -83,7 +83,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         }
 
         updateOptions();
-        syncExistingMusicians();
     }
 
     @FXML
@@ -229,8 +228,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                         .filter(Objects::nonNull).toList();
 
                 if (!itemsToSelect.isEmpty()) {
-                    // Ensure the parent "Musicians" node is expanded so row indices resolve
-                    // properly
                     musiciansNode.setExpanded(true);
 
                     for (var item : itemsToSelect) {
