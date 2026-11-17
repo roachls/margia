@@ -1,6 +1,10 @@
 package org.roach.margia.controller.rules.states;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.roach.margia.controller.Musician;
+import org.roach.margia.controller.rules.AbstractMusicianRule;
+import org.roach.margia.model.MusicianMessage;
 import org.roach.margia.util.RangeCheck;
 
 /**
@@ -13,6 +17,7 @@ public class CountdownState extends AbstractMusicianState<CountdownState> {
     private final int startValue;
     private int value;
     private final MusicianState toState;
+    private final AtomicBoolean hasDoneAction = new AtomicBoolean();
 
     /**
      * @param name       name of state
@@ -27,12 +32,21 @@ public class CountdownState extends AbstractMusicianState<CountdownState> {
 
     @Override
     public MusicianState transition(Musician musician) {
+        // only count down if an action has occurred this cycle
+        if (!hasDoneAction.getAndSet(false))
+            return this;
         value--;
         if (value <= 0) {
             value = startValue;
             return toState;
         }
         return this;
+    }
+
+    @Override
+    public void doActions(Musician musician, AbstractMusicianRule rule, MusicianMessage message) {
+        if (message != null)
+            hasDoneAction.set(true);
     }
 
     /**

@@ -2,6 +2,8 @@ package org.roach.margia.main;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 
 import org.roach.margia.controller.MidiController;
@@ -27,6 +29,8 @@ import javafx.stage.Stage;
 public class JavaFxMain extends Application {
     private static TimingSource timing;
     private static Transport transport;
+    private static final Logger JAVAFX_LOGGER = Logger.getLogger("javafx");
+    private static final Logger CSS_LOGGER = Logger.getLogger("javafx.css");
     
     /**
      * @param args command-line arguments
@@ -36,6 +40,9 @@ public class JavaFxMain extends Application {
             System.err.printf("[%s] %s%n", t.getName(), e.getMessage());
             e.printStackTrace();
         });
+        
+        JAVAFX_LOGGER.setLevel(Level.FINE);
+        CSS_LOGGER.setLevel(Level.FINE);
 
         var params = new MainParams();
         // @formatter:off

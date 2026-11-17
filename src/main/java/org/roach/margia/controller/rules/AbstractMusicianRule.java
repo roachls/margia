@@ -78,6 +78,7 @@ public abstract non-sealed class AbstractMusicianRule implements MusicianRule {
     @SuppressWarnings({ "java:S899", "java:S3776" })
     public void calculateAction(long tick) {
         var message = musician.getNextMessageReceived(false);
+        if (state == null) return;
         state.doActions(musician, this, message);
         MusicianState newState = state.transition(musician);
         if (!state.equals(newState)) {

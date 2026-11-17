@@ -45,7 +45,7 @@ public class InternalTimingSource implements TimingSource, MidiReceiver {
         this.tickLengthMicros = new AtomicReference<>(
                 Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
 
-        if (isRunning()) {
+        if (running.get()) {
             stopClock();
             startClock();
         }
@@ -59,7 +59,7 @@ public class InternalTimingSource implements TimingSource, MidiReceiver {
 
     @Override
     public void start() {
-        if (isRunning())
+        if (running.get())
             return;
         logger.atTrace().setMessage("Start transport").log();
         transport.start();
@@ -68,7 +68,7 @@ public class InternalTimingSource implements TimingSource, MidiReceiver {
     }
 
     private void stopClock() {
-        if (!isRunning())
+        if (!running.get())
             return;
         if (clockFuture != null) {
             clockFuture.cancel(true);
