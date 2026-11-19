@@ -285,7 +285,8 @@ public class MidiController implements ChangeListener {
      * @param chord       chord to send
      */
     public void playChord(String busName, int midiChannel, Chord chord) {
-        if (busName == null) return;
+        if (busName == null)
+            return;
         if (!outputReceivers.containsKey(busName)) {
             tryToObtainReceiverForBus(busName);
         }
@@ -520,6 +521,8 @@ public class MidiController implements ChangeListener {
      * @see #getInputDeviceNames()
      */
     public ExternalReceiver getExternalReceiver(String receiverName) {
+        if (receiverName == null)
+            return null;
         return inputReceivers.get(receiverName);
     }
 

@@ -73,4 +73,10 @@ public class StateBasedRule extends AbstractMusicianRule {
         return new StateBasedRule();
     }
 
+    @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(new RulePropertyDescriptor.IntProperty(SEQUENCE_LENGTH_PROPERTY, "Sequence Length:", 16, 1, 256),
+                new RulePropertyDescriptor.IntProperty(INITIAL_TICK_DELAY_PROPERTY, "Initial Tick Delay:", 0, 0, 256));
+    }
+
 }

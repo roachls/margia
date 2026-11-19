@@ -159,7 +159,10 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             n.updateLocation();
         }
         musicianComponents.put(musician.getId(), n);
-        Platform.runLater(() -> getChildren().add(n));
+        Platform.runLater(() -> {
+            if (!getChildren().contains(n))
+                getChildren().add(n);
+        });
         numMusicians = musicianComponents.size();
         pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, n);
         return n;

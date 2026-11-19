@@ -17,6 +17,12 @@ public class RandomFlavorRule extends AbstractMusicianRule {
     private int maxChordStringLength = 1;
     private int restsBetweenChordStrings = 4;
 
+    @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(new RulePropertyDescriptor.EnumProperty<ChordFlavor>(FLAVOR_PROPERTY, "Chord Flavor:",
+                ChordFlavor.MAJOR, Arrays.stream(ChordFlavor.values()).toList()));
+    }
+
     private class RandomTransition implements Function<MusicianMessage, List<MusicalAction>> {
 
         @Override

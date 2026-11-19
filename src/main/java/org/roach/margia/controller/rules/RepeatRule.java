@@ -13,6 +13,12 @@ public class RepeatRule extends AbstractMusicianRule {
     private static final String SEQUENCE_LENGTH_PROPERTY = "sequenceLength";
 
     @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(new RulePropertyDescriptor.IntProperty(SEQUENCE_LENGTH_PROPERTY, "Sequence length", 16, 1,
+                Integer.MAX_VALUE));
+    }
+
+    @Override
     public void initActionsAfterMusicianAssigned() {
         var sequenceLength = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
                 .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 16);
@@ -22,7 +28,7 @@ public class RepeatRule extends AbstractMusicianRule {
         super.initActionsAfterMusicianAssigned();
         var sequenceCountdownState = new DelayedTransitionState("sequenceCountdown", sequenceLength)
                 .withWrappedState(directRepeat);
-        
+
         directRepeat.setToState(sequenceCountdownState);
 
         this.state = sequenceCountdownState;

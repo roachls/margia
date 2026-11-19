@@ -17,7 +17,8 @@ public class StateBasedRule2 extends AbstractMusicianRule {
     public void initActionsAfterMusicianAssigned() {
         var sequenceLength = (int) Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions()
                 .getRuleSpecificOptionOrDefault(SEQUENCE_LENGTH_PROPERTY, 16);
-        var upThird = new PseudoRandomState("up 3rd", 100).withAction(c -> List.of(new PlayChordUpInterval(musician, c, 3)));
+        var upThird = new PseudoRandomState("up 3rd", 100)
+                .withAction(c -> List.of(new PlayChordUpInterval(musician, c, 3)));
         var upThirdDelayed = new DelayedTransitionState("up 3rd delayed", sequenceLength).withWrappedState(upThird);
         var downFourth = new AlwaysTransitionState("down 4th")
                 .withAction(c -> List.of(new PlayChordDownInterval(musician, c, 4)));
@@ -58,4 +59,9 @@ public class StateBasedRule2 extends AbstractMusicianRule {
         return new StateBasedRule2();
     }
 
+    @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(new RulePropertyDescriptor.IntProperty(SEQUENCE_LENGTH_PROPERTY, "Sequence Length:", 16, 1, 256),
+                new RulePropertyDescriptor.IntProperty(INITIAL_TICK_DELAY_PROPERTY, "Initial Tick Delay:", 0, 0, 256));
+    }
 }

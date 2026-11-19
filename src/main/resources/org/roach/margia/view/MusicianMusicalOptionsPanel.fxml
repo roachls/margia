@@ -32,7 +32,6 @@
         <ComboBox fx:id="key" editable="true" maxWidth="1.7976931348623157E308"
                   GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-        <!-- Row 1: Low note -->
         <Label text="Low note" labelFor="$rangeLow" GridPane.columnIndex="0" GridPane.rowIndex="1" />
         <Spinner fx:id="rangeLow" id="Low note" editable="true"
                  GridPane.columnIndex="1" GridPane.rowIndex="1">
@@ -41,7 +40,6 @@
             </valueFactory>
         </Spinner>
 
-        <!-- Row 2: High note -->
         <Label text="High note" labelFor="$rangeHi" GridPane.columnIndex="0" GridPane.rowIndex="2" />
         <Spinner fx:id="rangeHi" id="High note" editable="true"
                  GridPane.columnIndex="1" GridPane.rowIndex="2">
@@ -50,7 +48,6 @@
             </valueFactory>
         </Spinner>
 
-        <!-- Row 3: MIDI Channel -->
         <Label text="MIDI Channel" labelFor="$channel" GridPane.columnIndex="0" GridPane.rowIndex="3" />
         <Spinner fx:id="channel" id="MIDI channel" editable="true"
                  GridPane.columnIndex="1" GridPane.rowIndex="3">
@@ -59,7 +56,6 @@
             </valueFactory>
         </Spinner>
 
-        <!-- Row 4: MIDI Device -->
         <Label text="MIDI Device" labelFor="$device" GridPane.columnIndex="0" GridPane.rowIndex="4" />
         <ComboBox fx:id="device" maxWidth="1.7976931348623157E308"
                   GridPane.columnIndex="1" GridPane.rowIndex="4" />
