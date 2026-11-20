@@ -122,7 +122,9 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
                 var oldReceiver = MidiController.getInstance().getExternalReceiver(oldDeviceName);
                 if (oldReceiver != null)
                     oldReceiver.unregisterReceiver(this);
-                MidiController.getInstance().getExternalReceiver(this.deviceName).registerReceiver(this);
+                var externalReceiver = MidiController.getInstance().getExternalReceiver(this.deviceName);
+                if (externalReceiver != null)
+                    externalReceiver.registerReceiver(this);
             }
         }
     }
@@ -133,4 +135,9 @@ public class ReceiverRule extends AbstractMusicianRule implements MidiReceiver, 
                 + "]";
     }
 
+    @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(new RulePropertyDescriptor.StringListProperty(DEVICE_NAME_PROPERTY, "MIDI Device", "",
+                MidiController.getInstance().getAvailableOutputDevices()));
+    }
 }

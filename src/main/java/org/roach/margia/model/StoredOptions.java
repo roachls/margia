@@ -20,6 +20,24 @@ public class StoredOptions {
     private final UiOptions uiOptions = new UiOptions();
     private final Map<Integer, MusicianOptions> musicians = new LinkedHashMap<>();
     private long randomSeed = 101;
+    private MusicianOptions defaultMusicianOptions = new MusicianOptions();
+    private MusicianComponentOptions defaultMusicianComponentOptions = new MusicianComponentOptions();
+
+    public MusicianOptions getDefaultMusicianOptions() { return defaultMusicianOptions; }
+
+    public void setDefaultMusicianOptions(MusicianOptions defaultMusicianOptions) {
+        if (defaultMusicianOptions != null) {
+            this.defaultMusicianOptions = defaultMusicianOptions;
+        }
+    }
+
+    public MusicianComponentOptions getDefaultMusicianComponentOptions() { return defaultMusicianComponentOptions; }
+
+    public void setDefaultMusicianComponentOptions(MusicianComponentOptions defaultMusicianComponentOptions) {
+        if (defaultMusicianComponentOptions != null) {
+            this.defaultMusicianComponentOptions = defaultMusicianComponentOptions;
+        }
+    }
 
     /**
      * @return all music-related options
@@ -56,5 +74,21 @@ public class StoredOptions {
      * @param randomSeed the randomSeed to set
      */
     public void setRandomSeed(long randomSeed) { this.randomSeed = randomSeed; }
+
+    /**
+     * Copy from another {@link StoredOptions}
+     * @param other the other {@link StoredOptions} to copy from
+     */
+    public void copyFrom(StoredOptions other) {
+        this.musicOptions.copyFrom(other.musicOptions);
+        this.midiOptions.copyFrom(other.midiOptions);
+        this.uiOptions.copyFrom(other.uiOptions);
+        this.musicians.clear();
+        this.musicians.putAll(other.musicians);
+        other.defaultMusicianOptions.copyInto(this.defaultMusicianOptions);
+        this.defaultMusicianComponentOptions.setRadius(other.defaultMusicianComponentOptions.getRadius());
+        this.defaultMusicianComponentOptions.setLocked(other.defaultMusicianComponentOptions.isLocked());
+    }
+
 
 }

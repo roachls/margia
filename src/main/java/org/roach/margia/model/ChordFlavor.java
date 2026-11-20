@@ -1,4 +1,4 @@
-package org.roach.margia.view;
+package org.roach.margia.model;
 
 /**
  * Describes flavors of triads

@@ -2,12 +2,13 @@ package org.roach.margia.view;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.awt.geom.Point2D;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
+
+import javafx.geometry.Point2D;
 
 class Vector2DTest {
 
@@ -77,8 +78,8 @@ class Vector2DTest {
     @ParameterizedTest
     @CsvSource({ "0,0,0,0,0,0", "0,0,1,1,1,1", "4,5,6,7,2,2", "-1.2,4.6,10,3.2,11.2,-1.4" })
     void testNewVectorFromPoints(double originx, double originy, double targetx, double targety, double ex, double ey) {
-        var origin = new Point2D.Double(originx, originy);
-        var target = new Point2D.Double(targetx, targety);
+        var origin = new Point2D(originx, originy);
+        var target = new Point2D(targetx, targety);
         var diff = new Vector2D(origin, target);
         assertEquals(ex, diff.x(), 1e-6);
         assertEquals(ey, diff.y(), 1e-6);

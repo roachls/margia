@@ -4,7 +4,7 @@ import java.util.HashSet;
 
 import org.roach.margia.controller.Musician;
 import org.roach.margia.model.Chord;
-import org.roach.margia.view.ChordFlavor;
+import org.roach.margia.model.ChordFlavor;
 
 /**
  * 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SpinnerValueFactory.DoubleSpinnerValueFactory?>
+<?import javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="javafx.scene.layout.VBox" styleClass="options-section"
+         xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+
+    <Label text="UI Options" fx:id="titleLabel" styleClass="section-title" />
+
+    <GridPane hgap="8.0" vgap="6.0">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="20.0" />
+            <ColumnConstraints percentWidth="80.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+        </rowConstraints>
+
+        <!-- Row 0: Gravitational Constant -->
+        <Label text="Gravitational Constant" labelFor="$gravity" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <Spinner fx:id="gravity" id="Gravity" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <valueFactory>
+                <SpinnerValueFactory.DoubleSpinnerValueFactory min="-20.0" max="20.0" amountToStepBy="0.1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 1: Wind Speed -->
+        <Label text="WindSpeed" labelFor="$windSpeed" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <Spinner fx:id="windSpeed" id="Wind speed (clockwise)" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="1">
+            <valueFactory>
+                <SpinnerValueFactory.DoubleSpinnerValueFactory min="-200.0" max="200.0" amountToStepBy="0.1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 2: Edge Length -->
+        <Label text="Edge length" labelFor="$edgeLength" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <Spinner fx:id="edgeLength" id="edgeLength" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="20" max="300" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 3: Show Icons -->
+        <CheckBox fx:id="showIcons" text="Show icons" GridPane.columnIndex="1" GridPane.rowIndex="3">
+            <tooltip>
+                <Tooltip text="Show/hide additional information on musicians" />
+            </tooltip>
+        </CheckBox>
+
+        <!-- Row 4: Animate Background -->
+        <CheckBox fx:id="animateBackground" text="Animate background" GridPane.columnIndex="1" GridPane.rowIndex="4">
+            <tooltip>
+                <Tooltip text="Animate background" />
+            </tooltip>
+        </CheckBox>
+    </GridPane>
+</fx:root>

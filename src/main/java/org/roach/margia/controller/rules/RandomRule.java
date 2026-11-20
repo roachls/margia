@@ -12,6 +12,9 @@ import org.roach.margia.model.*;
  * Random-note generator
  */
 public class RandomRule extends AbstractMusicianRule {
+    private static final String CHORD_SIZE = "chordSize";
+    private static final String RESTS_BETWEEN_CHORD_STRINGS = "restsBetweenChordStrings";
+    private static final String MAX_CHORD_STRING_LENGTH = "maxChordStringLength";
     private int maxChordStringLength = 5;
     private int restsBetweenChordStrings = 1;
     private int chordSize = 1;
@@ -64,8 +67,17 @@ public class RandomRule extends AbstractMusicianRule {
     @Override
     public void restoreFromStorage(RuleOptions ruleOptions) {
         super.restoreFromStorage(ruleOptions);
-        maxChordStringLength = (int) ruleOptions.getRuleSpecificOptionOrDefault("maxChordStringLength", 5);
-        restsBetweenChordStrings = (int) ruleOptions.getRuleSpecificOptionOrDefault("restsBetweenChordStrings", 1);
-        chordSize = (int) ruleOptions.getRuleSpecificOptionOrDefault("chordSize", 1);
+        maxChordStringLength = (int) ruleOptions.getRuleSpecificOptionOrDefault(MAX_CHORD_STRING_LENGTH, 5);
+        restsBetweenChordStrings = (int) ruleOptions.getRuleSpecificOptionOrDefault(RESTS_BETWEEN_CHORD_STRINGS, 1);
+        chordSize = (int) ruleOptions.getRuleSpecificOptionOrDefault(CHORD_SIZE, 1);
+    }
+
+    @Override
+    public List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of(
+                new RulePropertyDescriptor.IntProperty(MAX_CHORD_STRING_LENGTH, "Max chord-string length", 5, 1, 200),
+                new RulePropertyDescriptor.IntProperty(RESTS_BETWEEN_CHORD_STRINGS, "Rests between chord-strings", 0, 0,
+                        Integer.MAX_VALUE),
+                new RulePropertyDescriptor.IntProperty(CHORD_SIZE, "Chord size", 1, 1, 10));
     }
 }

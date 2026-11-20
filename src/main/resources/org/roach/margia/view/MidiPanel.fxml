@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="javafx.scene.layout.VBox" styleClass="options-section"
+         xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+
+    <Label fx:id="titleLabel" text="MIDI Options" styleClass="section-title" />
+
+    <GridPane hgap="8.0" vgap="6.0">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="20.0" />
+            <ColumnConstraints percentWidth="80.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+        </rowConstraints>
+
+        <!-- Row 0: Use External MIDI -->
+        <CheckBox fx:id="external" text="Use External MIDI"
+                  GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" />
+
+        <!-- Row 1: Send MIDI Timecode -->
+        <CheckBox fx:id="sendMidiTimecode" text="Send MIDI Timecode"
+                  GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2" />
+
+        <!-- Row 2: Send stereo panning -->
+        <CheckBox fx:id="sendPanMessage" text="Send stereo panning"
+                  GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" />
+
+        <!-- Row 3: Pan controller -->
+        <Label fx:id="panControllerLabel" text="Pan controller" labelFor="$panController"
+               GridPane.columnIndex="0" GridPane.rowIndex="3" />
+        <Spinner fx:id="panController" id="Pan controller" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="3">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="127" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 4: Pan with relative locations -->
+        <CheckBox fx:id="panWithRelativeLocations" text="Pan with relative locations"
+                  GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2">
+            <tooltip>
+                <Tooltip text="If set, stereo panning will be relative to the location of the left-most and right-most components; otherwise it will be relative to the screen" />
+            </tooltip>
+        </CheckBox>
+
+        <!-- Row 5: Send vertical panning -->
+        <CheckBox fx:id="sendVerticalPanMessage" text="Send vertical panning"
+                  GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2" />
+
+        <!-- Row 6: Vertical pan controller -->
+        <Label fx:id="verticalPanControllerLabel" text="Vertical pan controller" labelFor="$verticalPanController"
+               GridPane.columnIndex="0" GridPane.rowIndex="6" />
+        <Spinner fx:id="verticalPanController" id="Vertical pan controller" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="6">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="127" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 7: Vertical pan with relative locations -->
+        <CheckBox fx:id="verticalPanWithRelativeLocations" text="Vertical pan with relative locations"
+                  GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.columnSpan="2">
+            <tooltip>
+                <Tooltip text="If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen" />
+            </tooltip>
+        </CheckBox>
+    </GridPane>
+</fx:root>

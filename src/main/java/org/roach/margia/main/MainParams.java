@@ -12,10 +12,4 @@ import com.beust.jcommander.Parameters;
 public class MainParams {
     @Parameter(names = { "-f", "--file" }, description = "Initial file to load")
     Path file;
-    @Parameter(names = { "-ui" }, description = "type of UI to use")
-    UiType ui = UiType.SWING;
-
-    enum UiType {
-        SWING, NONE;
-    }
 }

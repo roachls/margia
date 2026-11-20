@@ -2,36 +2,40 @@ package org.roach.margia.view;
 
 import static org.roach.margia.view.Icons.*;
 
-import java.awt.*;
-import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.prefs.BackingStoreException;
 
-import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.timing.TimingSource;
-import org.roach.margia.model.*;
+import org.roach.margia.model.Key;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
 import org.roach.margia.util.MargiaFileUtils;
 import org.roach.margia.view.AgentPanel.EditMode;
 import org.roach.margia.view.AgentPanel.FanDirection;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.input.*;
+import javafx.scene.layout.*;
+import javafx.stage.*;
 
 /**
  * The main program window
  */
 @SuppressWarnings({ "java:S1948" })
-public class MargiaWindow extends JFrame implements ChangeListener {
+public class MargiaWindow extends Stage {
     private static final String MARGIA_EXTENSION = ".margia";
     private static final String ABOUT_MESSAGE = """
             <html>
@@ -42,16 +46,9 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             <h3>By Stevie Roach</h3>
             <a href="mailto:roachls@yahoo.com">roachls@yahoo.com</a>
             <br>
-            <a href="https://github.com/roachls/margia">https://github.com/roachls/margia</a>
+            <a href="https://github.com">https://github.com</a>
             </html>
             """;
-    private OptionsWindow optionsWindow;
-    private AgentPanel agentPanel;
-    private boolean fullScreen;
-    private static final Logger LOGGER = LoggerFactory.getLogger(MargiaWindow.class);
-    // OS-specific control key (Ctrl for Windows, Option for Mac)
-    private static final String CONTROL_TEXT = InputEvent.getModifiersExText(InputEvent.CTRL_DOWN_MASK);
-    private static final String SHIFT_TEXT = InputEvent.getModifiersExText(InputEvent.SHIFT_DOWN_MASK);
     private static final String KEYBOARD_SHORTCUTS = """
             <html>
             <table>
@@ -71,595 +68,675 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             </table>
             </html>
             """;
-    private JMenuBar menubar;
-    private JToolBar toolbar;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MargiaWindow.class);
+
+    @FXML
+    private BorderPane rootLayout;
+    @FXML
+    private VBox topContainer;
+    @FXML
+    private MenuBar menubar;
+    @FXML
+    private ToolBar toolbar;
+    @FXML
+    private AgentPanel agentPanel;
+
+    @FXML
+    private Menu openRecents;
+    @FXML
+    private Menu helpMenu;
+
+    @FXML
+    private MenuItem openMenuItem;
+    @FXML
+    private MenuItem saveMenuItem;
+    @FXML
+    private MenuItem saveAsMenuItem;
+    @FXML
+    private MenuItem exitMenuItem;
+
+    @FXML
+    private MenuItem copyMenuItem;
+    @FXML
+    private MenuItem pasteMenuItem;
+    @FXML
+    private MenuItem copyParamsMenuItem;
+    @FXML
+    private MenuItem pasteParamsMenuItem;
+    @FXML
+    private MenuItem selectAllMenuItem;
+    @FXML
+    private MenuItem deselectAllMenuItem;
+    @FXML
+    private MenuItem selectConnectedMenuItem;
+    @FXML
+    private MenuItem muteMenuItem;
+    @FXML
+    private MenuItem unmuteMenuItem;
+    @FXML
+    private MenuItem lockMenuItem;
+    @FXML
+    private MenuItem unlockMenuItem;
+    @FXML
+    private MenuItem lockAllMenuItem;
+    @FXML
+    private MenuItem unlockAllMenuItem;
+    @FXML
+    private MenuItem deleteMenuItem;
+    @FXML
+    private MenuItem connectMenuItem;
+    @FXML
+    private MenuItem disconnectMenuItem;
+    @FXML
+    private MenuItem aboutMenuItem;
+    @FXML
+    private MenuItem keyboardShortcutMenuItem;
+
+    @FXML
+    private Button selectAllBtn;
+    @FXML
+    private Button deselectAllBtn;
+    @FXML
+    private Button copyBtn;
+    @FXML
+    private Button pasteBtn;
+    @FXML
+    private Button deleteBtn;
+    @FXML
+    private Button muteBtn;
+    @FXML
+    private Button unmuteBtn;
+    @FXML
+    private Button listeningBtn;
+    @FXML
+    private Button notListeningBtn;
+    @FXML
+    private Button lockBtn;
+    @FXML
+    private Button unlockBtn;
+    @FXML
+    private Button lockAllBtn;
+    @FXML
+    private Button unlockAllBtn;
+    @FXML
+    private Button connectBtn;
+    @FXML
+    private Button disconnectBtn;
+    @FXML
+    private Button selectConnectedBtn;
+
+    @FXML
+    private ToggleButton selectModeBtn;
+    @FXML
+    private ToggleButton addModeBtn;
+    @FXML
+    private ToggleButton moveModeBtn;
+    @FXML
+    private ToggleButton connectModeBtn;
+    @FXML
+    private ToggleGroup modeGroup;
+    @FXML
+    private Button showUiOptions;
+
+    @FXML private Button addMultipleBtn;
+    @FXML private Button addCircleBtn;
+    @FXML private Button addGridBtn;
+    @FXML private Button addFanBtn;
+
+    private OptionsWindow optionsWindow;
     private final TransportPanel transportPanel;
-    private JMenu openRecents;
+    private boolean fullScreen;
 
     /**
-     * @param timing    the {@link TimingSource}
-     * @param transport the {@link Transport}
-     * @throws HeadlessException if {@link GraphicsEnvironment#isHeadless()} returns
-     *                           true
+     * Constructs a {@link MargiaWindow}
+     * 
+     * @param timing    the timing source
+     * @param transport the transport to use
      */
-    public MargiaWindow(TimingSource timing, Transport transport) throws HeadlessException {
-        setUndecorated(true);
-        getContentPane().setLayout(new BorderLayout());
+    public MargiaWindow(TimingSource timing, Transport transport) {
+        var loader = new FXMLLoader(getClass().getResource("MargiaWindow.fxml"));
+        loader.setController(this);
+        try {
+            loader.load();
+        } catch (IOException e) {
+            LOGGER.error("Failed to load MargiaWindow.fxml", e);
+            throw new IllegalStateException(e);
+        }
 
-        setupMenu();
-        this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        // Initialize TransportPanel with constructor dependencies and place at bottom
         transportPanel = new TransportPanel(timing, transport);
-        getContentPane().add(transportPanel, BorderLayout.SOUTH);
-        optionsWindow = new OptionsWindow(this);
-        updateTitle();
-        agentPanel = new AgentPanel();
-        registerListeners();
+        rootLayout.setBottom(transportPanel);
+
+        // Assign icons, tooltips, and key accelerators
+        assignIconsAndTooltips();
+
+        // Wire bidirectional listeners before initMusicians() runs
         agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
         optionsWindow.addPropertyChangeListener(agentPanel);
-        agentPanel.setBounds(0, 0, 1000, 1000);
-        getContentPane().add(agentPanel, BorderLayout.CENTER);
 
-        var palette1 = createToolPalette();
-        add(palette1, BorderLayout.PAGE_START);
-
-        pack();
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new AgentPanelKeyListener());
-        SwingUtilities.invokeLater(() -> agentPanel.initMusicians());
-
-        transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
-    }
-
-    private void registerListeners() {
-        Options.getInstance().getUiOptions().addChangeListener(UiOptions.SHOW_NUMBERS_PROPERTY,
-                MusicianComponent.SHOW_NUMBERS_LISTENER);
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY,
-                MusicianComponent.TEMPO_LISTENER);
-        Options.getInstance().addChangeListener(Options.DIRTY_PROPERTY, this);
-    }
-
-    private class AgentPanelKeyListener implements KeyEventDispatcher {
-
-        @Override
-        @SuppressWarnings("java:S3776")
-        public boolean dispatchKeyEvent(KeyEvent e) {
-            boolean complete = false;
-            if (e.getID() != KeyEvent.KEY_RELEASED)
-                return false;
-            switch (e.getKeyCode()) {
-            case KeyEvent.VK_ESCAPE:
-                agentPanel.deselectAll();
-                complete = true;
-                break;
-            case KeyEvent.VK_DELETE:
-                agentPanel.new DeleteSelectedCommand().execute();
-                complete = true;
-                break;
-            case KeyEvent.VK_A:
-                if (e.isControlDown()) {
-                    agentPanel.selectAll();
-                    complete = true;
-                }
-                break;
-            case KeyEvent.VK_C:
-                if (e.isControlDown()) {
-                    if (e.isShiftDown()) {
-                        agentPanel.copySelectedComponentOptions();
-                        complete = true;
-                    } else {
-                        agentPanel.copySelectedComponents();
-                        complete = true;
-                    }
-                }
-                break;
-            case KeyEvent.VK_M:
-                if (e.isControlDown()) {
-                    agentPanel.new ToggleMuteSelectedCommand().execute();
-                }
-                break;
-            case KeyEvent.VK_V:
-                if (e.isControlDown()) {
-                    if (e.isShiftDown()) {
-                        agentPanel.pasteSettings();
-                        complete = true;
-                    } else {
-                        agentPanel.paste();
-                        complete = true;
-                    }
-                }
-                break;
-            case KeyEvent.VK_S:
-                if (e.isControlDown()) {
-                    saveSettingsToFile();
-                    complete = true;
-                }
-                break;
-            case KeyEvent.VK_O:
-                if (e.isControlDown()) {
-                    openSettingsFromFileUserPrompt();
-                    complete = true;
-                }
-                break;
-            case KeyEvent.VK_F11:
-                if (e.getID() == KeyEvent.KEY_RELEASED) {
-                    if (fullScreen) {
-                        MargiaWindow.this.setJMenuBar(menubar);
-                        toolbar.setVisible(true);
-                    } else {
-                        MargiaWindow.this.setJMenuBar(null);
-                        toolbar.setVisible(false);
-                    }
-                    MargiaWindow.this.revalidate();
-                    fullScreen = !fullScreen;
-                }
-                break;
-            case KeyEvent.VK_SPACE:
-                if (e.isControlDown()) {
-                    transportPanel.startStopActionListener.actionPerformed(null);
-                }
-                break;
-            case KeyEvent.VK_L:
-                if (e.isControlDown()) {
-                    agentPanel.new ToggleSelectedListeningCommand().execute();
-                }
-                break;
-            case KeyEvent.VK_Z:
-                if (e.isControlDown()) {
-                    CommandCaretaker.undo();
-                }
-                break;
-            default:
-                break;
-            }
-            return complete;
-        }
-
-    }
-
-    private void setupMenu() {
-        menubar = new JMenuBar();
-
-        setupFileMenu(menubar);
-        setupEditMenu(menubar);
-        setupMidiMenu(menubar);
-        setupHelpMenu(menubar);
-        setJMenuBar(menubar);
-    }
-
-    private void setupFileMenu(JMenuBar menubar) {
-        var fileMenu = new JMenu("File");
-        fileMenu.setMnemonic(KeyEvent.VK_F);
-        var openMenuItem = new JMenuItem("Open", getToolbarIcon(OPEN));
-        openMenuItem.setMnemonic(KeyEvent.VK_O);
-        openMenuItem.addActionListener(_ -> openSettingsFromFileUserPrompt());
-
-        var saveMenuItem = new JMenuItem("Save", getToolbarIcon(SAVE));
-        saveMenuItem.setMnemonic(KeyEvent.VK_S);
-        saveMenuItem.addActionListener(_ -> saveSettingsToFile());
-
-        var saveAsMenuItem = new JMenuItem("Save As... (" + CONTROL_TEXT + "+S)", getToolbarIcon(SAVE));
-        saveAsMenuItem.setMnemonic(KeyEvent.VK_A);
-        saveAsMenuItem.addActionListener(_ -> {
-            Options.getInstance().setFilename(null);
-            saveSettingsToFile();
-        });
-
-        openRecents = new JMenu("Open recent file");
+        updateTitle();
         updateRecentsMenu();
+        registerListeners();
 
-        var exitMenuItem = new JMenuItem("Exit", getToolbarIcon(EXIT));
-        exitMenuItem.setMnemonic(KeyEvent.VK_X);
-        exitMenuItem.addActionListener(_ -> {
-            if (Options.getInstance().isDirty()) {
-                var answer = JOptionPane.showOptionDialog(MargiaWindow.this,
-                        "Save " + Options.getInstance().getFilename() + " before exiting?", "Save before exiting?",
-                        JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                        new Object[] { "Save", "Don't Save", "Cancel" }, "Save");
-                if (answer == 0) {
-                    saveSettingsToFile();
-                } else if (answer == 2) {
-                    return;
-                }
-            }
+        var scene = new Scene(rootLayout, 1000, 750);
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, this::handleGlobalKeyReleased);
+        setScene(scene);
+
+        setOnCloseRequest(_ -> {
+            Platform.exit();
             System.exit(0);
         });
 
-        fileMenu.add(openMenuItem);
-        fileMenu.add(openRecents);
-        fileMenu.add(saveMenuItem);
-        fileMenu.add(saveAsMenuItem);
-        fileMenu.addSeparator();
-        fileMenu.add(exitMenuItem);
-        menubar.add(fileMenu);
+        agentPanel.init();
+        agentPanel.initMusicians();
+        transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
+    }
+
+    @FXML
+    private void initialize() {
+        // Configure mode toggle buttons
+        selectModeBtn.setUserData(EditMode.SELECT);
+        addModeBtn.setUserData(EditMode.ADD);
+        moveModeBtn.setUserData(EditMode.MOVE);
+        connectModeBtn.setUserData(EditMode.CONNECT);
+        selectModeBtn.setSelected(true);
+
+        modeGroup.selectedToggleProperty().addListener((_, oldToggle, newToggle) -> {
+            if (newToggle == null) {
+                if (oldToggle != null) {
+                    oldToggle.setSelected(true);
+                }
+                return;
+            }
+            if (newToggle.getUserData() instanceof EditMode mode) {
+                agentPanel.setEditMode(mode);
+            }
+        });
+
+        optionsWindow = new OptionsWindow(this);
+    }
+
+    private void assignIconsAndTooltips() {
+        // Menu item icons
+        openMenuItem.setGraphic(getToolbarIcon(OPEN));
+        saveMenuItem.setGraphic(getToolbarIcon(SAVE));
+        saveAsMenuItem.setGraphic(getToolbarIcon(SAVE));
+        exitMenuItem.setGraphic(getToolbarIcon(EXIT));
+
+        copyMenuItem.setGraphic(getToolbarIcon(COPY));
+        pasteMenuItem.setGraphic(getToolbarIcon(PASTE));
+        copyParamsMenuItem.setGraphic(getToolbarIcon(COPY));
+        pasteParamsMenuItem.setGraphic(getToolbarIcon(PASTE));
+        selectAllMenuItem.setGraphic(getToolbarIcon(SELECT_ALL));
+        deselectAllMenuItem.setGraphic(getToolbarIcon(DESELECT_ALL));
+        selectConnectedMenuItem.setGraphic(getMenuIcon(SELECT_CONNECTED));
+        muteMenuItem.setGraphic(getToolbarIcon(MUTE));
+        unmuteMenuItem.setGraphic(getToolbarIcon(UNMUTE));
+        lockMenuItem.setGraphic(getToolbarIcon(LOCK));
+        unlockMenuItem.setGraphic(getToolbarIcon(UNLOCK));
+        lockAllMenuItem.setGraphic(getToolbarIcon(LOCK_ALL));
+        unlockAllMenuItem.setGraphic(getToolbarIcon(UNLOCK_ALL));
+        deleteMenuItem.setGraphic(getToolbarIcon(DELETE));
+        connectMenuItem.setGraphic(getToolbarIcon(CONNECT));
+        disconnectMenuItem.setGraphic(getToolbarIcon(DISCONNECT));
+
+        helpMenu.setGraphic(getToolbarIcon(HELP));
+        aboutMenuItem.setGraphic(getToolbarIcon(ABOUT));
+        keyboardShortcutMenuItem.setGraphic(getToolbarIcon(KEYBOARD));
+        // Menu item accelerators
+        saveAsMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN));
+        copyMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN));
+        pasteMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN));
+        copyParamsMenuItem.setAccelerator(
+                new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
+        pasteParamsMenuItem.setAccelerator(
+                new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
+        selectAllMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.A, KeyCombination.SHORTCUT_DOWN));
+        deselectAllMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.ESCAPE));
+        deleteMenuItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
+        // Toolbar button icons and tooltips
+        configureButton(selectAllBtn, SELECT_ALL, "Select all");
+        configureButton(deselectAllBtn, DESELECT_ALL, "Deselect all");
+        configureButton(copyBtn, COPY, "Copy selected");
+        configureButton(pasteBtn, PASTE, "Paste");
+        configureButton(deleteBtn, DELETE, "Delete selected");
+        configureButton(muteBtn, MUTE, "Mute selected");
+        configureButton(unmuteBtn, UNMUTE, "Unmute selected");
+        configureButton(listeningBtn, LISTENING, "Set selected agents listening");
+        configureButton(notListeningBtn, NOT_LISTENING, "Set selected agents not listening");
+        configureButton(lockBtn, LOCK, "Lock selected");
+        configureButton(unlockBtn, UNLOCK, "Unlock selected");
+        configureButton(lockAllBtn, LOCK_ALL, "Lock all");
+        configureButton(unlockAllBtn, UNLOCK_ALL, "Unlock all");
+        configureButton(connectBtn, CONNECT, "Connect selected");
+        configureButton(disconnectBtn, DISCONNECT, "Disconnect selected");
+        configureButton(selectConnectedBtn, SELECT_CONNECTED, "Select connected");
+        // Mode toggle button icons and tooltips
+        selectModeBtn.setGraphic(getMenuIcon(SELECT));
+        selectModeBtn.setTooltip(new Tooltip("Selection mode"));
+        addModeBtn.setGraphic(getMenuIcon(ADD));
+        addModeBtn.setTooltip(new Tooltip("Add Musician(s)"));
+        moveModeBtn.setGraphic(getMenuIcon(MOVE));
+        moveModeBtn.setTooltip(new Tooltip("Move Musician mode"));
+        connectModeBtn.setGraphic(getMenuIcon(CONNECT));
+        connectModeBtn.setTooltip(new Tooltip("Connect/Disconnect two musicians"));
+        configureButton(addMultipleBtn, ADD, "Add N musicians");
+        configureButton(addCircleBtn, ADD_CIRCLE, "Add musician circle");
+        configureButton(addGridBtn, ADD_GRID, "Add musician grid");
+        configureButton(addFanBtn, ADD_FAN, "Add musician fan");
+    }
+
+    private static void configureButton(Button button, String iconKey, String tooltipText) {
+        button.setGraphic(getMenuIcon(iconKey));
+        button.setTooltip(new Tooltip(tooltipText));
+    }
+
+    private void registerListeners() {
+        Options.getInstance().getUiOptions().showNumbersProperty().addListener(MusicianComponent.SHOW_NUMBERS_LISTENER);
+        Options.getInstance().getMusicOptions().tempoProperty().addListener(MusicianComponent.TEMPO_LISTENER);
+        Options.getInstance().dirtyProperty().addListener((_, _, _) -> Platform.runLater(this::updateTitle));
+    }
+
+    private void updateTitle() {
+        var title = "MARGIA";
+        if (Options.getInstance().getFilename() != null) {
+            title += " - " + Options.getInstance().getFilename().getFileName().toString();
+        }
+        if (Options.getInstance().isDirty()) {
+            title += " *";
+        }
+        setTitle(title);
     }
 
     private void updateRecentsMenu() {
-        openRecents.removeAll();
+        openRecents.getItems().clear();
         var recentFiles = MargiaFileUtils.getRecentsFromPersistence();
         for (var i = 0; i < recentFiles.size(); i++) {
             final int index = i;
-            var file = new JMenuItem("%d: %s".formatted(i + 1, recentFiles.get(i)));
-            file.setName(recentFiles.get(0));
-            file.addActionListener(_ -> openSettingsFromFile(Paths.get(recentFiles.get(index))));
-            openRecents.add(file);
+            var file = new MenuItem("%d: %s".formatted(i + 1, recentFiles.get(i)));
+            file.setId(recentFiles.get(i));
+            file.setOnAction(_ -> openSettingsFromFile(Paths.get(recentFiles.get(index))));
+            openRecents.getItems().add(file);
         }
     }
 
-    private void setupEditMenu(JMenuBar menubar) {
-        var editMenu = new JMenu("Edit");
-        editMenu.setMnemonic(KeyEvent.VK_E);
-
-        var copyMenuItem = new JMenuItem("Copy (" + CONTROL_TEXT + "+C)", getToolbarIcon(COPY));
-        copyMenuItem.setMnemonic(KeyEvent.VK_C);
-        copyMenuItem.addActionListener(_ -> agentPanel.copySelectedComponents());
-        var pasteMenuItem = new JMenuItem("Paste (" + CONTROL_TEXT + "+V)", getToolbarIcon(PASTE));
-        pasteMenuItem.setMnemonic(KeyEvent.VK_P);
-        pasteMenuItem.addActionListener(_ -> agentPanel.paste());
-        var copyParamsMenuItem = new JMenuItem("Copy settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+C)",
-                getToolbarIcon(COPY));
-        copyParamsMenuItem.addActionListener(_ -> agentPanel.copySelectedComponentOptions());
-        var pasteParamsMenuItem = new JMenuItem("Paste settings (" + CONTROL_TEXT + "+" + SHIFT_TEXT + "+V)",
-                getToolbarIcon(PASTE));
-        pasteParamsMenuItem.addActionListener(_ -> agentPanel.pasteSettings());
-
-        var selectAll = new JMenuItem("Select All (" + CONTROL_TEXT + "+A)", getToolbarIcon(SELECT_ALL));
-        selectAll.setMnemonic(KeyEvent.VK_S);
-        selectAll.addActionListener(_ -> agentPanel.selectAll());
-        var deselectAll = new JMenuItem("Deselect All (" + KeyEvent.getKeyText(KeyEvent.VK_ESCAPE) + ")",
-                getToolbarIcon(DESELECT_ALL));
-        deselectAll.setMnemonic(KeyEvent.VK_D);
-        deselectAll.addActionListener(_ -> agentPanel.deselectAll());
-        var selectConnected = new JMenuItem("Select connected", getMenuIcon(SELECT_CONNECTED));
-        selectConnected.setMnemonic(KeyEvent.VK_D);
-        selectConnected.addActionListener(_ -> agentPanel.selectConnected());
-        var muteSelected = new JMenuItem("Mute selected", getToolbarIcon(MUTE));
-        muteSelected.setMnemonic(KeyEvent.VK_U);
-        muteSelected.addActionListener(_ -> agentPanel.new MuteSelectedCommand().execute());
-        var unmuteSelected = new JMenuItem("Unmute selected", getToolbarIcon(UNMUTE));
-        unmuteSelected.setMnemonic(KeyEvent.VK_E);
-        unmuteSelected.addActionListener(_ -> agentPanel.new UnmuteSelectedCommand().execute());
-        var lockSelected = new JMenuItem("Lock selected", getToolbarIcon(LOCK));
-        lockSelected.setMnemonic(KeyEvent.VK_L);
-        lockSelected.addActionListener(_ -> agentPanel.new LockSelectedCommand().execute());
-        var unlockSelected = new JMenuItem("Unlock selected", getToolbarIcon(UNLOCK));
-        unlockSelected.setMnemonic(KeyEvent.VK_N);
-        unlockSelected.addActionListener(_ -> agentPanel.new UnlockSelectedCommand().execute());
-        var lockAll = new JMenuItem("Lock all", getToolbarIcon(LOCK_ALL));
-        lockAll.addActionListener(_ -> agentPanel.new LockAllCommand().execute());
-        var unlockAll = new JMenuItem("Unlock all", getToolbarIcon(UNLOCK_ALL));
-        unlockAll.addActionListener(_ -> agentPanel.new UnlockAllCommand().execute());
-        var deleteSelected = new JMenuItem("Remove selected (" + KeyEvent.getKeyText(KeyEvent.VK_DELETE) + ")",
-                getToolbarIcon(DELETE));
-        deleteSelected.setMnemonic(KeyEvent.VK_R);
-        deleteSelected.addActionListener(_ -> agentPanel.new DeleteSelectedCommand().execute());
-        var connectSelected = new JMenuItem("Connect selected", getToolbarIcon(CONNECT));
-        connectSelected.setMnemonic(KeyEvent.VK_T);
-        connectSelected.addActionListener(_ -> agentPanel.new ConnectSelectedCommand().execute());
-        var disconnectSelected = new JMenuItem("Disconnect selected", getToolbarIcon(DISCONNECT));
-        disconnectSelected.setMnemonic(KeyEvent.VK_I);
-        disconnectSelected.addActionListener(_ -> agentPanel.new DisconnectSelectedCommand().execute());
-
-        editMenu.add(copyMenuItem);
-        editMenu.add(pasteMenuItem);
-        editMenu.add(copyParamsMenuItem);
-        editMenu.add(pasteParamsMenuItem);
-        editMenu.add(selectAll);
-        editMenu.add(deselectAll);
-        editMenu.add(selectConnected);
-        editMenu.add(muteSelected);
-        editMenu.add(unmuteSelected);
-        editMenu.add(lockSelected);
-        editMenu.add(unlockSelected);
-        editMenu.add(lockAll);
-        editMenu.add(unlockAll);
-        editMenu.add(deleteSelected);
-        editMenu.add(connectSelected);
-        editMenu.add(disconnectSelected);
-        menubar.add(editMenu);
+    // --- FXML Action Handlers ---
+    @FXML
+    private void onOpenClicked() {
+        openSettingsFromFileUserPrompt();
     }
 
-    private static void setupMidiMenu(JMenuBar menubar) {
-        var midiMenu = new JMenu("Midi");
-        midiMenu.setMnemonic(KeyEvent.VK_M);
-
-        var rescanMidi = new JMenuItem("Rescan MIDI devices");
-        rescanMidi.addActionListener(_ -> {
-            MidiController.getInstance().scanForMidiOutputDevices();
-            MidiController.getInstance().scanForMidiInputDevices();
-        });
-        var midiPanic = new JMenuItem("MIDI Panic (All Notes Off");
-        midiPanic.addActionListener(_ -> MidiController.getInstance().allNotesOff());
-
-        midiMenu.add(rescanMidi);
-        midiMenu.add(midiPanic);
-
-        menubar.add(midiMenu);
+    @FXML
+    private void onSaveClicked() {
+        saveSettingsToFile();
     }
 
-    private JToolBar createToolPalette() {
-        toolbar = new JToolBar("Palette");
-        toolbar.setFloatable(true);
-        var copyBtn = new JButton(getMenuIcon(COPY));
-        copyBtn.setToolTipText("Copy selected");
-        copyBtn.addActionListener(_ -> agentPanel.copySelectedComponents());
-
-        var pasteBtn = new JButton(getMenuIcon(PASTE));
-        pasteBtn.setToolTipText("Paste");
-        pasteBtn.addActionListener(_ -> agentPanel.paste());
-
-        var muteSelected = new JButton(getMenuIcon(MUTE));
-        muteSelected.setToolTipText("Mute selected");
-        muteSelected.addActionListener(_ -> agentPanel.new MuteSelectedCommand().execute());
-        var unmuteSelected = new JButton(getMenuIcon(UNMUTE));
-        unmuteSelected.setToolTipText("Unmute selected");
-        unmuteSelected.addActionListener(_ -> agentPanel.new UnmuteSelectedCommand().execute());
-        var setSelectedListening = new JButton(getMenuIcon(LISTENING));
-        setSelectedListening.setToolTipText("Set selected agents listening");
-        setSelectedListening.addActionListener(_ -> agentPanel.new SetSelectedListeningCommand().execute());
-        var setSelectedNotListening = new JButton(getMenuIcon(NOT_LISTENING));
-        setSelectedNotListening.setToolTipText("Set selected agents not listening");
-        setSelectedNotListening.addActionListener(_ -> agentPanel.new SetSelectedNotListeningCommand().execute());
-        var lockSelected = new JButton(getMenuIcon(LOCK));
-        lockSelected.setToolTipText("Lock selected");
-        lockSelected.addActionListener(_ -> agentPanel.new LockSelectedCommand().execute());
-        var unlockSelected = new JButton(getMenuIcon(UNLOCK));
-        unlockSelected.setToolTipText("Unlock selected");
-        unlockSelected.addActionListener(_ -> agentPanel.new UnlockSelectedCommand().execute());
-        var lockAll = new JButton(getMenuIcon(LOCK_ALL));
-        lockAll.setToolTipText("Lock all");
-        lockAll.addActionListener(_ -> agentPanel.new LockAllCommand().execute());
-        var unlockAll = new JButton(getMenuIcon(UNLOCK_ALL));
-        unlockAll.setToolTipText("Unlock all");
-        unlockAll.addActionListener(_ -> agentPanel.new UnlockAllCommand().execute());
-        var deleteSelected = new JButton(getMenuIcon(DELETE));
-        deleteSelected.setToolTipText("Delete selected");
-        deleteSelected.addActionListener(_ -> agentPanel.new DeleteSelectedCommand().execute());
-        var connectSelected = new JButton(getMenuIcon(CONNECT));
-        connectSelected.setToolTipText("Connect selected");
-        connectSelected.addActionListener(_ -> agentPanel.new ConnectSelectedCommand().execute());
-        var disconnectSelected = new JButton(getMenuIcon(DISCONNECT));
-        disconnectSelected.setToolTipText("Disconnect selected");
-        disconnectSelected.addActionListener(_ -> agentPanel.new DisconnectSelectedCommand().execute());
-
-        var selectAll = new JButton(getMenuIcon(SELECT_ALL));
-        selectAll.addActionListener(_ -> agentPanel.selectAll());
-        var deselectAll = new JButton(getMenuIcon(DESELECT_ALL));
-        deselectAll.addActionListener(_ -> agentPanel.deselectAll());
-        var selectConnected = new JButton(getMenuIcon(SELECT_CONNECTED));
-        selectConnected.addActionListener(_ -> agentPanel.selectConnected());
-
-        var showUiOptions = new JToggleButton("Options");
-        showUiOptions.addActionListener(_ -> optionsWindow.setVisible(showUiOptions.isSelected()));
-        optionsWindow.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                showUiOptions.setSelected(false);
-            }
-
-            @Override
-            public void windowDeactivated(WindowEvent e) {
-                showUiOptions.setSelected(false);
-            }
-        });
-
-        toolbar.add(selectAll);
-        toolbar.add(deselectAll);
-        toolbar.addSeparator();
-        toolbar.add(copyBtn);
-        toolbar.add(pasteBtn);
-        toolbar.add(deleteSelected);
-        toolbar.addSeparator();
-        toolbar.add(muteSelected);
-        toolbar.add(unmuteSelected);
-        toolbar.add(setSelectedListening);
-        toolbar.add(setSelectedNotListening);
-        toolbar.addSeparator();
-        toolbar.add(lockSelected);
-        toolbar.add(unlockSelected);
-        toolbar.add(lockAll);
-        toolbar.add(unlockAll);
-        toolbar.addSeparator();
-        toolbar.add(connectSelected);
-        toolbar.add(disconnectSelected);
-        toolbar.add(selectConnected);
-        setupModesToolbar(toolbar);
-        toolbar.addSeparator();
-        toolbar.add(showUiOptions);
-        toolbar.addSeparator();
-        toolbar.add(new AddPanel());
-        return toolbar;
+    @FXML
+    private void onSaveAsClicked() {
+        Options.getInstance().setFilename(null);
+        saveSettingsToFile();
     }
 
-    private class AddPanel extends JPanel {
-        private AddMode mode = AddMode.MULTIPLE;
-        private static final DefaultComboBoxModel<FanDirection> fanDirectionModel = new DefaultComboBoxModel<>(
-                FanDirection.values());
+    @FXML
+    private void onExitClicked() {
+        handleExitRequest();
+    }
 
-        AddPanel() {
-            super(new FlowLayout(FlowLayout.LEFT, 0, 10));
-            var addBtn = new JButton(getToolbarIcon(ADD));
-            setOpaque(false);
-            addBtn.addActionListener(_ -> {
-                switch (mode) {
-                case CIRCLE: {
-                    var panel = new JPanel(new GridLayout(1, 2));
-                    panel.add(new JLabel("Number to add"));
-                    var spinner = new JSpinner(new SpinnerNumberModel(3, 3, 1000, 1));
-                    panel.add(spinner);
-                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Circle",
-                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                    if (result == JOptionPane.OK_OPTION) {
-                        var numToAdd = (int) spinner.getValue();
-                        agentPanel.addCircle(numToAdd);
-                    }
-                }
-                    break;
-                case GRID: {
-                    var panel = new JPanel(new GridLayout(2, 2));
-                    panel.add(new JLabel("Rows"));
-                    var rowSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-                    panel.add(rowSpinner);
-                    panel.add(new JLabel("Columns"));
-                    var colSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-                    panel.add(colSpinner);
-                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Grid",
-                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                    if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.new AddGridCommand((int) rowSpinner.getValue(), (int) colSpinner.getValue())
-                                .execute();
-                    }
-                }
-                    break;
-                case FAN: {
-                    var panel = new JPanel(new GridLayout(1, 2));
-                    panel.add(new JLabel("Levels"));
-                    var levelSpinner = new JSpinner(new SpinnerNumberModel(2, 2, 10, 1));
-                    panel.add(levelSpinner);
-                    var directionBox = new JComboBox<FanDirection>(fanDirectionModel);
-                    var directionLabel = new JLabel("Direction");
-                    directionLabel.setLabelFor(directionBox);
-                    panel.add(directionLabel);
-                    panel.add(directionBox);
-                    var result = JOptionPane.showConfirmDialog(null, panel, "Add Musician Fan",
-                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                    if (result == JOptionPane.OK_OPTION) {
-                        agentPanel.new AddFanCommand((int) levelSpinner.getValue(),
-                                (FanDirection) directionBox.getSelectedItem()).execute();
-                    }
-                }
-                    break;
-                case MULTIPLE: {
-                    var panel = new JPanel(new GridLayout(1, 2));
-                    panel.add(new JLabel("Number to add"));
-                    var spinner = new JSpinner(new SpinnerNumberModel(2, 1, 1000, 1));
-                    panel.add(spinner);
-                    var result = JOptionPane.showConfirmDialog(null, panel, "Add N musicians",
-                            JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                    if (result == JOptionPane.OK_OPTION) {
-                        var numToAdd = (int) spinner.getValue();
-                        agentPanel.new AddNMusiciancCommand(numToAdd).execute();
-                    }
-                }
-                    break;
-                default:
-                    break;
-                }
-            });
-            var modeMenu = new JPopupMenu();
-            var singleMode = new JMenuItem(getMenuIcon(ADD));
-            singleMode.setName(AddMode.MULTIPLE.toString());
-            singleMode.setToolTipText("Add N musicians");
-            var circleMode = new JMenuItem(getMenuIcon(ADD_CIRCLE));
-            circleMode.setName(AddMode.CIRCLE.toString());
-            circleMode.setToolTipText("Add musician circle");
-            var gridMode = new JMenuItem(getMenuIcon(ADD_GRID));
-            gridMode.setName(AddMode.GRID.toString());
-            gridMode.setToolTipText("Add musician grid");
-            var fanMode = new JMenuItem(getMenuIcon(ADD_FAN));
-            fanMode.setName(AddMode.FAN.toString());
-            fanMode.setToolTipText("Add musician fan");
-            modeMenu.add(singleMode);
-            modeMenu.add(circleMode);
-            modeMenu.add(gridMode);
-            modeMenu.add(fanMode);
+    @FXML
+    private void onCopyClicked() {
+        agentPanel.copySelectedComponents();
+    }
 
-            var modeSelectionListener = (ActionListener) (e -> {
-                if (e.getSource() instanceof JMenuItem jmi) {
-                    var name = jmi.getName();
-                    mode = AddMode.valueOf(name);
-                    addBtn.setIcon(jmi.getIcon());
-                }
-            });
+    @FXML
+    private void onPasteClicked() {
+        agentPanel.paste();
+    }
 
-            singleMode.addActionListener(modeSelectionListener);
-            circleMode.addActionListener(modeSelectionListener);
-            gridMode.addActionListener(modeSelectionListener);
-            fanMode.addActionListener(modeSelectionListener);
+    @FXML
+    private void onCopyParamsClicked() {
+        agentPanel.copySelectedComponentOptions();
+    }
 
-            var modeBtn = new JButton("▼");
-            modeBtn.setMargin(new Insets(0, 0, 0, 0));
-            modeBtn.setPreferredSize(new Dimension(30, 40));
-            modeBtn.addActionListener(_ -> modeMenu.show(modeBtn, 0, 0));
+    @FXML
+    private void onPasteParamsClicked() {
+        agentPanel.pasteSettings();
+    }
 
-            add(new JLabel("Add: "));
-            add(addBtn);
-            add(modeBtn);
-        }
+    @FXML
+    private void onSelectAllClicked() {
+        agentPanel.selectAll();
+    }
 
-        enum AddMode {
-            MULTIPLE, CIRCLE, GRID, FAN;
+    @FXML
+    private void onDeselectAllClicked() {
+        agentPanel.deselectAll();
+    }
+
+    @FXML
+    private void onSelectConnectedClicked() {
+        agentPanel.selectConnected();
+    }
+
+    @FXML
+    private void onMuteClicked() {
+        agentPanel.new MuteSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onUnmuteClicked() {
+        agentPanel.new UnmuteSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onLockClicked() {
+        agentPanel.new LockSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onUnlockClicked() {
+        agentPanel.new UnlockSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onLockAllClicked() {
+        agentPanel.new LockAllCommand().execute();
+    }
+
+    @FXML
+    private void onUnlockAllClicked() {
+        agentPanel.new UnlockAllCommand().execute();
+    }
+
+    @FXML
+    private void onDeleteClicked() {
+        agentPanel.new DeleteSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onConnectClicked() {
+        agentPanel.new ConnectSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onDisconnectClicked() {
+        agentPanel.new DisconnectSelectedCommand().execute();
+    }
+
+    @FXML
+    private void onSetListeningClicked() {
+        agentPanel.new SetSelectedListeningCommand().execute();
+    }
+
+    @FXML
+    private void onSetNotListeningClicked() {
+        agentPanel.new SetSelectedNotListeningCommand().execute();
+    }
+
+    @FXML
+    private void onShowOptionsClicked() {
+        if (optionsWindow != null) {
+            optionsWindow.setVisible(true);
+            optionsWindow.toFront();
         }
     }
 
-    private void setupModesToolbar(JToolBar toolbar) {
-        var selectMode = new JToggleButton(getMenuIcon(SELECT));
-        selectMode.setToolTipText("Selection mode");
-        selectMode.setName(EditMode.SELECT.name());
-        var addMode = new JToggleButton(getMenuIcon(ADD));
-        addMode.setToolTipText("Add Musician(s)");
-        addMode.setName(EditMode.ADD.name());
-        var moveMode = new JToggleButton(getMenuIcon(MOVE));
-        moveMode.setToolTipText("Move Musician mode");
-        moveMode.setName(EditMode.MOVE.name());
-        var connectMode = new JToggleButton(getMenuIcon(CONNECT));
-        connectMode.setToolTipText("Connect/Disconnect two musicians");
-        connectMode.setName(EditMode.CONNECT.name());
-
-        selectMode.setSelected(true);
-
-        toolbar.addSeparator();
-        toolbar.add(new JLabel("Mode:"));
-        var group = new ButtonGroup();
-        group.add(selectMode);
-        toolbar.add(selectMode);
-        group.add(addMode);
-        toolbar.add(addMode);
-        group.add(moveMode);
-        toolbar.add(moveMode);
-        group.add(connectMode);
-        toolbar.add(connectMode);
-
-        var modeChangeListener = new ModeChangeListener();
-        selectMode.addItemListener(modeChangeListener);
-        addMode.addItemListener(modeChangeListener);
-        moveMode.addItemListener(modeChangeListener);
-        connectMode.addItemListener(modeChangeListener);
+    @SuppressWarnings("static-method")
+    @FXML
+    private void onRescanMidiClicked() {
+        MidiController.getInstance().scanForMidiOutputDevices();
+        MidiController.getInstance().scanForMidiInputDevices();
     }
 
-    private class ModeChangeListener implements ItemListener {
+    @SuppressWarnings("static-method")
+    @FXML
+    private void onMidiPanicClicked() {
+        MidiController.getInstance().allNotesOff();
+    }
 
-        @Override
-        public void itemStateChanged(ItemEvent e) {
-            if (e.getSource() instanceof JToggleButton jtb && jtb.isSelected()) {
-                var name = jtb.getName();
-                var mode = EditMode.valueOf(name);
-                agentPanel.setEditMode(mode);
+    @FXML
+    private void onAboutClicked() {
+        showInfoAlert("About", ABOUT_MESSAGE);
+    }
+
+    @FXML
+    private void onKeyboardShortcutsClicked() {
+        showInfoAlert("Keyboard Shortcuts", KEYBOARD_SHORTCUTS);
+    }
+
+    @FXML
+    private void onAddMultipleClicked() {
+        var grid = createDialogGrid();
+        var spinner = createIntDialogSpinner(2, 1, 1000, 1);
+        grid.add(new Label("Number to add"), 0, 0);
+        grid.add(spinner, 1, 0);
+
+        if (showCustomInputDialog("Add N musicians", grid)) {
+            agentPanel.new AddNMusiciancCommand(spinner.getValue()).execute();
+        }
+    }
+
+    @FXML
+    private void onAddCircleClicked() {
+        var grid = createDialogGrid();
+        var spinner = createIntDialogSpinner(3, 3, 1000, 1);
+        grid.add(new Label("Number to add"), 0, 0);
+        grid.add(spinner, 1, 0);
+
+        if (showCustomInputDialog("Add Musician Circle", grid)) {
+            agentPanel.addCircle(spinner.getValue());
+        }
+    }
+
+    @FXML
+    private void onAddGridClicked() {
+        var grid = createDialogGrid();
+        var rowSpinner = createIntDialogSpinner(1, 1, 100, 1);
+        var colSpinner = createIntDialogSpinner(1, 1, 100, 1);
+        grid.add(new Label("Rows"), 0, 0);
+        grid.add(rowSpinner, 1, 0);
+        grid.add(new Label("Columns"), 0, 1);
+        grid.add(colSpinner, 1, 1);
+
+        if (showCustomInputDialog("Add Musician Grid", grid)) {
+            agentPanel.new AddGridCommand(rowSpinner.getValue(), colSpinner.getValue()).execute();
+        }
+    }
+
+    @FXML
+    private void onAddFanClicked() {
+        var grid = createDialogGrid();
+        var levelSpinner = createIntDialogSpinner(2, 2, 10, 1);
+        var directionBox = new ComboBox<FanDirection>();
+        directionBox.getItems().addAll(FanDirection.values());
+        directionBox.getSelectionModel().selectFirst();
+
+        var directionLabel = new Label("Direction");
+        directionLabel.setLabelFor(directionBox);
+
+        grid.add(new Label("Levels"), 0, 0);
+        grid.add(levelSpinner, 1, 0);
+        grid.add(directionLabel, 0, 1);
+        grid.add(directionBox, 1, 1);
+
+        if (showCustomInputDialog("Add Musician Fan", grid)) {
+            agentPanel.new AddFanCommand(levelSpinner.getValue(), directionBox.getValue()).execute();
+        }
+    }
+
+    private static GridPane createDialogGrid() {
+        var grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        grid.setPadding(new Insets(10));
+        return grid;
+    }
+
+    private static Spinner<Integer> createIntDialogSpinner(int initial, int min, int max, int step) {
+        var spinner = new Spinner<Integer>(min, max, initial, step);
+        spinner.setEditable(true);
+        spinner.setPrefWidth(100);
+        return spinner;
+    }
+
+    private boolean showCustomInputDialog(String title, Node content) {
+        var dialog = new Dialog<ButtonType>();
+        dialog.initOwner(this);
+        dialog.setTitle(title);
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        var result = dialog.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    private void handleGlobalKeyReleased(KeyEvent e) {
+        if (e.getTarget() instanceof TextInputControl) {
+            return;
+        }
+        boolean complete = false;
+        boolean ctrl = e.isControlDown();
+        boolean shift = e.isShiftDown();
+        switch (e.getCode()) {
+        case ESCAPE -> {
+            agentPanel.deselectAll();
+            complete = true;
+        }
+        case DELETE -> {
+            agentPanel.new DeleteSelectedCommand().execute();
+            complete = true;
+        }
+        case A -> {
+            if (ctrl) {
+                agentPanel.selectAll();
+                complete = true;
             }
         }
+        case C -> {
+            if (ctrl) {
+                if (shift) {
+                    agentPanel.copySelectedComponentOptions();
+                } else {
+                    agentPanel.copySelectedComponents();
+                }
+                complete = true;
+            }
+        }
+        case M -> {
+            if (ctrl) {
+                agentPanel.new ToggleMuteSelectedCommand().execute();
+                complete = true;
+            }
+        }
+        case V -> {
+            if (ctrl) {
+                if (shift) {
+                    agentPanel.pasteSettings();
+                } else {
+                    agentPanel.paste();
+                }
+                complete = true;
+            }
+        }
+        case S -> {
+            if (ctrl) {
+                saveSettingsToFile();
+                complete = true;
+            }
+        }
+        case O -> {
+            if (ctrl) {
+                openSettingsFromFileUserPrompt();
+                complete = true;
+            }
+        }
+        case F11 -> {
+            if (fullScreen) {
+                rootLayout.setTop(topContainer);
+                toolbar.setVisible(true);
+                toolbar.setManaged(true);
+            } else {
+                rootLayout.setTop(null);
+                toolbar.setVisible(false);
+                toolbar.setManaged(false);
+            }
+            fullScreen = !fullScreen;
+            setFullScreen(fullScreen);
+            complete = true;
+        }
+        case SPACE -> {
+            if (ctrl) {
+                transportPanel.toggleStartStop();
+                complete = true;
+            }
+        }
+        case L -> {
+            if (ctrl) {
+                agentPanel.new ToggleSelectedListeningCommand().execute();
+                complete = true;
+            }
+        }
+        case Z -> {
+            if (ctrl) {
+                CommandCaretaker.undo();
+                complete = true;
+            }
+        }
+        default -> {
+            // do nothing
+        }
+        }
+        if (complete) {
+            e.consume();
+        }
     }
 
-    private void setupHelpMenu(JMenuBar menubar) {
-        var helpMenu = new JMenu("Help");
-        helpMenu.setIcon(getToolbarIcon(HELP));
-        helpMenu.setMnemonic('H');
-        var aboutMenuItem = new JMenuItem("About", getToolbarIcon(ABOUT));
-        aboutMenuItem.setMnemonic(KeyEvent.VK_A);
-        aboutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, ABOUT_MESSAGE));
-        var keyboardShortcutMenuItem = new JMenuItem("Keyboard Shortcuts", getToolbarIcon(KEYBOARD));
-        keyboardShortcutMenuItem.setMnemonic(KeyEvent.VK_K);
-        keyboardShortcutMenuItem.addActionListener(_ -> JOptionPane.showMessageDialog(this, KEYBOARD_SHORTCUTS));
-        helpMenu.add(aboutMenuItem);
-        helpMenu.add(keyboardShortcutMenuItem);
+    private void handleExitRequest() {
+        if (Options.getInstance().isDirty()) {
+            var alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.initOwner(this);
+            alert.setTitle("Save before exiting?");
+            alert.setHeaderText(null);
+            alert.setContentText("Save " + Options.getInstance().getFilename() + " before exiting?");
+            var saveBtn = new ButtonType("Save", ButtonBar.ButtonData.YES);
+            var dontSaveBtn = new ButtonType("Don't Save", ButtonBar.ButtonData.NO);
+            var cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+            alert.getButtonTypes().setAll(saveBtn, dontSaveBtn, cancelBtn);
+            var result = alert.showAndWait();
+            if (result.isEmpty() || result.get() == cancelBtn) {
+                return;
+            }
+            if (result.get() == saveBtn) {
+                saveSettingsToFile();
+            }
+        }
+        Platform.exit();
+        System.exit(0);
+    }
 
-        menubar.add(Box.createHorizontalGlue());
-        menubar.add(helpMenu);
+    private void showInfoAlert(String title, String content) {
+        var alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.initOwner(this);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void showErrorAlert(String title, String message) {
+        var alert = new Alert(Alert.AlertType.ERROR);
+        alert.initOwner(this);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private void openSettingsFromFileUserPrompt() {
         var newSaveLocation = getFilePathFromUser(this, "Select file", FileAction.LOAD);
-        if (newSaveLocation == null)
+        if (newSaveLocation == null) {
             return;
+        }
         openSettingsFromFile(newSaveLocation);
     }
 
@@ -675,15 +752,14 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             Transport.instance().initFromOptions();
             transportPanel.initFromOptions();
             updateTitle();
-            SwingUtilities.invokeLater(() -> {
-                agentPanel.reset();
-                agentPanel.init();
-                agentPanel.initMusicians();
-            });
+            agentPanel.reset();
+            agentPanel.init();
+            agentPanel.initMusicians();
+            optionsWindow.syncExistingMusicians();
             MargiaFileUtils.saveRecentsToPersistence(fileLocation.toString());
             updateRecentsMenu();
         } catch (IOException e1) {
-            JOptionPane.showMessageDialog(this, e1.getMessage(), "Error loading file", JOptionPane.ERROR_MESSAGE);
+            showErrorAlert("Error loading file", e1.getMessage());
         } catch (BackingStoreException e) {
             LOGGER.atError().setMessage("Error writing save directory to preferences: {}").addArgument(e::getMessage)
                     .log();
@@ -696,20 +772,25 @@ public class MargiaWindow extends JFrame implements ChangeListener {
         if (newFile) {
             Options.getInstance().setFilename(getFilePathFromUser(this, "Select Save location", FileAction.SAVE));
         }
-        if (Options.getInstance().getFilename() == null)
+        if (Options.getInstance().getFilename() == null) {
             return;
+        }
         try {
             var filenameStr = Options.getInstance().getFilename().toString();
-            if (filenameStr.lastIndexOf('.') == -1)
+            if (filenameStr.lastIndexOf('.') == -1) {
                 Options.getInstance().setFilename(
                         Options.getInstance().getFilename().resolveSibling(filenameStr + MARGIA_EXTENSION));
-            // warn user if this was a Save As and file already exists
+            }
             if (newFile && Files.exists(Options.getInstance().getFilename())) {
-                var answer = JOptionPane.showConfirmDialog(this,
-                        "File '%s' exists, do you want to replace it?"
-                                .formatted(Options.getInstance().getFilename().toString()),
-                        "Confirm overwrite", JOptionPane.YES_NO_OPTION);
-                if (answer == JOptionPane.NO_OPTION) {
+                var confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.initOwner(this);
+                confirm.setTitle("Confirm overwrite");
+                confirm.setHeaderText(null);
+                confirm.setContentText("File '%s' exists, do you want to replace it?"
+                        .formatted(Options.getInstance().getFilename().toString()));
+                confirm.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+                var result = confirm.showAndWait();
+                if (result.isEmpty() || result.get() == ButtonType.NO) {
                     Options.getInstance().setFilename(null);
                     return;
                 }
@@ -718,44 +799,35 @@ public class MargiaWindow extends JFrame implements ChangeListener {
                 options.store(os);
             }
             updateTitle();
-            MargiaFileUtils.saveRecentsToPersistence(filenameStr);
+            MargiaFileUtils.saveRecentsToPersistence(Options.getInstance().getFilename().toString());
             updateRecentsMenu();
         } catch (IOException e1) {
-            JOptionPane.showMessageDialog(this, e1.getMessage(), "Error saving file", JOptionPane.ERROR_MESSAGE);
+            showErrorAlert("Error saving file", e1.getMessage());
         }
-    }
-
-    enum FileAction {
-        @SuppressWarnings("hiding")
-        SAVE, LOAD;
     }
 
     /**
-     * Opens a JFileChooser dialog and returns the absolute path of the selected
-     * file.
-     * 
-     * @param parent      The parent component for the dialog (can be null).
-     * @param dialogTitle
-     * @param action      the action being performed
-     * @return The absolute file path as an {@link Path}, or null if not found or
+     * @param parent      parent window
+     * @param dialogTitle title of dialog
+     * @param action      action to perform
+     * @return a {@link Path} that the user selected, or {@code null} if the user
      *         cancelled
      */
-    public Path getFilePathFromUser(JFrame parent, String dialogTitle, FileAction action) {
-        var fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(dialogTitle);
-        fileChooser.setCurrentDirectory(Options.getInstance().getSaveDir().toFile());
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("MARGIA files", "margia"));
-
-        int returnValue;
-        if (action == FileAction.SAVE) {
-            returnValue = fileChooser.showSaveDialog(parent);
-        } else {
-            returnValue = fileChooser.showOpenDialog(parent);
+    public Path getFilePathFromUser(Window parent, String dialogTitle, FileAction action) {
+        var fileChooser = new FileChooser();
+        fileChooser.setTitle(dialogTitle);
+        var saveDir = Options.getInstance().getSaveDir();
+        if (saveDir != null && Files.isDirectory(saveDir)) {
+            fileChooser.setInitialDirectory(saveDir.toFile());
         }
-
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("MARGIA files", "*.margia"));
+        File selectedFile;
+        if (action == FileAction.SAVE) {
+            selectedFile = fileChooser.showSaveDialog(parent);
+        } else {
+            selectedFile = fileChooser.showOpenDialog(parent);
+        }
+        if (selectedFile != null) {
             String selectedFilename = selectedFile.getAbsolutePath();
             if (!selectedFilename.toLowerCase().endsWith(MARGIA_EXTENSION)) {
                 selectedFilename += MARGIA_EXTENSION;
@@ -764,28 +836,22 @@ public class MargiaWindow extends JFrame implements ChangeListener {
             try {
                 Options.getInstance().setSaveDir(selectedFile.getParentFile().toPath());
             } catch (BackingStoreException e) {
-                JOptionPane.showMessageDialog(this, e.getMessage(), "Error saving preferences",
-                        JOptionPane.WARNING_MESSAGE);
+                var alert = new Alert(Alert.AlertType.WARNING);
+                alert.initOwner(this);
+                alert.setTitle("Error saving preferences");
+                alert.setHeaderText(null);
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
             }
             return selectedFile.toPath();
         }
-        // If the user cancels or an error occurs
+        // If the user cancels
         return null;
     }
 
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource(String key, Object value) && key.equals(Options.DIRTY_PROPERTY)
-                && (boolean) value) {
-            updateTitle();
-        }
-    }
-
-    private void updateTitle() {
-        var pathStr = Options.getInstance().getFilename() == null ? ""
-                : ("- " + Options.getInstance().getFilename().toString());
-        var windowTitle = String.format("MARGIA %s%s", pathStr, Options.getInstance().isDirty() ? " *" : "");
-        setTitle(windowTitle);
+    enum FileAction {
+        @SuppressWarnings("hiding")
+        SAVE, LOAD;
     }
 
 }

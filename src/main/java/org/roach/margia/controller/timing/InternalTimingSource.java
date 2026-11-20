@@ -7,14 +7,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.measure.Quantity;
 import javax.measure.quantity.Time;
 import javax.sound.midi.ShortMessage;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import org.roach.margia.controller.MidiController.MidiReceiver;
 import org.roach.margia.controller.Transport;
-import org.roach.margia.model.MusicOptions;
 import org.roach.margia.storage.Options;
-import org.roach.margia.view.ChangeEmitter.ChangeSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +20,7 @@ import tech.units.indriya.quantity.time.TimeQuantities;
 /**
  * Use internal system clock as timing source
  */
-public class InternalTimingSource implements TimingSource, ChangeListener, MidiReceiver {
+public class InternalTimingSource implements TimingSource, MidiReceiver {
     private final Transport transport;
     private Future<?> clockFuture;
     private AtomicReference<Quantity<Time>> tickLengthMicros;
@@ -38,17 +34,18 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
     public InternalTimingSource(Transport transport) {
         this.transport = transport;
         clockExecutor = Executors.newSingleThreadScheduledExecutor();
-        Options.getInstance().getMusicOptions().addChangeListener(MusicOptions.TEMPO_PROPERTY, this);
-        updateTempo();
+        Options.getInstance().getMusicOptions().tempoProperty().addListener((_, _, newVal) -> {
+            updateTempo(newVal.intValue());
+        });
+        updateTempo(Options.getInstance().getMusicOptions().getTempo());
     }
 
     @Override
-    public void updateTempo() {
-        var tempo = Options.getInstance().getMusicOptions().getTempo();
+    public void updateTempo(int tempo) {
         this.tickLengthMicros = new AtomicReference<>(
                 Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
 
-        if (isRunning()) {
+        if (running.get()) {
             stopClock();
             startClock();
         }
@@ -62,7 +59,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public void start() {
-        if (isRunning())
+        if (running.get())
             return;
         logger.atTrace().setMessage("Start transport").log();
         transport.start();
@@ -71,7 +68,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
     }
 
     private void stopClock() {
-        if (!isRunning())
+        if (!running.get())
             return;
         if (clockFuture != null) {
             clockFuture.cancel(true);
@@ -91,13 +88,6 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
 
     @Override
     public boolean isRunning() { return running.get(); }
-
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        if (e.getSource() instanceof ChangeSource cs && MusicOptions.TEMPO_PROPERTY.equals(cs.key())) {
-            updateTempo();
-        }
-    }
 
     @Override
     public void receive(ShortMessage message) {
@@ -130,7 +120,7 @@ public class InternalTimingSource implements TimingSource, ChangeListener, MidiR
                 var input = message.getData2();
                 var newTempo = (int) (input / 127d * (max - min) + min);
                 Options.getInstance().getMusicOptions().setTempo(newTempo);
-                updateTempo();
+                updateTempo(newTempo);
             } else {
 //                System.out.printf("Control change: %d %d%n", message.getData1(), message.getData2());
             }

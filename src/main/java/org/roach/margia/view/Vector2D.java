@@ -1,6 +1,6 @@
 package org.roach.margia.view;
 
-import java.awt.geom.Point2D;
+import javafx.geometry.Point2D;
 
 /**
  * A 2-dimensional vector

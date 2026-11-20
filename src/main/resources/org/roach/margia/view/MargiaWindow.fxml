@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import org.roach.margia.view.AgentPanel?>
+
+<BorderPane fx:id="rootLayout" xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <top>
+        <VBox fx:id="topContainer">
+            <MenuBar fx:id="menubar">
+                <menus>
+                    <Menu text="_File" mnemonicParsing="true">
+                        <items>
+                            <MenuItem text="_Open" mnemonicParsing="true" onAction="#onOpenClicked" fx:id="openMenuItem"/>
+                            <Menu text="Open recent file" fx:id="openRecents"/>
+                            <MenuItem text="_Save" mnemonicParsing="true" onAction="#onSaveClicked" fx:id="saveMenuItem"/>
+                            <MenuItem text="Save _As..." mnemonicParsing="true" onAction="#onSaveAsClicked" fx:id="saveAsMenuItem"/>
+                            <SeparatorMenuItem/>
+                            <MenuItem text="E_xit" mnemonicParsing="true" onAction="#onExitClicked" fx:id="exitMenuItem"/>
+                        </items>
+                    </Menu>
+                    <Menu text="_Edit" mnemonicParsing="true">
+                        <items>
+                            <MenuItem text="_Copy" mnemonicParsing="true" onAction="#onCopyClicked" fx:id="copyMenuItem"/>
+                            <MenuItem text="_Paste" mnemonicParsing="true" onAction="#onPasteClicked" fx:id="pasteMenuItem"/>
+                            <MenuItem text="Copy settings" onAction="#onCopyParamsClicked" fx:id="copyParamsMenuItem"/>
+                            <MenuItem text="Paste settings" onAction="#onPasteParamsClicked" fx:id="pasteParamsMenuItem"/>
+                            <SeparatorMenuItem/>
+                            <MenuItem text="_Select All" mnemonicParsing="true" onAction="#onSelectAllClicked" fx:id="selectAllMenuItem"/>
+                            <MenuItem text="_Deselect All" mnemonicParsing="true" onAction="#onDeselectAllClicked" fx:id="deselectAllMenuItem"/>
+                            <MenuItem text="Select _connected" mnemonicParsing="true" onAction="#onSelectConnectedClicked" fx:id="selectConnectedMenuItem"/>
+                            <SeparatorMenuItem/>
+                            <MenuItem text="M_ute selected" mnemonicParsing="true" onAction="#onMuteClicked" fx:id="muteMenuItem"/>
+                            <MenuItem text="Unmut_e selected" mnemonicParsing="true" onAction="#onUnmuteClicked" fx:id="unmuteMenuItem"/>
+                            <MenuItem text="_Lock selected" mnemonicParsing="true" onAction="#onLockClicked" fx:id="lockMenuItem"/>
+                            <MenuItem text="U_nlock selected" mnemonicParsing="true" onAction="#onUnlockClicked" fx:id="unlockMenuItem"/>
+                            <MenuItem text="Lock all" onAction="#onLockAllClicked" fx:id="lockAllMenuItem"/>
+                            <MenuItem text="Unlock all" onAction="#onUnlockAllClicked" fx:id="unlockAllMenuItem"/>
+                            <SeparatorMenuItem/>
+                            <MenuItem text="_Remove selected" mnemonicParsing="true" onAction="#onDeleteClicked" fx:id="deleteMenuItem"/>
+                            <MenuItem text="Connec_t selected" mnemonicParsing="true" onAction="#onConnectClicked" fx:id="connectMenuItem"/>
+                            <MenuItem text="D_isconnect selected" mnemonicParsing="true" onAction="#onDisconnectClicked" fx:id="disconnectMenuItem"/>
+                        </items>
+                    </Menu>
+                    <Menu text="_Midi" mnemonicParsing="true">
+                        <items>
+                            <MenuItem text="Rescan MIDI devices" onAction="#onRescanMidiClicked"/>
+                            <MenuItem text="MIDI Panic (All Notes Off)" onAction="#onMidiPanicClicked"/>
+                        </items>
+                    </Menu>
+                    <Menu text="_Help" mnemonicParsing="true" fx:id="helpMenu">
+                        <items>
+                            <MenuItem text="_About" mnemonicParsing="true" onAction="#onAboutClicked" fx:id="aboutMenuItem"/>
+                            <MenuItem text="_Keyboard Shortcuts" mnemonicParsing="true" onAction="#onKeyboardShortcutsClicked" fx:id="keyboardShortcutMenuItem"/>
+                        </items>
+                    </Menu>
+                </menus>
+            </MenuBar>
+            <ToolBar fx:id="toolbar">
+                <items>
+                    <Button fx:id="selectAllBtn" focusTraversable="false" onAction="#onSelectAllClicked"/>
+                    <Button fx:id="deselectAllBtn" focusTraversable="false" onAction="#onDeselectAllClicked"/>
+                    <Separator/>
+                    <Button fx:id="copyBtn" focusTraversable="false" onAction="#onCopyClicked"/>
+                    <Button fx:id="pasteBtn" focusTraversable="false" onAction="#onPasteClicked"/>
+                    <Button fx:id="deleteBtn" focusTraversable="false" onAction="#onDeleteClicked"/>
+                    <Separator/>
+                    <Button fx:id="muteBtn" focusTraversable="false" onAction="#onMuteClicked"/>
+                    <Button fx:id="unmuteBtn" focusTraversable="false" onAction="#onUnmuteClicked"/>
+                    <Button fx:id="listeningBtn" focusTraversable="false" onAction="#onSetListeningClicked"/>
+                    <Button fx:id="notListeningBtn" focusTraversable="false" onAction="#onSetNotListeningClicked"/>
+                    <Separator/>
+                    <Button fx:id="lockBtn" focusTraversable="false" onAction="#onLockClicked"/>
+                    <Button fx:id="unlockBtn" focusTraversable="false" onAction="#onUnlockClicked"/>
+                    <Button fx:id="lockAllBtn" focusTraversable="false" onAction="#onLockAllClicked"/>
+                    <Button fx:id="unlockAllBtn" focusTraversable="false" onAction="#onUnlockAllClicked"/>
+                    <Separator/>
+                    <Button fx:id="connectBtn" focusTraversable="false" onAction="#onConnectClicked"/>
+                    <Button fx:id="disconnectBtn" focusTraversable="false" onAction="#onDisconnectClicked"/>
+                    <Button fx:id="selectConnectedBtn" focusTraversable="false" onAction="#onSelectConnectedClicked"/>
+                    <Separator/>
+                    <Label text="Mode:"/>
+                    <ToggleButton fx:id="selectModeBtn" focusTraversable="false">
+                        <toggleGroup>
+                            <ToggleGroup fx:id="modeGroup"/>
+                        </toggleGroup>
+                    </ToggleButton>
+                    <ToggleButton fx:id="addModeBtn" focusTraversable="false" toggleGroup="$modeGroup"/>
+                    <ToggleButton fx:id="moveModeBtn" focusTraversable="false" toggleGroup="$modeGroup"/>
+                    <ToggleButton fx:id="connectModeBtn" focusTraversable="false" toggleGroup="$modeGroup"/>
+                    <Separator/>
+                    <Button fx:id="showUiOptions" text="Options" focusTraversable="false" onAction="#onShowOptionsClicked"/>
+                    <Separator/>
+                    <Label text="Add:"/>
+                    <Button fx:id="addMultipleBtn" focusTraversable="false" onAction="#onAddMultipleClicked"/>
+                    <Button fx:id="addCircleBtn" focusTraversable="false" onAction="#onAddCircleClicked"/>
+                    <Button fx:id="addGridBtn" focusTraversable="false" onAction="#onAddGridClicked"/>
+                    <Button fx:id="addFanBtn" focusTraversable="false" onAction="#onAddFanClicked"/>
+                </items>
+            </ToolBar>
+        </VBox>
+    </top>
+    <center>
+        <AgentPanel fx:id="agentPanel" minWidth="0" minHeight="0"/>
+    </center>
+</BorderPane>
