@@ -6,12 +6,15 @@ import java.util.List;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 
 /**
  * Panel for displaying musician options
  */
 public class MusicianOptionsPanel extends BorderPane {
+
+    private static int lastSelectedTabIndex = 0;
 
     @FXML
     private Tab uiTab;
@@ -61,6 +64,25 @@ public class MusicianOptionsPanel extends BorderPane {
         uiTab.setContent(musicianUiPanel);
         musicTab.setContent(musicPanel);
         ruleTab.setContent(rulePanel);
+
+        if (getCenter() instanceof TabPane tabPane) {
+            var selectionModel = tabPane.getSelectionModel();
+            if (lastSelectedTabIndex >= 0 && lastSelectedTabIndex < tabPane.getTabs().size()) {
+                selectionModel.select(lastSelectedTabIndex);
+            }
+            selectionModel.selectedIndexProperty().addListener((_, _, newIdx) -> {
+                if (newIdx != null && newIdx.intValue() >= 0) {
+                    lastSelectedTabIndex = newIdx.intValue();
+                }
+            });
+        }
+    }
+
+    void syncSelectedTab() {
+        if (getCenter() instanceof TabPane tabPane && lastSelectedTabIndex >= 0
+                && lastSelectedTabIndex < tabPane.getTabs().size()) {
+            tabPane.getSelectionModel().select(lastSelectedTabIndex);
+        }
     }
 
     boolean isDefaultOptions() { return id < 0; }

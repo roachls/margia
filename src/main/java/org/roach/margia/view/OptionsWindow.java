@@ -128,6 +128,9 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
 
             if (selectedCount == 1) {
                 var userObject = selectedItems.get(0).getValue();
+                if (userObject instanceof MusicianOptionsPanel mop) {
+                    mop.syncSelectedTab();
+                }
                 if (userObject instanceof Node node) {
                     borderPane.setCenter(node);
                 }
@@ -282,7 +285,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         borderPane.setCenter(multipleEditor);
     }
 
-    // Replaces Swing's setVisible(boolean)
     public void setVisible(boolean visible) {
         if (visible) {
             show();
