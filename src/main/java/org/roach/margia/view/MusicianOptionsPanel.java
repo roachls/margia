@@ -63,8 +63,10 @@ public class MusicianOptionsPanel extends BorderPane {
         ruleTab.setContent(rulePanel);
     }
 
+    boolean isDefaultOptions() { return id < 0; }
+
     @Override
     public String toString() {
-        return OptionsWindow.MUSICIAN + id;
+        return isDefaultOptions() ? "Default options" : OptionsWindow.MUSICIAN + id;
     }
 }

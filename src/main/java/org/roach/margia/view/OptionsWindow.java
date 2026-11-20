@@ -52,6 +52,24 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
     private TreeItem<Object> musiciansNode;
     @FXML
     private StackPane warningPanel;
+    @FXML
+    private TreeItem<Object> defaultOptionsNode;
+
+    private void initDefaultOptionsNode() {
+        var defaultMusicianOpts = Options.getInstance().getDefaultMusicianOptions();
+        defaultMusicianOpts.setId(-1);
+        var defaultCompOpts = Options.getInstance().getDefaultMusicianComponentOptions();
+
+        var ui = new MusicianUiPanel(-1, defaultCompOpts);
+        var music = new MusicianMusicalOptionsPanel(defaultMusicianOpts);
+        var rule = new MusicianRuleOptionsPanel(-1, defaultMusicianOpts.getRuleOptions());
+        var defaultPanel = new MusicianOptionsPanel(ui, music, rule);
+
+        defaultOptionsNode.setValue(defaultPanel);
+        if (borderPane.getCenter() instanceof MusicianOptionsPanel current && current.isDefaultOptions()) {
+            borderPane.setCenter(defaultPanel);
+        }
+    }
 
     private final Map<Integer, TreeItem<Object>> musicianNodes = new HashMap<>();
 
@@ -118,7 +136,10 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                 boolean areAllSameType = selectedItems.stream().map(TreeItem::getValue).map(Object::getClass)
                         .allMatch(firstObjectType::equals);
 
-                if (!areAllSameType) {
+                boolean containsDefault = selectedItems.stream().map(TreeItem::getValue)
+                        .anyMatch(v -> v instanceof MusicianOptionsPanel mop && mop.isDefaultOptions());
+
+                if (!areAllSameType || containsDefault) {
                     borderPane.setCenter(warningPanel);
                 } else {
                     setupMultipleSelection(selectedItems, borderPane);
@@ -137,6 +158,7 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                 pcs.firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
             }
         });
+        initDefaultOptionsNode();
     }
 
     private void setupPersistenceListeners() {
@@ -317,6 +339,7 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                     .setSelected(options.getMidiOptions().isVerticalPanWithRelativeLocations());
 
             globalMusicPanel.maxQueueSize.getValueFactory().setValue(options.getMusicOptions().getMaxQueueSize());
+            initDefaultOptionsNode();
         });
     }
 

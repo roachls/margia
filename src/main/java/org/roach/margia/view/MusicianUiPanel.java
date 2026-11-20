@@ -35,7 +35,8 @@ public class MusicianUiPanel extends VBox {
         this.options = options;
         loadFxml();
 
-        titleLabel.setText(OptionsWindow.MUSICIAN + id + " UI Options");
+        titleLabel.setText(id < 0 ? "Default UI Options" : OptionsWindow.MUSICIAN + id + " UI Options");
+
         radius.getValueFactory().setValue(options.getRadius());
 
         radius.valueProperty().addListener((_, _, newVal) -> {

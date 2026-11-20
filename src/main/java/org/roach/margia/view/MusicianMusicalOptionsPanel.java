@@ -43,7 +43,7 @@ public class MusicianMusicalOptionsPanel extends VBox {
         this.options = options;
         loadFxml();
 
-        titleLabel.setText(OptionsWindow.MUSICIAN + id + " musical options");
+        titleLabel.setText(id < 0 ? "Default musical options" : OptionsWindow.MUSICIAN + id + " musical options");
 
         // Set initial values
         key.setValue(options.getKeyName());

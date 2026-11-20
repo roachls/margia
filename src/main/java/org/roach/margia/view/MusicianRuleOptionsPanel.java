@@ -47,7 +47,7 @@ public class MusicianRuleOptionsPanel extends VBox {
         this.selectedPanels = List.of();
         loadFxml();
 
-        titleLabel.setText(OptionsWindow.MUSICIAN + id + " rule options");
+        titleLabel.setText(id < 0 ? "Default rule options" : OptionsWindow.MUSICIAN + id + " rule options");
         rule.setValue(options.getName());
         rebuildDynamicControls(options.getName());
 

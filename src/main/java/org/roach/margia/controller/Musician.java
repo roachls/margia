@@ -61,9 +61,15 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     private Musician(final int id) {
         this();
         this.id = id;
-        musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id, _ -> new MusicianOptions());
+        musicianOptions = Options.getInstance().getMusicians().computeIfAbsent(id,
+                _ -> Options.getInstance().getDefaultMusicianOptions().copy(id));
         musicianOptions.setId(id);
         musicianOptions.getRuleOptions().addChangeListener(RuleOptions.RULE_NAME_PROPERTY, this);
+
+        var initialRuleName = musicianOptions.getRuleOptions().getName();
+        if (initialRuleName != null && !initialRuleName.isEmpty()) {
+            findRuleFromName(this, this.musicianOptions.getRuleOptions(), initialRuleName);
+        }
     }
 
     private Musician(final MusicianOptions options) {

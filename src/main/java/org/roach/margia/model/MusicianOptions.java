@@ -196,6 +196,7 @@ public class MusicianOptions {
         target.setListening(this.listening);
         target.setMuted(this.muted);
         target.setRange(this.range.copy());
+        target.setDeviceName(this.deviceName);
         this.ruleOptions.copyInto(target.ruleOptions);
         Options.getInstance().setDirty();
     }

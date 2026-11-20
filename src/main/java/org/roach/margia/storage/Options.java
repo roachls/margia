@@ -175,4 +175,11 @@ public class Options {
     public void setRandomSeed(long randomSeed) {
         storedOptions.setRandomSeed(randomSeed);
     }
+    
+    public MusicianOptions getDefaultMusicianOptions() { return storedOptions.getDefaultMusicianOptions(); }
+
+    public MusicianComponentOptions getDefaultMusicianComponentOptions() {
+        return storedOptions.getDefaultMusicianComponentOptions();
+    }
+
 }

@@ -64,7 +64,13 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
     MusicianComponent(Musician musician) {
         this.musician = musician;
         this.options = Options.getInstance().getUiOptions().getMusicianComponents().computeIfAbsent(musician.getId(),
-                _ -> new MusicianComponentOptions());
+                _ -> {
+                    var defaultCompOpts = Options.getInstance().getDefaultMusicianComponentOptions();
+                    var newOpts = new MusicianComponentOptions();
+                    newOpts.setRadius(defaultCompOpts.getRadius());
+                    newOpts.setLocked(defaultCompOpts.isLocked());
+                    return newOpts;
+                });
 
         // Bind canvas dimensions to the Pane's width/height
         canvas.widthProperty().bind(widthProperty());
