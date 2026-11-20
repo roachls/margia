@@ -1127,7 +1127,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
         AddFanCommand(int levels, FanDirection direction) {
             super();
-            if (levels <= 2 || levels > 10)
+            if (levels < 2 || levels > 10)
                 throw new IllegalArgumentException("Levels must be Between 2 and 10 inclusive");
             this.levels = levels;
             this.direction = direction;

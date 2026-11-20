@@ -24,7 +24,6 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
-import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -179,24 +178,11 @@ public class MargiaWindow extends Stage {
     @FXML
     private Button showUiOptions;
 
-    @FXML
-    private HBox addPanel;
-    @FXML
-    private Button addBtn;
-    @FXML
-    private Button addDropdownBtn;
-    @FXML
-    private ContextMenu addModeMenu;
-    @FXML
-    private MenuItem addMultipleMenuItem;
-    @FXML
-    private MenuItem addCircleMenuItem;
-    @FXML
-    private MenuItem addGridMenuItem;
-    @FXML
-    private MenuItem addFanMenuItem;
+    @FXML private Button addMultipleBtn;
+    @FXML private Button addCircleBtn;
+    @FXML private Button addGridBtn;
+    @FXML private Button addFanBtn;
 
-    private AddMode currentAddMode = AddMode.MULTIPLE;
     private OptionsWindow optionsWindow;
     private final TransportPanel transportPanel;
     private boolean fullScreen;
@@ -336,23 +322,15 @@ public class MargiaWindow extends Stage {
         moveModeBtn.setTooltip(new Tooltip("Move Musician mode"));
         connectModeBtn.setGraphic(getMenuIcon(CONNECT));
         connectModeBtn.setTooltip(new Tooltip("Connect/Disconnect two musicians"));
-        // AddPanel default icon and mode menu items
-        addBtn.setGraphic(getToolbarIcon(ADD));
-        configureAddModeItem(addMultipleMenuItem, ADD, "Add N musicians");
-        configureAddModeItem(addCircleMenuItem, ADD_CIRCLE, "Add musician circle");
-        configureAddModeItem(addGridMenuItem, ADD_GRID, "Add musician grid");
-        configureAddModeItem(addFanMenuItem, ADD_FAN, "Add musician fan");
+        configureButton(addMultipleBtn, ADD, "Add N musicians");
+        configureButton(addCircleBtn, ADD_CIRCLE, "Add musician circle");
+        configureButton(addGridBtn, ADD_GRID, "Add musician grid");
+        configureButton(addFanBtn, ADD_FAN, "Add musician fan");
     }
 
     private static void configureButton(Button button, String iconKey, String tooltipText) {
         button.setGraphic(getMenuIcon(iconKey));
         button.setTooltip(new Tooltip(tooltipText));
-    }
-
-    private static void configureAddModeItem(MenuItem item, String iconKey, String tooltipText) {
-        var graphicLabel = new Label(null, getMenuIcon(iconKey));
-        Tooltip.install(graphicLabel, new Tooltip(tooltipText));
-        item.setGraphic(graphicLabel);
     }
 
     private void registerListeners() {
@@ -527,87 +505,63 @@ public class MargiaWindow extends Stage {
         showInfoAlert("Keyboard Shortcuts", KEYBOARD_SHORTCUTS);
     }
 
-    // --- AddPanel Handlers & Helpers ---
     @FXML
-    private void onShowAddModeMenu() {
-        addModeMenu.show(addDropdownBtn, Side.BOTTOM, 0, 0);
-    }
+    private void onAddMultipleClicked() {
+        var grid = createDialogGrid();
+        var spinner = createIntDialogSpinner(2, 1, 1000, 1);
+        grid.add(new Label("Number to add"), 0, 0);
+        grid.add(spinner, 1, 0);
 
-    @FXML
-    private void onSelectMultipleMode() {
-        currentAddMode = AddMode.MULTIPLE;
-        addBtn.setGraphic(getToolbarIcon(ADD));
-    }
-
-    @FXML
-    private void onSelectCircleMode() {
-        currentAddMode = AddMode.CIRCLE;
-        addBtn.setGraphic(getToolbarIcon(ADD_CIRCLE));
-    }
-
-    @FXML
-    private void onSelectGridMode() {
-        currentAddMode = AddMode.GRID;
-        addBtn.setGraphic(getToolbarIcon(ADD_GRID));
-    }
-
-    @FXML
-    private void onSelectFanMode() {
-        currentAddMode = AddMode.FAN;
-        addBtn.setGraphic(getToolbarIcon(ADD_FAN));
-    }
-
-    @FXML
-    private void onAddClicked() {
-        switch (currentAddMode) {
-        case CIRCLE -> {
-            var grid = createDialogGrid();
-            var spinner = createIntDialogSpinner(3, 3, 1000, 1);
-            grid.add(new Label("Number to add"), 0, 0);
-            grid.add(spinner, 1, 0);
-            if (showCustomInputDialog("Add Musician Circle", grid)) {
-                agentPanel.addCircle((Integer) spinner.getValue());
-            }
+        if (showCustomInputDialog("Add N musicians", grid)) {
+            agentPanel.new AddNMusiciancCommand(spinner.getValue()).execute();
         }
-        case GRID -> {
-            var grid = createDialogGrid();
-            var rowSpinner = createIntDialogSpinner(1, 1, 100, 1);
-            var colSpinner = createIntDialogSpinner(1, 1, 100, 1);
-            grid.add(new Label("Rows"), 0, 0);
-            grid.add(rowSpinner, 1, 0);
-            grid.add(new Label("Columns"), 0, 1);
-            grid.add(colSpinner, 1, 1);
-            if (showCustomInputDialog("Add Musician Grid", grid)) {
-                agentPanel.new AddGridCommand((Integer) rowSpinner.getValue(), (Integer) colSpinner.getValue())
-                        .execute();
-            }
+    }
+
+    @FXML
+    private void onAddCircleClicked() {
+        var grid = createDialogGrid();
+        var spinner = createIntDialogSpinner(3, 3, 1000, 1);
+        grid.add(new Label("Number to add"), 0, 0);
+        grid.add(spinner, 1, 0);
+
+        if (showCustomInputDialog("Add Musician Circle", grid)) {
+            agentPanel.addCircle(spinner.getValue());
         }
-        case FAN -> {
-            var grid = createDialogGrid();
-            var levelSpinner = createIntDialogSpinner(2, 2, 10, 1);
-            var directionBox = new ComboBox<FanDirection>();
-            directionBox.getItems().addAll(FanDirection.values());
-            directionBox.getSelectionModel().selectFirst();
-            var directionLabel = new Label("Direction");
-            directionLabel.setLabelFor(directionBox);
-            grid.add(new Label("Levels"), 0, 0);
-            grid.add(levelSpinner, 1, 0);
-            grid.add(directionLabel, 0, 1);
-            grid.add(directionBox, 1, 1);
-            if (showCustomInputDialog("Add Musician Fan", grid)) {
-                agentPanel.new AddFanCommand((Integer) levelSpinner.getValue(), directionBox.getValue()).execute();
-            }
+    }
+
+    @FXML
+    private void onAddGridClicked() {
+        var grid = createDialogGrid();
+        var rowSpinner = createIntDialogSpinner(1, 1, 100, 1);
+        var colSpinner = createIntDialogSpinner(1, 1, 100, 1);
+        grid.add(new Label("Rows"), 0, 0);
+        grid.add(rowSpinner, 1, 0);
+        grid.add(new Label("Columns"), 0, 1);
+        grid.add(colSpinner, 1, 1);
+
+        if (showCustomInputDialog("Add Musician Grid", grid)) {
+            agentPanel.new AddGridCommand(rowSpinner.getValue(), colSpinner.getValue()).execute();
         }
-        case MULTIPLE -> {
-            var grid = createDialogGrid();
-            var spinner = createIntDialogSpinner(2, 1, 1000, 1);
-            grid.add(new Label("Number to add"), 0, 0);
-            grid.add(spinner, 1, 0);
-            if (showCustomInputDialog("Add N musicians", grid)) {
-                agentPanel.new AddNMusiciancCommand((Integer) spinner.getValue()).execute();
-            }
-        }
-        default -> throw new IllegalArgumentException("Don't know how to create a " + currentAddMode);
+    }
+
+    @FXML
+    private void onAddFanClicked() {
+        var grid = createDialogGrid();
+        var levelSpinner = createIntDialogSpinner(2, 2, 10, 1);
+        var directionBox = new ComboBox<FanDirection>();
+        directionBox.getItems().addAll(FanDirection.values());
+        directionBox.getSelectionModel().selectFirst();
+
+        var directionLabel = new Label("Direction");
+        directionLabel.setLabelFor(directionBox);
+
+        grid.add(new Label("Levels"), 0, 0);
+        grid.add(levelSpinner, 1, 0);
+        grid.add(directionLabel, 0, 1);
+        grid.add(directionBox, 1, 1);
+
+        if (showCustomInputDialog("Add Musician Fan", grid)) {
+            agentPanel.new AddFanCommand(levelSpinner.getValue(), directionBox.getValue()).execute();
         }
     }
 
@@ -900,7 +854,4 @@ public class MargiaWindow extends Stage {
         SAVE, LOAD;
     }
 
-    enum AddMode {
-        MULTIPLE, CIRCLE, GRID, FAN;
-    }
 }

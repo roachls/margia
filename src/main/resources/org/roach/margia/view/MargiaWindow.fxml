@@ -104,27 +104,11 @@
                     <Separator/>
                     <Button fx:id="showUiOptions" text="Options" focusTraversable="false" onAction="#onShowOptionsClicked"/>
                     <Separator/>
-                    <HBox fx:id="addPanel" alignment="CENTER_LEFT" spacing="2.0">
-                        <children>
-                            <Label text="Add: "/>
-                            <Button fx:id="addBtn" focusTraversable="false" onAction="#onAddClicked"/>
-                            <Button fx:id="addDropdownBtn" text="▼" focusTraversable="false" onAction="#onShowAddModeMenu">
-                                <padding>
-                                    <Insets top="0.0" right="4.0" bottom="0.0" left="4.0"/>
-                                </padding>
-                                <contextMenu>
-                                    <ContextMenu fx:id="addModeMenu">
-                                        <items>
-                                            <MenuItem fx:id="addMultipleMenuItem" onAction="#onSelectMultipleMode"/>
-                                            <MenuItem fx:id="addCircleMenuItem" onAction="#onSelectCircleMode"/>
-                                            <MenuItem fx:id="addGridMenuItem" onAction="#onSelectGridMode"/>
-                                            <MenuItem fx:id="addFanMenuItem" onAction="#onSelectFanMode"/>
-                                        </items>
-                                    </ContextMenu>
-                                </contextMenu>
-                            </Button>
-                        </children>
-                    </HBox>
+                    <Label text="Add:"/>
+                    <Button fx:id="addMultipleBtn" focusTraversable="false" onAction="#onAddMultipleClicked"/>
+                    <Button fx:id="addCircleBtn" focusTraversable="false" onAction="#onAddCircleClicked"/>
+                    <Button fx:id="addGridBtn" focusTraversable="false" onAction="#onAddGridClicked"/>
+                    <Button fx:id="addFanBtn" focusTraversable="false" onAction="#onAddFanClicked"/>
                 </items>
             </ToolBar>
         </VBox>
