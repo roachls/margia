@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.roach.margia.actions.MusicalAction;
@@ -19,6 +20,7 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
     private int value;
     private MusicianState wrappedState;
     private final BlockingQueue<Chord> delayQueue = new LinkedBlockingQueue<>();
+    private final AtomicBoolean hasDoneAction = new AtomicBoolean();
 
     /**
      * @param name       name of state
@@ -58,6 +60,7 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
             return;
         }
 
+        hasDoneAction.set(true);
         super.doActions(musician, rule, chord);
     }
 
@@ -73,6 +76,8 @@ public class DelayedTransitionState extends AbstractMusicianState<DelayedTransit
 
     @Override
     public MusicianState transition(Musician musician) {
+        if (!hasDoneAction.getAndSet(false))
+            return this;
         value--;
         logger.atDebug().setMessage("Countdown ({}): {}").addArgument(musician.getId()).addArgument(value).log();
         if (value <= 0) {
