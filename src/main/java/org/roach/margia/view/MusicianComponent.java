@@ -209,8 +209,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                 radius + 3.0, // centerX
                 radius + 3.0, // centerY
                 radius, // radius
-                false, // proportional (false = pixel coordinates, matching Swing's
-                       // RadialGradientPaint)
+                false,
                 CycleMethod.NO_CYCLE, new Stop(0.0, Color.WHITE), new Stop(1.0, color));
 
         gc.setFill(gradient);

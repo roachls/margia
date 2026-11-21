@@ -32,7 +32,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
 
     static final String MUSICIAN = "Musician ";
 
-    // Injected directly from OptionsWindow.fxml
     @FXML
     private BorderPane borderPane;
     @FXML
@@ -206,8 +205,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         musiciansNode.setExpanded(true);
     }
 
-    // Expose PropertyChangeListener registration so external Swing controllers
-    // still work
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         pcs.addPropertyChangeListener(listener);
     }
@@ -230,8 +227,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
 
                 var newNode = new TreeItem<Object>(newOptionsPanel);
 
-                // JavaFX TreeItem uses a standard ObservableList; no TreeModel or repaint()
-                // needed
                 musiciansNode.getChildren().add(newNode);
                 musiciansNode.setExpanded(true);
                 musicianNodes.put(id, newNode);

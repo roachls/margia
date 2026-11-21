@@ -56,18 +56,13 @@ public class MidiPanel extends VBox {
     private void initialize() {
         var midiOpts = Options.getInstance().getMidiOptions();
 
-        // Set initial values
         external.setSelected(midiOpts.isUsingExternalMidi());
         panController.getValueFactory().setValue(MidiOptions.DEFAULT_PAN_CONTROLLER);
         verticalPanController.getValueFactory().setValue(MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER);
 
-        // Attach model listeners
         external.selectedProperty().addListener((_, _, newVal) -> midiOpts.setUsingExternalMidi(newVal));
-
         sendMidiTimecode.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendingMidiTimecode(newVal));
-
         sendPanMessage.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendPanMessage(newVal));
-
         panController.valueProperty().addListener((_, _, newVal) -> {
             if (newVal != null) {
                 midiOpts.setPanController(newVal);

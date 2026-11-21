@@ -118,7 +118,6 @@ public class MusicianMusicalOptionsPanel extends VBox {
 
         titleLabel.setText(OptionsWindow.MUSICIAN + idList + " musical options");
 
-        // Key ComboBox
         setMismatchHighlight(key, !allKeysSame);
         key.setValue(options.getKeyName());
         key.valueProperty().addListener((_, _, newVal) -> {

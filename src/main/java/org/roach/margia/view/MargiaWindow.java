@@ -203,14 +203,11 @@ public class MargiaWindow extends Stage {
             throw new IllegalStateException(e);
         }
 
-        // Initialize TransportPanel with constructor dependencies and place at bottom
         transportPanel = new TransportPanel(timing, transport);
         rootLayout.setBottom(transportPanel);
 
-        // Assign icons, tooltips, and key accelerators
         assignIconsAndTooltips();
 
-        // Wire bidirectional listeners before initMusicians() runs
         agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
         agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);

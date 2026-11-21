@@ -34,7 +34,6 @@ public class MiscPanel extends VBox {
 
     @FXML
     private void initialize() {
-        // Reuse the Long SpinnerValueFactory from OptionsWindow.createSpinner
         Spinner<Long> configured = OptionsWindow.createSpinner("Random seed", Options.getInstance().getRandomSeed(),
                 -Long.MAX_VALUE, Long.MAX_VALUE, 1L);
         randomSeedSpinner.setValueFactory(configured.getValueFactory());

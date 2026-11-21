@@ -58,7 +58,6 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
             throw new RuntimeException("Failed to load TransportPanel.fxml", exception);
         }
 
-        // Initialize state and bindings after FXML nodes are injected
         this.transport.addPropertyListener(this);
 
         tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
@@ -111,7 +110,6 @@ public class TransportPanel extends HBox implements PropertyChangeListener {
     }
 
     void initFromOptions() {
-//        tempo.getValueFactory().setValue(Options.getInstance().getMusicOptions().getTempo());
         boolean externalTiming = Options.getInstance().getMidiOptions().isUsingExternalTiming();
         startBtn.setDisable(externalTiming);
         rewindBtn.setDisable(externalTiming);

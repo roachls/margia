@@ -52,7 +52,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     private MusicianOptions copiedMusicianOptions;
     private static final Random RANDOM = new SecureRandom();
 
-    // Dashed stroke settings for JavaFX GraphicsContext / Shape
     private static final double SELECTION_LINE_WIDTH = 2.0;
     private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
 
@@ -83,7 +82,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         widthProperty().addListener((_, _, newWidth) -> Global.setScreenWidth(newWidth.intValue()));
         heightProperty().addListener((_, _, newHeight) -> Global.setScreenHeight(newHeight.intValue()));
 
-        // Wire mouse handlers (replacing MouseAdapter)
         setupMouseHandlers();
 
         Options.getInstance().getUiOptions().edgeLengthProperty().addListener((_, _, newVal) -> {
@@ -134,7 +132,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
         calcEdges();
 
-        // Replaces: new Timer(20, this).start();
         if (animationTimeline != null) {
             animationTimeline.stop();
         }
@@ -203,7 +200,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         var gc = backgroundCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
 
-        // Draw clean, single-ring motion ripples behind edges and musicians
         if (!ripples.isEmpty()) {
             gc.save();
             gc.setLineDashes(null);
@@ -308,7 +304,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
 
-        // Calculate attractive forces along edges (O(E))
         synchronized (edges) {
             for (var edge : edges) {
                 MusicianComponent n1 = edge.source;
@@ -416,7 +411,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 case MOVE -> {
                     mc.setSelected(true);
                     movingComponent = mc;
-                    // Replaces SwingUtilities.convertPoint(AgentPanel.this, e.getPoint(), mc)
                     movingComponentXY = mc.parentToLocal(e.getX(), e.getY());
                     setCursor(Cursor.MOVE);
                 }
@@ -523,7 +517,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 endSelection = null;
                 AgentPanel.this.setCursor(Cursor.DEFAULT);
             } else if (target == null) {
-                // Replaces `else if (comp == AgentPanel.this)` when released on empty space
                 isConnecting = false;
                 if (source != null) {
                     source.setSelected(false);
