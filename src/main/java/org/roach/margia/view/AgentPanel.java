@@ -10,7 +10,6 @@ import java.util.stream.IntStream;
 import org.roach.margia.command.Command;
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.controller.Transport;
 import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
@@ -25,7 +24,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.*;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 
 /**
@@ -57,22 +56,20 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     private static final double SELECTION_LINE_WIDTH = 2.0;
     private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
 
-    private static final Object ANIMATE_LOCK = new Object();
-    private static final double ANIMATE_SPEED = 0.015;
-    private static final double[] GRAD_FRACTIONS = new double[] { 0.0, ANIMATE_SPEED, ANIMATE_SPEED * 4, 1.0 };
-    private static final Color[] GRAD_COLORS = new Color[] { Color.WHITE, Color.GRAY, Color.BLUE, Color.WHITE };
-
-    // Background layer for custom 2D drawing (replaces paintComponent)
     private final Canvas backgroundCanvas = new Canvas();
 
-    // Replaces JPanel's built-in Swing PropertyChangeSupport
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+    private static final double RIPPLE_EXPANSION_SPEED = 3.0;
+    private static final double RIPPLE_SCREEN_FRACTION = 0.75;
+    private static final int MAX_ACTIVE_RIPPLES = 32;
+
+    private final List<Ripple> ripples = new ArrayList<>();
 
     /**
      * Constructor
      */
     public AgentPanel() {
-        setStyle("-fx-background-color: lightgray;");
+        setStyle("-fx-background-color: blue;");
 
         backgroundCanvas.widthProperty().bind(widthProperty());
         backgroundCanvas.heightProperty().bind(heightProperty());
@@ -148,6 +145,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
     private MusicianComponent addMusicianComponent(Musician musician) {
         var n = new MusicianComponent(musician);
+        n.setOnNotePlayedCallback(this::spawnRipple);
         var compOptions = n.getOptions();
         if (compOptions.getPosition().getX() == 0.0 && compOptions.getPosition().getY() == 0.0) {
             // Fallback bounds if AgentPanel hasn't completed its first layout pass yet
@@ -168,13 +166,33 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         return n;
     }
 
-    // Called every 20ms by animationTimeline (replaces actionPerformed)
     private void onAnimationTick() {
         updatePhysics();
+        if (Options.getInstance().getUiOptions().isAnimateBackground()) {
+            ripples.removeIf(ripple -> !ripple.update());
+        } else if (!ripples.isEmpty()) {
+            ripples.clear();
+        }
         drawBackground();
     }
 
-    // Replaces paintComponent(Graphics g)
+    private void spawnRipple(MusicianComponent mc, Color color) {
+        if (!Options.getInstance().getUiOptions().isAnimateBackground()) {
+            return;
+        }
+        double screenSpan = Math.max(getWidth(), getHeight());
+        if (screenSpan <= 0) {
+            return;
+        }
+        if (ripples.size() >= MAX_ACTIVE_RIPPLES) {
+            ripples.remove(0); // Recycle oldest ring so new notes always pulse cleanly
+        }
+        var center = mc.getCenter();
+        double startRadius = mc.getRadius() * 0.9;
+        double maxRadius = screenSpan * RIPPLE_SCREEN_FRACTION;
+        ripples.add(new Ripple(center.getX(), center.getY(), startRadius, maxRadius, color));
+    }
+
     private void drawBackground() {
         double w = getWidth();
         double h = getHeight();
@@ -185,21 +203,23 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         var gc = backgroundCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
 
-        // 1. Animated radial background gradient
-        synchronized (ANIMATE_LOCK) {
-            var stops = new Stop[GRAD_FRACTIONS.length];
-            for (int i = 0; i < GRAD_FRACTIONS.length; i++) {
-                stops[i] = new Stop(GRAD_FRACTIONS[i], GRAD_COLORS[i]);
+        // Draw clean, single-ring motion ripples behind edges and musicians
+        if (!ripples.isEmpty()) {
+            gc.save();
+            gc.setLineDashes(null);
+            gc.setLineWidth(2.2);
+            for (var ripple : ripples) {
+                double alpha = ripple.opacity();
+                if (alpha <= 0.005) {
+                    continue;
+                }
+                gc.setStroke(ripple.color.deriveColor(0, 1.0, 1.0, alpha));
+                double d = ripple.radius * 2.0;
+                gc.strokeOval(ripple.x - ripple.radius, ripple.y - ripple.radius, d, d);
             }
-            var gradient = new RadialGradient(0, 0, w / 2.0, h / 2.0, w, false, // proportional =
-                                                                                // false (pixel
-                                                                                // coordinates)
-                    CycleMethod.NO_CYCLE, stops);
-            gc.setFill(gradient);
-            gc.fillRect(0, 0, w, h);
+            gc.restore();
         }
 
-        // 2. Curved edges & arrowheads between musicians
         for (Edge edge : edges) {
             gc.save();
             var edgeColor = edge.source.getColor();
@@ -214,12 +234,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             var angle = vector.angle();
             var dist = sCenter.distance(tCenter) - edge.target.getRadius();
 
-            // JavaFX GraphicsContext.rotate() expects degrees, whereas Swing uses radians
             gc.translate(sCenter.getX(), sCenter.getY());
             gc.rotate(Math.toDegrees(angle - Math.PI / 2.0));
 
-            // Draw quadratic curve (replaces QuadCurve2D.Double(0, 0, 5, dist / 2d, 0,
-            // dist))
             gc.beginPath();
             gc.moveTo(0, 0);
             gc.quadraticCurveTo(5.0, dist / 2.0, 0, dist);
@@ -237,7 +254,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             gc.restore();
         }
 
-        // 3. Connection line while dragging an edge between nodes
         if (startSelection != null && endSelection != null) {
             gc.save();
             gc.setStroke(Color.RED);
@@ -247,7 +263,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             gc.restore();
         }
 
-        // 4. Multi-select bounding rectangle
         if (dragStart != null && dragEnd != null) {
             gc.save();
             gc.setStroke(Color.YELLOW);
@@ -256,30 +271,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             var rect = makeSelectionRectangle(dragStart, dragEnd);
             gc.strokeRect(rect.getMinX(), rect.getMinY(), rect.getWidth(), rect.getHeight());
             gc.restore();
-        }
-    }
-
-    private static void animateBackground() {
-        boolean wrap = false;
-        synchronized (ANIMATE_LOCK) {
-            for (var i = 1; i < GRAD_FRACTIONS.length - 1; i++) {
-                if (GRAD_FRACTIONS[i] + ANIMATE_SPEED < 1.0) {
-                    GRAD_FRACTIONS[i] += ANIMATE_SPEED;
-                } else {
-                    wrap = true;
-                }
-            }
-        }
-        if (wrap) {
-            synchronized (ANIMATE_LOCK) {
-                for (var i = GRAD_COLORS.length - 1; i > 0; i--) {
-                    GRAD_COLORS[i] = GRAD_COLORS[i - 1];
-                }
-                // JavaFX Color.color() takes double values in [0.0, 1.0]
-                GRAD_COLORS[0] = Color.color(Math.random(), Math.random(), Math.random());
-                GRAD_FRACTIONS[2] = GRAD_FRACTIONS[1];
-                GRAD_FRACTIONS[1] = ANIMATE_SPEED;
-            }
         }
     }
 
@@ -1197,12 +1188,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     @SuppressWarnings("unchecked")
     @Override
     public void propertyChange(java.beans.PropertyChangeEvent evt) {
-        if (Transport.TICK_PROPERTY.equals(evt.getPropertyName())
-                && Options.getInstance().getUiOptions().isAnimateBackground()) {
-            // animateBackground() only mutates synchronized gradient arrays (read by
-            // drawBackground on FX thread)
-            animateBackground();
-        } else if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
+        if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
             var selectedMusicianIds = (List<Integer>) evt.getNewValue();
             Platform.runLater(() -> {
                 deselectAll();
@@ -1216,4 +1202,30 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         }
     }
 
+    private static final class Ripple {
+        final double x;
+        final double y;
+        double radius;
+        final double maxRadius;
+        final Color color;
+
+        Ripple(double x, double y, double startRadius, double maxRadius, Color color) {
+            this.x = x;
+            this.y = y;
+            this.radius = startRadius;
+            this.maxRadius = maxRadius;
+            this.color = color;
+        }
+
+        boolean update() {
+            radius += RIPPLE_EXPANSION_SPEED;
+            return radius < maxRadius;
+        }
+
+        double opacity() {
+            double progress = Math.clamp(radius / maxRadius, 0.0, 1.0);
+            return Math.pow(1.0 - progress, 1.8) * 0.55;
+        }
+
+    }
 }

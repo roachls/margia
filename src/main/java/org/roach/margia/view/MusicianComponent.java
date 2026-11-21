@@ -3,6 +3,7 @@ package org.roach.margia.view;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 import org.roach.margia.controller.MidiController;
 import org.roach.margia.controller.Musician;
@@ -10,13 +11,16 @@ import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
 
+import javafx.animation.*;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
+import javafx.scene.paint.*;
+import javafx.scene.text.*;
+import javafx.util.Duration;
 
 /**
  * GUI element that displays an agent as a colored circle
@@ -55,8 +59,9 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     private static final double ρ = 0.00009;
 
-    // Drawing surface sized to match this component's diameter
     private final Canvas canvas = new Canvas();
+
+    private BiConsumer<MusicianComponent, Color> onNotePlayedCallback;
 
     /**
      * @param musician the {@link Musician} being displayed
@@ -77,8 +82,8 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
         canvas.heightProperty().bind(heightProperty());
         getChildren().add(canvas);
 
-        options.radiusProperty().addListener(
-                (_, _, newVal) -> javafx.application.Platform.runLater(() -> this.updateSize(newVal.intValue())));
+        options.radiusProperty()
+                .addListener((_, _, newVal) -> Platform.runLater(() -> this.updateSize(newVal.intValue())));
         options.positionProperty().addListener(new PositionChangeListener());
 
         updatePosition();
@@ -136,14 +141,12 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     }
 
-    // Replace the PauseTransition field from earlier with Timeline since this timer
-    // repeats to fade brightness
-    private javafx.animation.Timeline fadeTimeline;
+    private Timeline fadeTimeline;
 
     @Override
     @SuppressWarnings("java:S1301")
     public void propertyChange(PropertyChangeEvent evt) {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             var brightness = new java.util.concurrent.atomic.AtomicReference<>(1.0);
             switch (evt.getPropertyName()) {
             case Musician.LAST_CHORD_PROPERTY -> {
@@ -152,10 +155,9 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                     fadeTimeline.stop();
                 }
                 if (Musician.REST.equals(chord)) {
-                    this.color = javafx.scene.paint.Color.BLACK;
+                    this.color = Color.BLACK;
                     draw();
                 } else {
-                    // JavaFX Color.hsb expects hue in, saturation in, brightness in [0, 1]
                     double hueDegrees = (chord.averageNote() / 127.0) * 360.0;
                     double normalizedSaturation = Math.clamp(chord.getVelocity() / 127.0, 0.0, 1.0);
 
@@ -164,15 +166,18 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                     var brightnessOffset = 1.0 / noteInfoMillis;
                     brightness.set(1.0);
 
-                    fadeTimeline = new javafx.animation.Timeline(
-                            new javafx.animation.KeyFrame(javafx.util.Duration.millis(delayMillis), _ -> {
-                                color = javafx.scene.paint.Color.hsb(hueDegrees, normalizedSaturation,
-                                        brightness.get());
-                                brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0.0, b - f));
-                                draw();
-                            }));
-                    fadeTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+                    fadeTimeline = new Timeline(new KeyFrame(Duration.millis(delayMillis), _ -> {
+                        color = Color.hsb(hueDegrees, normalizedSaturation, brightness.get());
+                        brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0.0, b - f));
+                        draw();
+                    }));
+                    fadeTimeline.setCycleCount(Animation.INDEFINITE);
                     fadeTimeline.play();
+
+                    if (onNotePlayedCallback != null && !this.getMusician().isMuted()) {
+                        var rippleColor = Color.hsb(hueDegrees, Math.max(0.65, normalizedSaturation), 1.0);
+                        onNotePlayedCallback.accept(this, rippleColor);
+                    }
                 }
             }
             default -> {
@@ -180,6 +185,10 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
             }
             }
         });
+    }
+
+    void setOnNotePlayedCallback(BiConsumer<MusicianComponent, Color> callback) {
+        this.onNotePlayedCallback = callback;
     }
 
     void draw() {
@@ -195,27 +204,23 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
         double radius = options.getRadius();
 
         // Radial gradient from offset highlight (radius + 3, radius + 3) to outer color
-        var gradient = new javafx.scene.paint.RadialGradient(0, // focusAngle
+        var gradient = new RadialGradient(0, // focusAngle
                 0, // focusDistance
                 radius + 3.0, // centerX
                 radius + 3.0, // centerY
                 radius, // radius
                 false, // proportional (false = pixel coordinates, matching Swing's
                        // RadialGradientPaint)
-                javafx.scene.paint.CycleMethod.NO_CYCLE,
-                new javafx.scene.paint.Stop(0.0, javafx.scene.paint.Color.WHITE),
-                new javafx.scene.paint.Stop(1.0, color));
+                CycleMethod.NO_CYCLE, new Stop(0.0, Color.WHITE), new Stop(1.0, color));
 
         gc.setFill(gradient);
         gc.fillOval(0, 0, w, h);
 
         if (showNumbers) {
-            var font = javafx.scene.text.Font.font("Serif", javafx.scene.text.FontWeight.BOLD, 12.0 * radius / 20.0);
+            var font = Font.font("Serif", FontWeight.BOLD, 12.0 * radius / 20.0);
             String idText = Integer.toString(musician.getId());
 
-            // Measure text bounds using a temporary Text node (replaces
-            // TextLayout.getOutline)
-            var textHelper = new javafx.scene.text.Text(idText);
+            var textHelper = new Text(idText);
             textHelper.setFont(font);
             var bounds = textHelper.getLayoutBounds();
 
@@ -223,13 +228,13 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
             double textY = radius + 3.0; // Baseline Y coordinate
 
             // Draw black background oval around the ID number
-            gc.setFill(javafx.scene.paint.Color.BLACK);
+            gc.setFill(Color.BLACK);
             gc.fillOval(textX - 1.0, textY - bounds.getHeight() + 2.0, bounds.getWidth() + 2.0,
                     bounds.getHeight() + 2.0);
 
             // Draw white ID number
             gc.setFont(font);
-            gc.setFill(javafx.scene.paint.Color.WHITE);
+            gc.setFill(Color.WHITE);
             gc.fillText(idText, textX, textY);
 
             // Draw status icons for locked / not listening
@@ -242,19 +247,19 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
             }
             if (!status.isEmpty()) {
                 gc.setFont(LOCK_FONT);
-                gc.setFill(javafx.scene.paint.Color.YELLOW);
+                gc.setFill(Color.YELLOW);
                 gc.fillText(status, 0, h - 2.0);
             }
         }
 
         if (musician.isMuted()) {
             // Semi-transparent gray oval over the whole circle
-            gc.setFill(javafx.scene.paint.Color.color(0.5, 0.5, 0.5, 0.8));
+            gc.setFill(Color.color(0.5, 0.5, 0.5, 0.8));
             gc.fillOval(0, 0, w, h);
         }
 
         if (selected) {
-            gc.setStroke(javafx.scene.paint.Color.RED);
+            gc.setStroke(Color.RED);
             gc.setLineWidth(SELECTED_LINE_WIDTH);
             gc.setLineDashes(null); // Ensure solid line
             gc.strokeRect(1.0, 1.0, w - 2.0, h - 2.0);
