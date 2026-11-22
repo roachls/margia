@@ -1,0 +1,17 @@
+<Configuration monitorInterval="5">
+	<Appenders>
+		<Console name="Console">
+			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />
+			>
+		</Console>
+	</Appenders>
+	<Loggers>
+		<Logger name="org.roach.margia.Transport" level="info"
+			additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Root level="info">
+			<AppenderRef ref="Console" />
+		</Root>
+	</Loggers>
+</Configuration>

@@ -1,0 +1,200 @@
+package org.roach.margia.controller;
+
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.roach.margia.controller.timing.TimingSource;
+import org.roach.margia.model.Length;
+import org.roach.margia.model.MusicianList;
+import org.roach.margia.storage.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * This is the "clock" that drives everything. It issues a "tick" once every
+ * 16th note.
+ */
+@SuppressWarnings("java:S6548")
+public class Transport {
+    /**
+     * Property fired when tick updates
+     */
+    public static final String TICK_PROPERTY = "tick";
+    /**
+     * Property fired when clock pulse updates
+     */
+    public static final String CLOCK_PULSE_PROPERTY = "clockPulse";
+    /**
+     * Property fired when measureNum updates
+     */
+    public static final String MEASURE_PROPERTY = "measure";
+    /**
+     * Property fired when beatNum updates
+     */
+    public static final String BEAT_PROPERTY = "beat";
+    /**
+     * Property fired to notify listeners of a reset
+     */
+    public static final String RESET_PROPERTY = "reset";
+    private long tick = 1;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Map<Long, Runnable> tickActions = new HashMap<>();
+    private int tickLength;
+    private int currentClockPulse = 1;
+    private int beatNum = 1;
+    private int measureNum = 1;
+    private final PropertyChangeSupport propertyChangeSupport;
+    private static Transport instance;
+
+    /**
+     * no-arg constructor
+     */
+    private Transport() {
+        initFromOptions();
+        this.propertyChangeSupport = new PropertyChangeSupport(this);
+    }
+
+    /**
+     * @return the singleton instance of this class
+     */
+    public static Transport instance() {
+        if (instance == null)
+            instance = new Transport();
+        return instance;
+    }
+
+    /**
+     * (Re)load the tempo from options
+     */
+    public void initFromOptions() {
+        var tempo = Options.getInstance().getMusicOptions().getTempo();
+        this.tickLength = Length.getMillisForTempo(1, tempo).getValue().intValue();
+    }
+
+    /**
+     * @param listener a listener to add
+     */
+    public void addPropertyListener(PropertyChangeListener listener) {
+        propertyChangeSupport.addPropertyChangeListener(listener);
+    }
+
+    /**
+     * Register a listener for a specific property
+     * 
+     * @param property property name
+     * @param listener listener
+     */
+    public void addPropertyListener(String property, PropertyChangeListener listener) {
+        propertyChangeSupport.addPropertyChangeListener(property, listener);
+    }
+
+    /**
+     * @return the number of the latest tick
+     */
+    public long getTick() { return this.tick; }
+
+    /**
+     * @return the length of a tick in milliseconds
+     */
+    public int getTickLength() { return this.tickLength; }
+
+    /**
+     * Start the clock
+     */
+    public void start() {
+        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
+            MidiController.getInstance().sendStart();
+        }
+    }
+
+    /**
+     * Fires once every 24th of a beat from the {@link TimingSource}
+     */
+    public void receiveClockPulse() {
+        /*
+         * We wrap this whole thing in a try-catch block because typically we'll be
+         * running it from inside a scheduled executor (see
+         * InternalTimingSource#startClock), in which case any exceptions will get
+         * swallowed and the executor would simply stop with no explanation.
+         */
+        try {
+            logger.atTrace()
+                    .setMessage(() -> "%03d:%01d.%02d (%03d)".formatted(measureNum, beatNum, currentClockPulse, tick))
+                    .log();
+            if (Options.getInstance().getMidiOptions().isSendingMidiTimecode()) {
+                MidiController.getInstance().sendClockPulse();
+            }
+            // Once each 16th note (every 6 clock pulses) we kick off musician actions
+            if (currentClockPulse == 1 || currentClockPulse == 7 || currentClockPulse == 13
+                    || currentClockPulse == 19) {
+                if (tickActions.containsKey(tick)) {
+                    logger.atDebug().setMessage("Transport playing tick action {}").addArgument(tick).log();
+                    tickActions.remove(tick).run();
+                }
+                // each musician calculate their next action
+                for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                    m.getValue().calculateAction(tick);
+                }
+                // each musician perform the action they just calculated
+                for (var m : MusicianList.getInstance().getMusicians().entrySet()) {
+                    m.getValue().doAction();
+                }
+                // controller actually play notes from each musician
+                MidiController.getInstance().playChordsThisTick();
+            }
+            if (currentClockPulse % 6 == 0) {
+                var oldValue = tick++;
+                propertyChangeSupport.firePropertyChange(TICK_PROPERTY, oldValue, tick);
+            }
+            var oldClockPulse = currentClockPulse++;
+            if (currentClockPulse > 24) {
+                currentClockPulse = 1;
+                var oldBeatNum = beatNum++;
+                if (beatNum > 4) {
+                    beatNum = 1;
+                    var oldMeasure = measureNum++;
+                    propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, oldMeasure, measureNum);
+                }
+                propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, oldBeatNum, beatNum);
+            }
+            propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, oldClockPulse, currentClockPulse);
+        } catch (Exception e) {
+            logger.atError().setCause(e).setMessage("Error in Transport#receiveClockPulse").log();
+        }
+    }
+
+    /**
+     * Stop the clock
+     */
+    public void stop() {
+        if (Options.getInstance().getMidiOptions().isSendingMidiTimecode())
+            MidiController.getInstance().sendStop();
+    }
+
+    /**
+     * Register an action to be performed at a certain tick number
+     * 
+     * @param tickNum the tick in which to perform the action
+     * @param action  the action to perform
+     */
+    public void addTickAction(long tickNum, Runnable action) {
+        tickActions.put(tickNum, action);
+    }
+
+    /**
+     * Reset measure, beat, current clock pulse, and tick to 1
+     */
+    public void reset() {
+        propertyChangeSupport.firePropertyChange(MEASURE_PROPERTY, measureNum, 1);
+        propertyChangeSupport.firePropertyChange(BEAT_PROPERTY, beatNum, 1);
+        propertyChangeSupport.firePropertyChange(CLOCK_PULSE_PROPERTY, currentClockPulse, 1);
+        propertyChangeSupport.firePropertyChange(TICK_PROPERTY, tick, 1L);
+        propertyChangeSupport.firePropertyChange(RESET_PROPERTY, 0, 1);
+        this.measureNum = 1;
+        this.beatNum = 1;
+        this.currentClockPulse = 1;
+        this.tick = 1;
+    }
+}

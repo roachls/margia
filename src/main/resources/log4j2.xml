@@ -1,22 +1,62 @@
 <Configuration monitorInterval="5">
 	<Appenders>
 		<Console name="Console">
-			<PatternLayout pattern="%-5p [%t] %c{1.} %M - %m%n" />
-			>
+			<PatternLayout pattern="%d %-5p [%t] %c{1.} %M - %m%n" />
 		</Console>
 	</Appenders>
 	<Loggers>
-		<!-- <Logger name="Musician_16" level="warn" additivity="false"> -->
-		<!-- <AppenderRef ref="Console" /> -->
-		<!-- </Logger> -->
-		<!-- <Logger name="Musician_13" level="debug" additivity="false"> -->
-		<!-- <AppenderRef ref="Console" />> -->
-		<!-- </Logger> -->
-		<Logger name="org.roach.midi_swarm.Transport" level="debug"
+		<Logger name="org.roach.margia.controller.Musician"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.rules.StateBasedRule"
+			level="warn" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.rules.RandomRule"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.rules.RandomFlavorRule"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.rules.MusicalRule"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.rules.ReceiverRule"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger
+			name="org.roach.margia.controller.rules.states.DelayedTransitionState"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.controller.Transport" level="debug"
 			additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
-		<Root level="warn">
+		<Logger name="org.roach.margia.controller.MidiController"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger
+			name="org.roach.margia.controller.timing.InternalTimingSource"
+			level="trace" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger
+			name="org.roach.margia.controller.timing.ExternalTimingSource"
+			level="info" additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Logger name="org.roach.margia.view" level="info"
+			additivity="false">
+			<AppenderRef ref="Console" />
+		</Logger>
+		<Root level="info">
 			<AppenderRef ref="Console" />
 		</Root>
 	</Loggers>

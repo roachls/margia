@@ -1,0 +1,39 @@
+@startuml
+
+title Desired data flow of options at runtime
+
+actor User
+control "UI component" as spinner
+database Options
+control "Options emitter" as emitter
+entity "visual display" as display
+
+User --> spinner : clicks on checkbox/spinner/etc.
+spinner --> Options : store new value
+Options --> emitter : emit value if changed
+emitter --> display : notify display of change
+
+legend
+1. All UI option components should ONLY update Options
+2. All model/view components should ONLY get their values from Options
+3. The rare exception is if a model/view component needs more complicated information than
+   is actually stored in Options. For example, if the rule-name needs to be translated to a
+   rule object.
+4. Any setters in model/view components should NEVER update Options - this could result in an
+   infinite loop.
+end legend
+
+@enduml
+
+@startuml
+title Desired data flow of options at load time
+
+boundary main
+database Options
+control "UI component" as spinner
+entity "visual display" as display
+
+main --> Options : load YAML file into Options
+Options -> display : call restoreFromStorage
+Options -> spinner : update values
+@enduml

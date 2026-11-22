@@ -1,0 +1,142 @@
+package org.roach.margia.controller.timing;
+
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.measure.Quantity;
+import javax.measure.quantity.Time;
+import javax.sound.midi.ShortMessage;
+
+import org.roach.margia.controller.MidiController.MidiReceiver;
+import org.roach.margia.controller.Transport;
+import org.roach.margia.storage.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import tech.units.indriya.quantity.Quantities;
+import tech.units.indriya.quantity.time.TimeQuantities;
+
+/**
+ * Use internal system clock as timing source
+ */
+public class InternalTimingSource implements TimingSource, MidiReceiver {
+    private final Transport transport;
+    private Future<?> clockFuture;
+    private AtomicReference<Quantity<Time>> tickLengthMicros;
+    private final ScheduledExecutorService clockExecutor;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    /**
+     * @param transport the transport to control
+     */
+    public InternalTimingSource(Transport transport) {
+        this.transport = transport;
+        clockExecutor = Executors.newSingleThreadScheduledExecutor();
+        Options.getInstance().getMusicOptions().tempoProperty().addListener((_, _, newVal) -> {
+            updateTempo(newVal.intValue());
+        });
+        updateTempo(Options.getInstance().getMusicOptions().getTempo());
+    }
+
+    @Override
+    public void updateTempo(int tempo) {
+        this.tickLengthMicros = new AtomicReference<>(
+                Quantities.getQuantity(60000000 / (tempo * 24), TimeQuantities.MICROSECOND));
+
+        if (running.get()) {
+            stopClock();
+            startClock();
+        }
+    }
+
+    private void startClock() {
+        running.set(true);
+        clockFuture = clockExecutor.scheduleAtFixedRate(transport::receiveClockPulse, 0,
+                tickLengthMicros.get().getValue().longValue(), TimeUnit.MICROSECONDS);
+    }
+
+    @Override
+    public void start() {
+        if (running.get())
+            return;
+        logger.atTrace().setMessage("Start transport").log();
+        transport.start();
+        logger.atTrace().setMessage("Start clock").log();
+        startClock();
+    }
+
+    private void stopClock() {
+        if (!running.get())
+            return;
+        if (clockFuture != null) {
+            clockFuture.cancel(true);
+            clockFuture = null;
+        }
+
+    }
+
+    @Override
+    public void stop() {
+        logger.atTrace().setMessage("Stop transport").log();
+        transport.stop();
+        logger.atTrace().setMessage("Stop clock").log();
+        stopClock();
+        running.set(false);
+    }
+
+    @Override
+    public boolean isRunning() { return running.get(); }
+
+    @Override
+    public void receive(ShortMessage message) {
+        if (!Options.getInstance().getMidiOptions().isUsingExternalMidi())
+            return;
+        switch (message.getCommand()) {
+        case ShortMessage.START, ShortMessage.CONTINUE:
+            start();
+            break;
+        case ShortMessage.STOP:
+            stop();
+            break;
+        case ShortMessage.CONTROL_CHANGE:
+            if (message.getData1() == 117 && message.getData2() == 0) {
+                // start button released
+                start();
+            } else if (message.getData1() == 116 && message.getData2() == 0) {
+                // stop button released
+                stop();
+            } else if (message.getData1() == 114 && message.getData2() == 0) {
+                // rewind button released
+                stop();
+                transport.reset();
+            } else if (message.getData1() == 1) {
+//                System.out.println("mod wheel: " + message.getData2());
+            } else if (message.getData1() == Options.getInstance().getMidiOptions().getTempoController()) {
+                var opts = Options.getInstance().getMusicOptions();
+                var min = opts.getTempoMinimum();
+                var max = opts.getTempoMaximum();
+                var input = message.getData2();
+                var newTempo = (int) (input / 127d * (max - min) + min);
+                Options.getInstance().getMusicOptions().setTempo(newTempo);
+                updateTempo(newTempo);
+            } else {
+//                System.out.printf("Control change: %d %d%n", message.getData1(), message.getData2());
+            }
+            break;
+        case ShortMessage.PITCH_BEND:
+//            System.out.printf("pitch bend: %d %d%n", message.getData1(), message.getData2());
+            break;
+        default:
+//            System.out.println("Received: " + message.getCommand());
+            break;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "InternalTimingSource";
+    }
+
+}

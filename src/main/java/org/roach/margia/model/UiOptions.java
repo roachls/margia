@@ -1,0 +1,198 @@
+package org.roach.margia.model;
+
+import java.util.*;
+
+import org.roach.margia.storage.Options;
+
+import javafx.beans.property.*;
+
+/**
+ * UI-related options
+ * 
+ * Note to implementers: this class is persisted directly to YAML. Do not add
+ * new getters/setters that you don't wanted persisted. If you must add a field
+ * that won't be persisted, use non-JavaBean getters/setters for it, i.e., if
+ * the field is called {@code foo}, use {@code foo()} for a getter and
+ * {@code foo(Foo f)} for a setter.
+ */
+public class UiOptions {
+    private BooleanProperty showNumbers = new SimpleBooleanProperty(true);
+    private double gravity = DEFAULT_GRAVITATIONAL_CONSTANT;
+    private final IntegerProperty edgeLength = new SimpleIntegerProperty(DEFAULT_EDGE_LENGTH);
+    private double windSpeed = DEFAULT_WINDSPEED;
+    private boolean animateBackground = false;
+    private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
+    /**
+     * property name of whether to show numbers
+     */
+    public static final String SHOW_NUMBERS_PROPERTY = "ui.show_numbers";
+    /**
+     * property name of edge length spinner
+     */
+    public static final String EDGE_LENGTH_PROPERTY = "ui.edge_length";
+    /**
+     * default edge length
+     */
+    public static final int DEFAULT_EDGE_LENGTH = 60;
+    private static final double DEFAULT_GRAVITATIONAL_CONSTANT = 5.0;
+    private static final double DEFAULT_WINDSPEED = 0.0;
+
+    /**
+     * @return the musicianComponents
+     */
+    public Map<Integer, MusicianComponentOptions> getMusicianComponents() { return musicianComponents; }
+
+    /**
+     * @return true if numbers of musicians should be displayed
+     */
+    public boolean isShowNumbers() { return showNumbers.get(); }
+
+    /**
+     * @param showNumbers the showNumbers to set
+     */
+    public void setShowNumbers(boolean showNumbers) {
+        var oldShowNumbers = this.showNumbers.get();
+        this.showNumbers.set(showNumbers);
+        if (oldShowNumbers != showNumbers) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
+     * @return the show numbers property
+     */
+    public BooleanProperty showNumbersProperty() {
+        return this.showNumbers;
+    }
+
+    /**
+     * @return {@code true} if the background should be animated
+     */
+    public boolean isAnimateBackground() { return this.animateBackground; }
+
+    /**
+     * @param animateBackground {@code true} means that the background should be
+     *                          animated
+     */
+    public void setAnimateBackground(boolean animateBackground) {
+        var oldAnim = this.animateBackground;
+        this.animateBackground = animateBackground;
+        if (oldAnim != this.animateBackground) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
+     * @return the gravity
+     */
+    public double getGravity() { return gravity; }
+
+    /**
+     * @param gravity the gravity to set
+     */
+    public void setGravity(double gravity) {
+        var oldGravity = this.gravity;
+        this.gravity = gravity;
+        if (oldGravity != this.gravity)
+            Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return the edgeLength
+     */
+    public int getEdgeLength() { return edgeLength.get(); }
+
+    /**
+     * @param edgeLength the edgeLength to set
+     */
+    public void setEdgeLength(int edgeLength) {
+        var oldEdgeLength = this.edgeLength.get();
+        this.edgeLength.set(edgeLength);
+        if (oldEdgeLength != edgeLength) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
+     * @return the edge length property
+     */
+    public IntegerProperty edgeLengthProperty() {
+        return edgeLength;
+    }
+
+    /**
+     * @return the windSpeed; positive numbers are clockwise, negative numbers are
+     *         counter-clockwise
+     */
+    public double getWindSpeed() { return windSpeed; }
+
+    /**
+     * @param windSpeed the windSpeed to set; positive numbers are clockwise,
+     *                  negative numbers are counter-clockwise
+     */
+    public void setWindSpeed(double windSpeed) {
+        var oldWindSpeed = this.windSpeed;
+        this.windSpeed = windSpeed;
+        if (oldWindSpeed != this.windSpeed) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        UiOptions other = (UiOptions) obj;
+        return edgeLength == other.edgeLength
+                && Double.doubleToLongBits(gravity) == Double.doubleToLongBits(other.gravity)
+                && Objects.equals(musicianComponents, other.musicianComponents) && showNumbers == other.showNumbers
+                && Double.doubleToLongBits(windSpeed) == Double.doubleToLongBits(other.windSpeed);
+    }
+
+    @Override
+    public String toString() {
+        return "UiOptions [showNumbers=" + showNumbers + ", gravity=" + gravity + ", edgeLength=" + edgeLength
+                + ", windSpeed=" + windSpeed + ", musicianComponents=" + musicianComponents + "]";
+    }
+
+    /**
+     * Creates a copy of the {@link MusicianComponentOptions} with id
+     * {@code musicianIdToCopy} and stores it with the id {@code id}
+     * 
+     * @param musicianIdToCopy id of the component to copy
+     * @param id               new ID
+     */
+    public void copyMusicianComponentOptions(int musicianIdToCopy, int id) {
+        var orig = musicianComponents.get(musicianIdToCopy);
+        if (orig == null)
+            throw new IllegalArgumentException(
+                    "Somehow tried to make a copy of musician component " + musicianIdToCopy + " which doesn't exist");
+        var copy = orig.copy();
+        musicianComponents.put(id, copy);
+    }
+
+    /**
+     * Copy values from another {@link UiOptions}
+     * 
+     * @param other the other {@link UiOptions}
+     */
+    public void copyFrom(UiOptions other) {
+        this.showNumbers.set(other.showNumbers.get());
+        this.gravity = other.gravity;
+        this.edgeLength.set(other.edgeLength.get());
+        this.windSpeed = other.windSpeed;
+        this.animateBackground = other.animateBackground;
+        this.musicianComponents.clear();
+        this.musicianComponents.putAll(other.musicianComponents);
+    }
+
+}
