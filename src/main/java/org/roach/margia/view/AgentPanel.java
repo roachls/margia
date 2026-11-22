@@ -535,11 +535,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             musOpts.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
             numMusicians = MusicianList.getInstance().numMusicians();
-            var musicianComponent = new MusicianComponent(musician);
-            musicianComponents.put(musician.getId(), musicianComponent);
+            var musicianComponent = addMusicianComponent(musician);
             musicianComponent.getOptions().setPosition(new Point2D(e.getX(), e.getY()));
             musicianComponent.updateLocation();
-            getChildren().add(musicianComponent);
             pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
             Options.getInstance().setDirty();
         }
