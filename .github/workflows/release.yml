@@ -16,12 +16,6 @@ jobs:
           - os: windows-latest
             type: exe
             icon: src/installer/margia.ico
-          - os: macos-latest
-            type: dmg
-            icon: src/main/resources/icon.icns
-          - os: ubuntu-latest
-            type: deb
-            icon: src/main/resources/icon.png
 
     runs-on: ${{ matrix.os }}
 
