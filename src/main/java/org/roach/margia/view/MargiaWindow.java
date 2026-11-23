@@ -8,8 +8,7 @@ import java.nio.file.*;
 import java.util.prefs.BackingStoreException;
 
 import org.roach.margia.command.CommandCaretaker;
-import org.roach.margia.controller.MidiController;
-import org.roach.margia.controller.Transport;
+import org.roach.margia.controller.*;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.Key;
 import org.roach.margia.storage.Options;
@@ -21,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -29,8 +30,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
-import javafx.stage.*;
 import javafx.scene.web.WebView;
+import javafx.stage.*;
 
 /**
  * The main program window
@@ -213,11 +214,13 @@ public class MargiaWindow extends Stage {
 
         assignIconsAndTooltips();
 
-        agentPanel.addPropertyChangeListener(AgentPanel.SELECTED_AGENT_PROPERTY, optionsWindow);
-        agentPanel.addPropertyChangeListener(AgentPanel.AGENT_ADDED_PROPERTY, optionsWindow);
-        agentPanel.addPropertyChangeListener(AgentPanel.AGENT_REMOVED_PROPERTY, optionsWindow);
-        optionsWindow.addPropertyChangeListener(agentPanel);
-
+        agentPanel.lastAddedAgentProperty().addListener((_, _, newAgent) -> optionsWindow.onAgentAdded(newAgent));
+        agentPanel.lastRemovedAgentProperty()
+                .addListener((_, _, removedAgent) -> optionsWindow.onAgentRemoved(removedAgent));
+        agentPanel.getSelectedMusicians()
+                .addListener((ListChangeListener<Musician>) change -> optionsWindow.onAgentsSelected(change.getList()));
+        optionsWindow.getSelectedAgentIds()
+                .addListener((ListChangeListener<Integer>) change -> agentPanel.selectAgentsById(change.getList()));
         updateTitle();
         updateRecentsMenu();
         registerListeners();
@@ -233,7 +236,6 @@ public class MargiaWindow extends Stage {
 
         agentPanel.init();
         agentPanel.initMusicians();
-        transport.addPropertyListener(Transport.TICK_PROPERTY, agentPanel);
     }
 
     @FXML
@@ -339,6 +341,15 @@ public class MargiaWindow extends Stage {
         Options.getInstance().getUiOptions().showNumbersProperty().addListener(MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().getMusicOptions().tempoProperty().addListener(MusicianComponent.TEMPO_LISTENER);
         Options.getInstance().dirtyProperty().addListener((_, _, _) -> Platform.runLater(this::updateTitle));
+        
+        var noAgentsSelected = Bindings.isEmpty(agentPanel.getSelectedMusicians());
+
+        deleteMenuItem.disableProperty().bind(noAgentsSelected);
+        muteMenuItem.disableProperty().bind(noAgentsSelected);
+        unmuteMenuItem.disableProperty().bind(noAgentsSelected);
+        lockMenuItem.disableProperty().bind(noAgentsSelected);
+        unlockMenuItem.disableProperty().bind(noAgentsSelected);
+        copyMenuItem.disableProperty().bind(noAgentsSelected);
     }
 
     private void updateTitle() {

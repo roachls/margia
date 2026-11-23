@@ -1,6 +1,5 @@
 package org.roach.margia.view;
 
-import java.beans.*;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.*;
@@ -17,6 +16,9 @@ import org.roach.margia.storage.Options;
 
 import javafx.animation.*;
 import javafx.application.Platform;
+import javafx.beans.property.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.*;
@@ -33,7 +35,7 @@ import javafx.scene.shape.Rectangle;
  * GUI element that displays multiple {@link Musician Musicians} in a
  * {@link Pane}
  */
-public class AgentPanel extends Pane implements PropertyChangeListener {
+public class AgentPanel extends Pane {
     int numMusicians;
     private final Map<Integer, MusicianComponent> musicianComponents = new TreeMap<>();
     private List<Edge> edges = new ArrayList<>();
@@ -44,9 +46,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     private Point2D endSelection;
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
-    static final String SELECTED_AGENT_PROPERTY = "selected_agent";
-    static final String AGENT_ADDED_PROPERTY = "agent_added";
-    static final String AGENT_REMOVED_PROPERTY = "agent_removed";
     private Point2D dragStart;
     private Point2D dragEnd;
     private List<MusicianComponent> copiedComponents;
@@ -57,7 +56,15 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     private static final double SELECTION_LINE_WIDTH = 2.0;
     private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
 
-    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+    private final ObservableList<Musician> selectedMusicians = FXCollections.observableArrayList();
+    private final ObservableList<Musician> readOnlySelectedMusicians = FXCollections
+            .unmodifiableObservableList(selectedMusicians);
+
+    private final ObjectProperty<MusicianComponent> lastAddedAgent = new SimpleObjectProperty<>();
+    private final ObjectProperty<MusicianComponent> lastRemovedAgent = new SimpleObjectProperty<>();
+    private boolean isSyncingSelection = false;
+    private final MouseHandler mouseHandler = new MouseHandler();
+
     private static final double RIPPLE_EXPANSION_SPEED = 3.0;
     private static final double RIPPLE_SCREEN_FRACTION = 0.75;
     private static final int MAX_ACTIVE_RIPPLES = 32;
@@ -111,22 +118,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         });
     }
 
-    /**
-     * @param propertyName property to listen to
-     * @param listener     listener of property
-     */
-    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
-        pcs.addPropertyChangeListener(propertyName, listener);
-    }
-
-    /**
-     * @param propertyName property to listen to
-     * @param listener     listener to remove
-     */
-    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
-        pcs.removePropertyChangeListener(propertyName, listener);
-    }
-
     void init() {
         var defTempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLengthMillis = 60000 / (defTempo * 24);
@@ -153,11 +144,17 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     }
 
     private MusicianComponent addMusicianComponent(Musician musician) {
+        return addMusicianComponent(musician, null);
+    }
+
+    private MusicianComponent addMusicianComponent(Musician musician, Point2D initialPos) {
         var n = new MusicianComponent(musician);
         n.setOnNotePlayedCallback(this::spawnRipple);
         var compOptions = n.getOptions();
-        if (compOptions.getPosition().getX() == 0.0 && compOptions.getPosition().getY() == 0.0) {
-            // Fallback bounds if AgentPanel hasn't completed its first layout pass yet
+        if (initialPos != null) {
+            compOptions.setPosition(initialPos);
+            n.updateLocation();
+        } else if (compOptions.getPosition().getX() == 0.0 && compOptions.getPosition().getY() == 0.0) {
             int panelWidth = getWidth() > n.getDiameter() * 2 ? (int) getWidth() : 800;
             int panelHeight = getHeight() > n.getDiameter() * 2 ? (int) getHeight() : 600;
 
@@ -171,7 +168,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 getChildren().add(n);
         });
         numMusicians = musicianComponents.size();
-        pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, n);
+        lastAddedAgent.set(n); // Fires once, with the final position already set
         return n;
     }
 
@@ -377,8 +374,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         }
     }
 
-    private final MouseHandler mouseHandler = new MouseHandler();
-
     private void setupMouseHandlers() {
         setOnMousePressed(mouseHandler::mousePressed);
         setOnMouseDragged(mouseHandler::mouseDragged);
@@ -467,8 +462,8 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
 
-        private void handleMultipleSelection(List<MusicianComponent> selectedMusicians) {
-            selectedMusicians.forEach(mc -> mc.setSelected(true));
+        private void handleMultipleSelection(List<MusicianComponent> currentlySelectedMusicians) {
+            currentlySelectedMusicians.forEach(mc -> mc.setSelected(true));
             notifyListenersOfSelection();
         }
 
@@ -547,10 +542,8 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             musOpts.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
             numMusicians = MusicianList.getInstance().numMusicians();
-            var musicianComponent = addMusicianComponent(musician);
-            musicianComponent.getOptions().setPosition(new Point2D(e.getX(), e.getY()));
-            musicianComponent.updateLocation();
-            pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, musicianComponent);
+
+            addMusicianComponent(musician, new Point2D(e.getX(), e.getY()));
             Options.getInstance().setDirty();
         }
 
@@ -650,7 +643,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             Options.getInstance().getUiOptions().getMusicianComponents().remove(id);
             Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(Integer.valueOf(id)));
 
-            pcs.firePropertyChange(AGENT_REMOVED_PROPERTY, null, mc);
+            lastRemovedAgent.set(mc);
         }
 
         // Redraw canvas immediately so removed edges disappear right away
@@ -665,20 +658,42 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         musicianComponents.values().forEach(mc -> mc.setSelected(true));
         notifyListenersOfSelection();
     }
-    
+
     private void notifyListenersOfSelection() {
-        var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
-                .map(MusicianComponent::getMusician).toList();
-        pcs.firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
+        if (isSyncingSelection) {
+            return;
+        }
+        var selected = musicianComponents.values().stream()
+                .filter(MusicianComponent::isSelected)
+                .map(MusicianComponent::getMusician)
+                .toList();
+        selectedMusicians.setAll(selected);
     }
-    
+
+    void selectAgentsById(List<? extends Integer> selectedMusicianIds) {
+        Platform.runLater(() -> {
+            isSyncingSelection = true;
+            try {
+                musicianComponents.values().forEach(mc -> mc.setSelected(false));
+                for (var id : selectedMusicianIds) {
+                    var mc = musicianComponents.get(id);
+                    if (mc != null) {
+                        mc.setSelected(true);
+                    }
+                }
+            } finally {
+                isSyncingSelection = false;
+            }
+        });
+    }
+
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
         notifyListenersOfSelection();
     }
-    
+
     class MuteSelectedCommand implements Command {
-    
+
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -687,11 +702,11 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnmuteSelectedCommand())));
         }
-    
+
     }
-    
+
     class UnmuteSelectedCommand implements Command {
-    
+
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -700,17 +715,17 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 CommandCaretaker
                         .pushStack(new Memento(this, List.of(new RestoreSelectedCommand(), new MuteSelectedCommand())));
         }
-    
+
     }
-    
+
     private class RestoreSelectedCommand implements Command {
         private final Set<Integer> selectedAgents;
-    
+
         public RestoreSelectedCommand() {
             selectedAgents = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                     .map(mc -> mc.getMusician().getId()).collect(Collectors.toSet());
         }
-    
+
         @Override
         public void execute(boolean undo) {
             for (var mc : musicianComponents.values()) {
@@ -718,9 +733,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-    
+
     class ToggleMuteSelectedCommand implements Command {
-    
+
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
@@ -733,9 +748,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-    
+
     class LockSelectedCommand implements Command {
-    
+
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -745,9 +760,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnlockSelectedCommand())));
             }
         }
-    
+
     }
-    
+
     class UnlockSelectedCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -771,7 +786,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-    
+
     class SetSelectedNotListeningCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -783,7 +798,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-    
+
     class SetSelectedListeningCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -795,19 +810,20 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-    
+
     class DeleteSelectedCommand implements Command {
-    
+
         @Override
         public void execute(boolean undo) {
-            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-            var deletedMusicianOptions = selectedMusicians.stream().map(m -> m.getMusician().getId())
+            var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .toList();
+            var deletedMusicianOptions = selectedMusiciansLocal.stream().map(m -> m.getMusician().getId())
                     .collect(Collectors.toMap(id -> id, id -> Options.getInstance().getMusicians().get(id)));
-            var deletedMusicianComponentOptions = selectedMusicians.stream().map(m -> m.getMusician().getId())
+            var deletedMusicianComponentOptions = selectedMusiciansLocal.stream().map(m -> m.getMusician().getId())
                     .collect(Collectors.toMap(id -> id,
                             id -> Options.getInstance().getUiOptions().getMusicianComponents().get(id)));
             var mapOfOthersToThese = new HashMap<Integer, List<Integer>>();
-            for (var selectedMusician : selectedMusicians) {
+            for (var selectedMusician : selectedMusiciansLocal) {
                 var id = selectedMusician.getMusician().getId();
                 for (var otherMusicianEntry : musicianComponents.entrySet()) {
                     if (otherMusicianEntry.getValue().getMusician().peerIds().contains(id)) {
@@ -816,15 +832,15 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                     }
                 }
             }
-            delete(selectedMusicians);
+            delete(selectedMusiciansLocal);
             if (!undo) {
                 CommandCaretaker
-                        .pushStack(new Memento(this, List.of(new RestoreDeletedMusiciansCommand(selectedMusicians,
+                        .pushStack(new Memento(this, List.of(new RestoreDeletedMusiciansCommand(selectedMusiciansLocal,
                                 deletedMusicianOptions, deletedMusicianComponentOptions, mapOfOthersToThese))));
             }
         }
     }
-    
+
     private class RestoreDeletedMusiciansCommand implements Command {
         private final List<MusicianComponent> deletedMusicians;
         private final Map<Integer, MusicianOptions> deletedMusicianOptions;
@@ -832,7 +848,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         // Key = id of deleted musician, value = list of musicians with the deleted
         // musician as a peer
         private final Map<Integer, List<Integer>> mapOfOthersToThese;
-    
+
         RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
                 Map<Integer, MusicianOptions> deletedMusicianOptions,
                 Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions,
@@ -842,7 +858,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             this.deletedMusicianComponentOptions = deletedMusicianComponentOptions;
             this.mapOfOthersToThese = mapOfOthersToThese;
         }
-    
+
         @Override
         public void execute(boolean undo) {
             for (var mc : deletedMusicians) {
@@ -850,16 +866,16 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 MusicianList.getInstance().addMusician(mc.getMusician());
                 numMusicians = MusicianList.getInstance().numMusicians();
                 musicianComponents.put(id, mc);
-    
+
                 // Replaces Swing's add(mc)
                 getChildren().add(mc);
                 mc.updateLocation();
                 mc.draw();
-    
+
                 Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
                 Options.getInstance().getUiOptions().getMusicianComponents().put(id,
                         deletedMusicianComponentOptions.get(id));
-                pcs.firePropertyChange(AGENT_ADDED_PROPERTY, null, mc);
+                lastAddedAgent.set(mc);
             }
             // Restore peers
             for (var otherEntry : mapOfOthersToThese.entrySet()) {
@@ -882,12 +898,13 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
         @Override
         public void execute(boolean undo) {
-            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-            for (int i = 0; i < selectedMusicians.size() - 1; i++) {
-                for (int j = i + 1; j < selectedMusicians.size(); j++) {
-                    var mc1 = selectedMusicians.get(i);
+            var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .toList();
+            for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
+                for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
+                    var mc1 = selectedMusiciansLocal.get(i);
                     var mus1 = mc1.getMusician();
-                    var mc2 = selectedMusicians.get(j);
+                    var mc2 = selectedMusiciansLocal.get(j);
                     var mus2 = mc2.getMusician();
                     mus1.addPeer(mus2);
                     mus2.addPeer(mus1);
@@ -905,11 +922,12 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
         @Override
         public void execute(boolean undo) {
-            var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
-            for (int i = 0; i < selectedMusicians.size() - 1; i++) {
-                for (int j = i + 1; j < selectedMusicians.size(); j++) {
-                    var mc1 = selectedMusicians.get(i);
-                    var mc2 = selectedMusicians.get(j);
+            var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                    .toList();
+            for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
+                for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
+                    var mc1 = selectedMusiciansLocal.get(i);
+                    var mc2 = selectedMusiciansLocal.get(j);
                     var edgeIter = edges.iterator();
                     while (edgeIter.hasNext()) {
                         var edge = edgeIter.next();
@@ -1009,7 +1027,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             list.get(i).addPeer(list.get(i + 1));
         }
         list.get(list.size() - 1).addPeer(list.get(0));
-        var components = list.stream().map(this::addMusicianComponent).toList();
+        var components = list.stream().map(c -> this.addMusicianComponent(c)).toList();
         createEdges(components);
     }
 
@@ -1087,7 +1105,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                     }
                 }
             }
-            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
+            var components = list.stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
             createEdges(components);
 
             if (!undo)
@@ -1150,7 +1168,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                     arr[y].addPeer(arr[(y - 1) / 2]);
                 }
             }
-            var components = Arrays.asList(arr).stream().map(AgentPanel.this::addMusicianComponent).toList();
+            var components = Arrays.asList(arr).stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
 
             createEdges(components);
 
@@ -1179,7 +1197,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 list.add(m);
                 MusicianList.getInstance().addMusician(m);
             }
-            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
+            var components = list.stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
             createEdges(components);
 
             if (!undo)
@@ -1188,21 +1206,23 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public void propertyChange(PropertyChangeEvent evt) {
-        if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
-            var selectedMusicianIds = (List<Integer>) evt.getNewValue();
-            Platform.runLater(() -> {
-                deselectAll();
-                for (var id : selectedMusicianIds) {
-                    var mc = musicianComponents.get(id);
-                    if (mc != null) {
-                        mc.setSelected(true);
-                    }
-                }
-            });
-        }
+    /**
+     * @return {@link ObservableList} of selected musicians
+     */
+    public ObservableList<Musician> getSelectedMusicians() { return readOnlySelectedMusicians; }
+
+    /**
+     * @return JavaFX property for last agent that was added
+     */
+    public ReadOnlyObjectProperty<MusicianComponent> lastAddedAgentProperty() {
+        return lastAddedAgent;
+    }
+
+    /**
+     * @return JavaFX property for last agent that was removed
+     */
+    public ReadOnlyObjectProperty<MusicianComponent> lastRemovedAgentProperty() {
+        return lastRemovedAgent;
     }
 
     private static final class Ripple {

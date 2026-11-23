@@ -1,6 +1,5 @@
 package org.roach.margia.view;
 
-import java.beans.*;
 import java.io.IOException;
 import java.util.*;
 
@@ -11,7 +10,7 @@ import org.roach.margia.storage.Options;
 import org.roach.margia.storage.Persistence;
 
 import javafx.application.Platform;
-import javafx.collections.ListChangeListener;
+import javafx.collections.*;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -23,7 +22,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
 
-class OptionsWindow extends Stage implements PropertyChangeListener {
+class OptionsWindow extends Stage {
     private static final String HEIGHT_PROPERTY = "_height";
     private static final String WIDTH_PROPERTY = "_width";
     private static final String Y_PROPERTY = "_y";
@@ -31,6 +30,9 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
     static final String OPTIONS_WINDOW_NAME = "optionsWindow";
 
     static final String MUSICIAN = "Musician ";
+    private final ObservableList<Integer> selectedAgentIds = FXCollections.observableArrayList();
+    private final Map<Integer, TreeItem<Object>> musicianNodes = new HashMap<>();
+    private boolean isSyncingSelection = false;
 
     @FXML
     private BorderPane borderPane;
@@ -69,11 +71,6 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
             borderPane.setCenter(defaultPanel);
         }
     }
-
-    private final Map<Integer, TreeItem<Object>> musicianNodes = new HashMap<>();
-
-    public static final String OPTIONS_AGENTS_SELECTED_PROPERTY = "options agents selected";
-    private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
     OptionsWindow(Window owner) {
         setTitle("Options");
@@ -148,17 +145,22 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                 }
             }
 
-            if (selectedCount > 0) {
-                var musicianIdList = new ArrayList<Integer>();
-                for (var item : selectedItems) {
-                    var valueStr = item.getValue().toString();
-                    if (valueStr != null && valueStr.startsWith(MUSICIAN)) {
-                        var musicianId = Integer.parseInt(valueStr.substring(MUSICIAN.length()));
-                        musicianIdList.add(musicianId);
+            if (!isSyncingSelection) {
+                if (selectedCount > 0) {
+                    var musicianIdList = new ArrayList<Integer>();
+                    for (var item : selectedItems) {
+                        var valueStr = item.getValue().toString();
+                        if (valueStr != null && valueStr.startsWith(MUSICIAN)) {
+                            var musicianId = Integer.parseInt(valueStr.substring(MUSICIAN.length()));
+                            musicianIdList.add(musicianId);
+                        }
                     }
+                    selectedAgentIds.setAll(musicianIdList);
+                } else {
+                    selectedAgentIds.clear();
                 }
-                pcs.firePropertyChange(OPTIONS_AGENTS_SELECTED_PROPERTY, Collections.emptyList(), musicianIdList);
             }
+
         });
         initDefaultOptionsNode();
     }
@@ -205,47 +207,59 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
         musiciansNode.setExpanded(true);
     }
 
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
-        pcs.addPropertyChangeListener(listener);
+    public ObservableList<Integer> getSelectedAgentIds() {
+        return FXCollections.unmodifiableObservableList(selectedAgentIds);
     }
 
-    public void removePropertyChangeListener(PropertyChangeListener listener) {
-        pcs.removePropertyChangeListener(listener);
-    }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public void propertyChange(PropertyChangeEvent e) {
+    void onAgentAdded(MusicianComponent mc) {
+        if (mc == null) {
+            return;
+        }
         Platform.runLater(() -> {
-            if (AgentPanel.AGENT_ADDED_PROPERTY.equals(e.getPropertyName())) {
-                var mc = (MusicianComponent) e.getNewValue();
-                var id = mc.getMusician().getId();
-                var newUiPanel = new MusicianUiPanel(id, mc.getOptions());
-                var newMusicianPanel = new MusicianMusicalOptionsPanel(mc.getMusician().getOptions());
-                var newRulePanel = new MusicianRuleOptionsPanel(id, mc.getMusician().getOptions().getRuleOptions());
-                var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
+            var id = mc.getMusician().getId();
+            if (musicianNodes.containsKey(id)) {
+                return;
+            }
+            var newUiPanel = new MusicianUiPanel(id, mc.getOptions());
+            var newMusicianPanel = new MusicianMusicalOptionsPanel(mc.getMusician().getOptions());
+            var newRulePanel = new MusicianRuleOptionsPanel(id, mc.getMusician().getOptions().getRuleOptions());
+            var newOptionsPanel = new MusicianOptionsPanel(newUiPanel, newMusicianPanel, newRulePanel);
 
-                var newNode = new TreeItem<Object>(newOptionsPanel);
+            var newNode = new TreeItem<Object>(newOptionsPanel);
 
-                musiciansNode.getChildren().add(newNode);
-                musiciansNode.setExpanded(true);
-                musicianNodes.put(id, newNode);
-            } else if (AgentPanel.AGENT_REMOVED_PROPERTY.equals(e.getPropertyName())) {
-                var mc = (MusicianComponent) e.getNewValue();
-                var id = mc.getMusician().getId();
-                var nodeToRemove = musicianNodes.remove(id);
+            musiciansNode.getChildren().add(newNode);
+            musiciansNode.setExpanded(true);
+            musicianNodes.put(id, newNode);
+        });
+    }
 
-                if (nodeToRemove != null) {
-                    musiciansNode.getChildren().remove(nodeToRemove);
-                }
+    void onAgentRemoved(MusicianComponent mc) {
+        if (mc == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            var id = mc.getMusician().getId();
+            var nodeToRemove = musicianNodes.remove(id);
 
-            } else if (AgentPanel.SELECTED_AGENT_PROPERTY.equals(e.getPropertyName())) {
+            if (nodeToRemove != null) {
+                musiciansNode.getChildren().remove(nodeToRemove);
+            }
+        });
+    }
+
+    void onAgentsSelected(List<? extends Musician> selectedMusicians) {
+        Platform.runLater(() -> {
+            isSyncingSelection = true;
+            try {
                 var selectionModel = tree.getSelectionModel();
                 selectionModel.clearSelection();
 
-                var selectedMusicians = (List<Musician>) e.getNewValue();
-                var itemsToSelect = selectedMusicians.stream().map(Musician::getId).map(musicianNodes::get)
-                        .filter(Objects::nonNull).toList();
+                var itemsToSelect = selectedMusicians.stream()
+                        .map(Musician::getId)
+                        .map(musicianNodes::get)
+                        .filter(Objects::nonNull)
+                        .toList();
 
                 if (!itemsToSelect.isEmpty()) {
                     musiciansNode.setExpanded(true);
@@ -259,6 +273,8 @@ class OptionsWindow extends Stage implements PropertyChangeListener {
                         tree.scrollTo(firstRowIndex);
                     }
                 }
+            } finally {
+                isSyncingSelection = false;
             }
         });
     }
