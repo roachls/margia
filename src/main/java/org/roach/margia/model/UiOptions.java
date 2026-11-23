@@ -5,6 +5,7 @@ import java.util.*;
 import org.roach.margia.storage.Options;
 
 import javafx.beans.property.*;
+import javafx.scene.paint.Color;
 
 /**
  * UI-related options
@@ -17,6 +18,7 @@ import javafx.beans.property.*;
  */
 public class UiOptions {
     private BooleanProperty showNumbers = new SimpleBooleanProperty(true);
+    private ObjectProperty<Color> backgroundColor = new SimpleObjectProperty<>(Color.BLUE);
     private double gravity = DEFAULT_GRAVITATIONAL_CONSTANT;
     private final IntegerProperty edgeLength = new SimpleIntegerProperty(DEFAULT_EDGE_LENGTH);
     private double windSpeed = DEFAULT_WINDSPEED;
@@ -56,6 +58,29 @@ public class UiOptions {
         if (oldShowNumbers != showNumbers) {
             Options.getInstance().setDirty();
         }
+    }
+
+    /**
+     * @return the current background color
+     */
+    public Color getBackgroundColor() { return backgroundColor.get(); }
+
+    /**
+     * @param backgroundColor the background color to set
+     */
+    public void setBackgroundColor(Color backgroundColor) {
+        var oldBgColor = this.backgroundColor.get();
+        this.backgroundColor.set(backgroundColor);
+        if (!oldBgColor.equals(backgroundColor)) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
+     * @return the background color JavaFX property
+     */
+    public ObjectProperty<Color> backgroundColorProperty() {
+        return this.backgroundColor;
     }
 
     /**
@@ -193,6 +218,7 @@ public class UiOptions {
         this.animateBackground = other.animateBackground;
         this.musicianComponents.clear();
         this.musicianComponents.putAll(other.musicianComponents);
+        this.backgroundColor.set(other.backgroundColor.get());
     }
 
 }

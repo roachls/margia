@@ -6,8 +6,7 @@ import org.roach.margia.storage.Options;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Spinner;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
@@ -25,6 +24,8 @@ public class UiOptionsPanel extends VBox {
     CheckBox showIcons;
     @FXML
     CheckBox animateBackground;
+    @FXML
+    ColorPicker colorPicker;
 
     /**
      * constructor
@@ -51,6 +52,7 @@ public class UiOptionsPanel extends VBox {
         edgeLength.getValueFactory().setValue(uiOptions.getEdgeLength());
         showIcons.setSelected(uiOptions.isShowNumbers());
         animateBackground.setSelected(uiOptions.isAnimateBackground());
+        colorPicker.setValue(uiOptions.getBackgroundColor());
 
         // Attach change listeners
         gravity.valueProperty().addListener((_, _, newVal) -> {
@@ -74,6 +76,12 @@ public class UiOptionsPanel extends VBox {
         showIcons.selectedProperty().addListener((_, _, newVal) -> uiOptions.setShowNumbers(newVal));
 
         animateBackground.selectedProperty().addListener((_, _, newVal) -> uiOptions.setAnimateBackground(newVal));
+
+        colorPicker.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                uiOptions.setBackgroundColor(newVal);
+            }
+        });
     }
 
     @Override

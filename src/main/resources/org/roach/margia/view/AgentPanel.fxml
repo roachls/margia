@@ -5,8 +5,7 @@
 <?import javafx.scene.shape.Rectangle?>
 
 <fx:root type="javafx.scene.layout.Pane"
-	style="-fx-background-color: blue;" xmlns="http://javafx.com"
-	xmlns:fx="http://javafx.com">
+	xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
 	<clip>
 		<Rectangle fx:id="clipRect" />
 	</clip>

@@ -16,6 +16,7 @@ import org.roach.margia.storage.Options;
 
 import javafx.animation.*;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -27,9 +28,11 @@ import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 /**
  * GUI element that displays multiple {@link Musician Musicians} in a
@@ -89,11 +92,14 @@ public class AgentPanel extends Pane {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load AgentPanel.fxml", e);
         }
+        
+        this.backgroundProperty().bind(Bindings.createObjectBinding(
+                () -> Background.fill(Options.getInstance().getUiOptions().backgroundColorProperty().get()),
+                Options.getInstance().getUiOptions().backgroundColorProperty()));
     }
 
     @FXML
     private void initialize() {
-        // Property bindings cannot be expressed directly in FXML, so keep them here
         backgroundCanvas.widthProperty().bind(widthProperty());
         backgroundCanvas.heightProperty().bind(heightProperty());
 
@@ -138,7 +144,7 @@ public class AgentPanel extends Pane {
         if (animationTimeline != null) {
             animationTimeline.stop();
         }
-        animationTimeline = new Timeline(new KeyFrame(javafx.util.Duration.millis(20), _ -> onAnimationTick()));
+        animationTimeline = new Timeline(new KeyFrame(Duration.millis(20), _ -> onAnimationTick()));
         animationTimeline.setCycleCount(Animation.INDEFINITE);
         animationTimeline.play();
     }
@@ -198,10 +204,10 @@ public class AgentPanel extends Pane {
         double maxRadius = screenSpan * RIPPLE_SCREEN_FRACTION;
         ripples.add(new Ripple(center.getX(), center.getY(), startRadius, maxRadius, color));
     }
-
+    
     private void drawBackground() {
-        double w = getWidth();
-        double h = getHeight();
+        double w = backgroundCanvas.getWidth();
+        double h = backgroundCanvas.getHeight();
         if (w <= 0 || h <= 0) {
             return;
         }
