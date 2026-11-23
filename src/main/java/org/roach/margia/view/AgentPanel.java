@@ -636,7 +636,8 @@ public class AgentPanel extends Pane {
             // Remove any edges connected to this musician
             edges.removeIf(edge -> edge.source.equals(mc) || edge.target.equals(mc));
 
-            // Remove the node from the JavaFX Pane's children
+            // disconnect any property change listeners from mc
+            mc.dispose();
             getChildren().remove(mc);
 
             Options.getInstance().getMusicians().remove(id);
@@ -663,10 +664,8 @@ public class AgentPanel extends Pane {
         if (isSyncingSelection) {
             return;
         }
-        var selected = musicianComponents.values().stream()
-                .filter(MusicianComponent::isSelected)
-                .map(MusicianComponent::getMusician)
-                .toList();
+        var selected = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
+                .map(MusicianComponent::getMusician).toList();
         selectedMusicians.setAll(selected);
     }
 
@@ -867,7 +866,7 @@ public class AgentPanel extends Pane {
                 numMusicians = MusicianList.getInstance().numMusicians();
                 musicianComponents.put(id, mc);
 
-                // Replaces Swing's add(mc)
+                mc.reattach();
                 getChildren().add(mc);
                 mc.updateLocation();
                 mc.draw();
@@ -1008,7 +1007,10 @@ public class AgentPanel extends Pane {
     }
 
     void reset() {
-        this.musicianComponents.values().forEach(mc -> getChildren().remove(mc));
+        this.musicianComponents.values().forEach(mc -> {
+            mc.dispose();
+            getChildren().remove(mc);
+        });
         this.musicianComponents.clear();
         this.edges.clear();
         this.numMusicians = 0;

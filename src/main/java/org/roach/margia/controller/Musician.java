@@ -327,6 +327,11 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         propertyChange.addPropertyChangeListener(listener);
     }
+    
+    @Override
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        propertyChange.removePropertyChangeListener(listener);
+    }
 
     /**
      * @return a list of IDs of all peers
