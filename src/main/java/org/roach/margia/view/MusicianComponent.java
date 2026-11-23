@@ -54,14 +54,11 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
     }
 
     static final double SELECTED_LINE_WIDTH = 2.0;
-
     private static final Font LOCK_FONT = Font.font("SansSerif", 15);
-
     private static final double ρ = 0.00009;
-
     private final Canvas canvas = new Canvas();
-
     private BiConsumer<MusicianComponent, Color> onNotePlayedCallback;
+    private Timeline fadeTimeline;
 
     /**
      * @param musician the {@link Musician} being displayed
@@ -141,8 +138,6 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     }
 
-    private Timeline fadeTimeline;
-
     @Override
     @SuppressWarnings("java:S1301")
     public void propertyChange(PropertyChangeEvent evt) {
@@ -167,9 +162,14 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                     brightness.set(1.0);
 
                     fadeTimeline = new Timeline(new KeyFrame(Duration.millis(delayMillis), _ -> {
-                        color = Color.hsb(hueDegrees, normalizedSaturation, brightness.get());
-                        brightness.getAndAccumulate(brightnessOffset, (b, f) -> Math.max(0.0, b - f));
+                        double currentBrightness = brightness.get();
+                        color = Color.hsb(hueDegrees, normalizedSaturation, currentBrightness);
                         draw();
+                        if (currentBrightness <= 0.0) {
+                            fadeTimeline.stop();
+                        } else {
+                            brightness.set(Math.max(0.0, currentBrightness - brightnessOffset));
+                        }
                     }));
                     fadeTimeline.setCycleCount(Animation.INDEFINITE);
                     fadeTimeline.play();
@@ -209,8 +209,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                 radius + 3.0, // centerX
                 radius + 3.0, // centerY
                 radius, // radius
-                false,
-                CycleMethod.NO_CYCLE, new Stop(0.0, Color.WHITE), new Stop(1.0, color));
+                false, CycleMethod.NO_CYCLE, new Stop(0.0, Color.WHITE), new Stop(1.0, color));
 
         gc.setFill(gradient);
         gc.fillOval(0, 0, w, h);
@@ -425,4 +424,14 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     static int getTickLengthMillis() { return tickLengthMillis; }
 
+    void dispose() {
+        musician.removePropertyChangeListener(this);
+        if (fadeTimeline != null) {
+            fadeTimeline.stop();
+        }
+    }
+
+    void reattach() {
+        musician.addPropertyChangeListener(this);
+    }
 }

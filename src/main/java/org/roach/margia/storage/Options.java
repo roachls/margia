@@ -176,8 +176,14 @@ public class Options {
         storedOptions.setRandomSeed(randomSeed);
     }
     
+    /**
+     * @return the default options that will be applied to any new Musician
+     */
     public MusicianOptions getDefaultMusicianOptions() { return storedOptions.getDefaultMusicianOptions(); }
 
+    /**
+     * @return the default options that will be applied to any new MusicianComponent
+     */
     public MusicianComponentOptions getDefaultMusicianComponentOptions() {
         return storedOptions.getDefaultMusicianComponentOptions();
     }

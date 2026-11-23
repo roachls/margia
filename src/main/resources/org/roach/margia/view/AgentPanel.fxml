@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.shape.Rectangle?>
+
+<fx:root type="javafx.scene.layout.Pane"
+	style="-fx-background-color: blue;" xmlns="http://javafx.com"
+	xmlns:fx="http://javafx.com">
+	<clip>
+		<Rectangle fx:id="clipRect" />
+	</clip>
+	<children>
+		<Canvas fx:id="backgroundCanvas" />
+	</children>
+</fx:root>
