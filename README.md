@@ -1,4 +1,4 @@
-# MARGIA (Music and Rhythm Generating Intelligent Agents)
+ MARGIA (Music and Rhythm Generating Intelligent Agents)
 
 Intelligent agents with limited intelligence that play music through MIDI and sharing information.
 
@@ -171,23 +171,10 @@ If using Windows internal MIDI, stop. To use with the Reason DAW, continue:
 	<ol type="a">
 	<li>Open Edit -> Preferences -> Other Controls; change Bus A to "loopMIDI Port"</li>
 	<li>Expand Hardware Interface</li>
-	<li>Select Advance MIDI</li>
+	<li>Select Advanced MIDI</li>
 	<li>Under "Advanced MIDI Device" for the channel that Java will be sending events to, select the instrument that events should be routed to for each MIDI channel</li>
 	</ol>
 	
-### Running:
-
-I don't currently have a downloadable release of MARGIA because it is still under active development. To run:
-
-<ol>
-	<li>Ensure that you ahve Java 25 available</li>
-	<li>Clone this repository</li>
-	<li>Run the class <code>org.roach.margia.Main</code></li>
-	<li>Optionally use the command-line option <code>--file [filename]</code></li>
-</ol>
-
-Many things are still hard-coded in the main method that I'd like to be able to export to preferences.
-
 ### The GUI
 
 - Each Musician is represented as a colored circle that starts black but glows when it is playing a note. The hue of
@@ -196,3 +183,4 @@ Many things are still hard-coded in the main method that I'd like to be able to 
   will start at 1.0f and decrease to 0.0f over the course of the note's duration.
 - Musicians that are "muted" (i.e., they can only be heard by connected Musicians, not by us) will be "grayed out"
 - Lines will glow in the color of the note emitted by the Musician.
+- Each Musician will emit "ripples" when it triggers a MIDI note.

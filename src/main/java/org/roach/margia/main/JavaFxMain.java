@@ -2,6 +2,7 @@ package org.roach.margia.main;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
@@ -15,9 +16,6 @@ import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
 import org.roach.margia.util.MargiaFileUtils;
 import org.roach.margia.view.MargiaWindow;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -44,26 +42,13 @@ public class JavaFxMain extends Application {
         JAVAFX_LOGGER.setLevel(Level.FINE);
         CSS_LOGGER.setLevel(Level.FINE);
 
-        var params = new MainParams();
-        // @formatter:off
-        var jCommanderBuilder = JCommander.newBuilder()
-                .addObject(params);
-        var jCommander = jCommanderBuilder.build();
-        // @formatter:on
-        try {
-            jCommander.parse(args);
-        } catch (ParameterException e) {
-            System.err.println(e.getMessage());
-            jCommander.usage();
-            return;
-        }
-
-        if (params.file != null) {
-            try (var is = Files.newInputStream(params.file)) {
+        if (args.length >= 1) {
+            Path filePath = Path.of(args[0]);
+            try (var is = Files.newInputStream(filePath)) {
                 Options.getInstance().load(is);
-                Options.getInstance().setFilename(params.file);
-                Options.getInstance().setSaveDir(params.file.getParent());
-                MargiaFileUtils.saveRecentsToPersistence(params.file.toString());
+                Options.getInstance().setFilename(filePath);
+                Options.getInstance().setSaveDir(filePath.getParent());
+                MargiaFileUtils.saveRecentsToPersistence(filePath.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (BackingStoreException e) {
