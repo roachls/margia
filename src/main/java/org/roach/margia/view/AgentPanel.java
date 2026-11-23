@@ -1,7 +1,7 @@
 package org.roach.margia.view;
 
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
+import java.beans.*;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,6 +17,8 @@ import org.roach.margia.storage.Options;
 
 import javafx.animation.*;
 import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.*;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -55,29 +57,41 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
     private static final double SELECTION_LINE_WIDTH = 2.0;
     private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
 
-    private final Canvas backgroundCanvas = new Canvas();
-
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     private static final double RIPPLE_EXPANSION_SPEED = 3.0;
     private static final double RIPPLE_SCREEN_FRACTION = 0.75;
     private static final int MAX_ACTIVE_RIPPLES = 32;
 
     private final List<Ripple> ripples = new ArrayList<>();
+    @FXML
+    private Canvas backgroundCanvas;
+    @FXML
+    private Rectangle clipRect;
+    private Timeline animationTimeline;
 
     /**
      * Constructor
      */
     public AgentPanel() {
-        setStyle("-fx-background-color: blue;");
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("AgentPanel.fxml"));
+        fxmlLoader.setRoot(this);
+        fxmlLoader.setController(this);
 
+        try {
+            fxmlLoader.load();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load AgentPanel.fxml", e);
+        }
+    }
+
+    @FXML
+    private void initialize() {
+        // Property bindings cannot be expressed directly in FXML, so keep them here
         backgroundCanvas.widthProperty().bind(widthProperty());
         backgroundCanvas.heightProperty().bind(heightProperty());
-        getChildren().add(backgroundCanvas);
 
-        var clipRect = new Rectangle();
         clipRect.widthProperty().bind(widthProperty());
         clipRect.heightProperty().bind(heightProperty());
-        setClip(clipRect);
 
         widthProperty().addListener((_, _, newWidth) -> Global.setScreenWidth(newWidth.intValue()));
         heightProperty().addListener((_, _, newHeight) -> Global.setScreenHeight(newHeight.intValue()));
@@ -96,8 +110,6 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         });
     }
-
-    private Timeline animationTimeline;
 
     /**
      * @param propertyName property to listen to
@@ -653,20 +665,20 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         musicianComponents.values().forEach(mc -> mc.setSelected(true));
         notifyListenersOfSelection();
     }
-
+    
     private void notifyListenersOfSelection() {
         var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                 .map(MusicianComponent::getMusician).toList();
         pcs.firePropertyChange(SELECTED_AGENT_PROPERTY, Collections.emptyList(), selectedMusicians);
     }
-
+    
     void deselectAll() {
         musicianComponents.values().forEach(mc -> mc.setSelected(false));
         notifyListenersOfSelection();
     }
-
+    
     class MuteSelectedCommand implements Command {
-
+    
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -675,11 +687,11 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnmuteSelectedCommand())));
         }
-
+    
     }
-
+    
     class UnmuteSelectedCommand implements Command {
-
+    
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -688,17 +700,17 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 CommandCaretaker
                         .pushStack(new Memento(this, List.of(new RestoreSelectedCommand(), new MuteSelectedCommand())));
         }
-
+    
     }
-
+    
     private class RestoreSelectedCommand implements Command {
         private final Set<Integer> selectedAgents;
-
+    
         public RestoreSelectedCommand() {
             selectedAgents = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                     .map(mc -> mc.getMusician().getId()).collect(Collectors.toSet());
         }
-
+    
         @Override
         public void execute(boolean undo) {
             for (var mc : musicianComponents.values()) {
@@ -706,9 +718,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     class ToggleMuteSelectedCommand implements Command {
-
+    
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
@@ -721,9 +733,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     class LockSelectedCommand implements Command {
-
+    
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -733,9 +745,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnlockSelectedCommand())));
             }
         }
-
+    
     }
-
+    
     class UnlockSelectedCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -759,7 +771,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     class SetSelectedNotListeningCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -771,7 +783,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     class SetSelectedListeningCommand implements Command {
         @Override
         public void execute(boolean undo) {
@@ -783,9 +795,9 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     class DeleteSelectedCommand implements Command {
-
+    
         @Override
         public void execute(boolean undo) {
             var selectedMusicians = musicianComponents.values().stream().filter(MusicianComponent::isSelected).toList();
@@ -812,7 +824,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             }
         }
     }
-
+    
     private class RestoreDeletedMusiciansCommand implements Command {
         private final List<MusicianComponent> deletedMusicians;
         private final Map<Integer, MusicianOptions> deletedMusicianOptions;
@@ -820,7 +832,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
         // Key = id of deleted musician, value = list of musicians with the deleted
         // musician as a peer
         private final Map<Integer, List<Integer>> mapOfOthersToThese;
-
+    
         RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
                 Map<Integer, MusicianOptions> deletedMusicianOptions,
                 Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions,
@@ -830,7 +842,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
             this.deletedMusicianComponentOptions = deletedMusicianComponentOptions;
             this.mapOfOthersToThese = mapOfOthersToThese;
         }
-
+    
         @Override
         public void execute(boolean undo) {
             for (var mc : deletedMusicians) {
@@ -838,12 +850,12 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
                 MusicianList.getInstance().addMusician(mc.getMusician());
                 numMusicians = MusicianList.getInstance().numMusicians();
                 musicianComponents.put(id, mc);
-
+    
                 // Replaces Swing's add(mc)
                 getChildren().add(mc);
                 mc.updateLocation();
                 mc.draw();
-
+    
                 Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
                 Options.getInstance().getUiOptions().getMusicianComponents().put(id,
                         deletedMusicianComponentOptions.get(id));
@@ -1178,7 +1190,7 @@ public class AgentPanel extends Pane implements PropertyChangeListener {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void propertyChange(java.beans.PropertyChangeEvent evt) {
+    public void propertyChange(PropertyChangeEvent evt) {
         if (OptionsWindow.OPTIONS_AGENTS_SELECTED_PROPERTY.equals(evt.getPropertyName())) {
             var selectedMusicianIds = (List<Integer>) evt.getNewValue();
             Platform.runLater(() -> {
