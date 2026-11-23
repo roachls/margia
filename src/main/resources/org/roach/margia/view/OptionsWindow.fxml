@@ -42,11 +42,6 @@
                                 <MusicPanel fx:id="globalMusicPanel" />
                             </value>
                         </TreeItem>
-                        <TreeItem>
-                            <value>
-                                <MusicPanel fx:id="globalMusicPanel" />
-                            </value>
-                        </TreeItem>
                         <TreeItem fx:id="defaultOptionsNode" />
                         <TreeItem fx:id="musiciansNode" value="Musicians" expanded="true" />
                         <TreeItem fx:id="musiciansNode" value="Musicians" expanded="true" />
