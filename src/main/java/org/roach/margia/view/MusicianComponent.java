@@ -189,7 +189,6 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     void setOnNotePlayedCallback(BiConsumer<MusicianComponent, Color> callback) {
         this.onNotePlayedCallback = callback;
-        System.out.println("**** SET CALLBACK: " + this.musician.getId());
     }
 
     void draw() {

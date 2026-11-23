@@ -30,6 +30,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
+import javafx.scene.web.WebView;
 
 /**
  * The main program window
@@ -46,7 +47,7 @@ public class MargiaWindow extends Stage {
             <h3>By Stevie Roach</h3>
             <a href="mailto:roachls@yahoo.com">roachls@yahoo.com</a>
             <br>
-            <a href="https://github.com">https://github.com</a>
+            <a href="https://github.com/roachls/margia">https://github.com/roachls/margia</a>
             </html>
             """;
     private static final String KEYBOARD_SHORTCUTS = """
@@ -178,10 +179,14 @@ public class MargiaWindow extends Stage {
     @FXML
     private Button showUiOptions;
 
-    @FXML private Button addMultipleBtn;
-    @FXML private Button addCircleBtn;
-    @FXML private Button addGridBtn;
-    @FXML private Button addFanBtn;
+    @FXML
+    private Button addMultipleBtn;
+    @FXML
+    private Button addCircleBtn;
+    @FXML
+    private Button addGridBtn;
+    @FXML
+    private Button addFanBtn;
 
     private OptionsWindow optionsWindow;
     private final TransportPanel transportPanel;
@@ -716,7 +721,10 @@ public class MargiaWindow extends Stage {
         alert.initOwner(this);
         alert.setTitle(title);
         alert.setHeaderText(null);
-        alert.setContentText(content);
+        WebView webView = new WebView();
+        webView.getEngine().loadContent(content);
+        webView.setPrefSize(600, 400);
+        alert.getDialogPane().setContent(webView);
         alert.showAndWait();
     }
 

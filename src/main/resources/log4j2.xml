@@ -10,7 +10,7 @@
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.StateBasedRule"
-			level="warn" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger name="org.roach.margia.controller.rules.RandomRule"
@@ -44,7 +44,7 @@
 		</Logger>
 		<Logger
 			name="org.roach.margia.controller.timing.InternalTimingSource"
-			level="trace" additivity="false">
+			level="info" additivity="false">
 			<AppenderRef ref="Console" />
 		</Logger>
 		<Logger
