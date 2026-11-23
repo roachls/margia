@@ -48,6 +48,7 @@ jobs:
             --icon ${{ matrix.icon }} \
             --app-version ${GITHUB_REF_NAME#v} \
             --dest target/dist
+            --file-associations file-assoc.properties
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
