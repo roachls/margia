@@ -15,7 +15,7 @@ jobs:
         include:
           - os: windows-latest
             type: exe
-            icon: src/main/resources/icon.ico
+            icon: src/installer/margia.ico
           - os: macos-latest
             type: dmg
             icon: src/main/resources/icon.icns
@@ -29,11 +29,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
+          java-package: 'jdk+jmods'
 
       - name: Build with Maven
         run: mvn clean package
