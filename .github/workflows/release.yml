@@ -37,6 +37,7 @@ jobs:
         run: cp target/*.jar target/libs/
 
       - name: Package native installer
+        shell: bash
         run: |
           jpackage \
             --input target/libs \
