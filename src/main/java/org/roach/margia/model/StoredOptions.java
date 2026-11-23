@@ -23,16 +23,30 @@ public class StoredOptions {
     private MusicianOptions defaultMusicianOptions = new MusicianOptions();
     private MusicianComponentOptions defaultMusicianComponentOptions = new MusicianComponentOptions();
 
+    /**
+     * @return the default options that will be applied to any new Musician
+     */
     public MusicianOptions getDefaultMusicianOptions() { return defaultMusicianOptions; }
 
+    /**
+     * @param defaultMusicianOptions the default options that will be applied to any
+     *                               new Musician
+     */
     public void setDefaultMusicianOptions(MusicianOptions defaultMusicianOptions) {
         if (defaultMusicianOptions != null) {
             this.defaultMusicianOptions = defaultMusicianOptions;
         }
     }
 
+    /**
+     * @return the default options that will be applied to any new MusicianComponent
+     */
     public MusicianComponentOptions getDefaultMusicianComponentOptions() { return defaultMusicianComponentOptions; }
 
+    /**
+     * @param defaultMusicianComponentOptions the default options that will be
+     *                                        applied to any new MusicianComponent
+     */
     public void setDefaultMusicianComponentOptions(MusicianComponentOptions defaultMusicianComponentOptions) {
         if (defaultMusicianComponentOptions != null) {
             this.defaultMusicianComponentOptions = defaultMusicianComponentOptions;
@@ -77,6 +91,7 @@ public class StoredOptions {
 
     /**
      * Copy from another {@link StoredOptions}
+     * 
      * @param other the other {@link StoredOptions} to copy from
      */
     public void copyFrom(StoredOptions other) {
@@ -89,6 +104,5 @@ public class StoredOptions {
         this.defaultMusicianComponentOptions.setRadius(other.defaultMusicianComponentOptions.getRadius());
         this.defaultMusicianComponentOptions.setLocked(other.defaultMusicianComponentOptions.isLocked());
     }
-
 
 }
