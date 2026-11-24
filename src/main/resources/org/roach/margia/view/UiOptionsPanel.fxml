@@ -32,6 +32,7 @@
 			<RowConstraints />
 			<RowConstraints />
 			<RowConstraints />
+			<RowConstraints />
 		</rowConstraints>
 
 		<!-- Row 0: Gravitational Constant -->
@@ -84,11 +85,59 @@
 			</tooltip>
 		</CheckBox>
 
-		<!-- Row 5: Color picker -->
-		<Label text="Background Color" labelFor="$colorPicker"
-			GridPane.columnIndex="0" GridPane.rowIndex="5" />
-		<ColorPicker fx:id="colorPicker" GridPane.columnIndex="1"
+		<!-- Row 5: RippleExpansionSpeed -->
+		<Label text="Ripple Expansion Speed"
+			labelFor="$rippleExpansionSpeed" GridPane.columnIndex="0"
+			GridPane.rowIndex="5" />
+		<Spinner fx:id="rippleExpansionSpeed"
+			id="rippleExpansionSpeed" editable="true" GridPane.columnIndex="1"
 			GridPane.rowIndex="5">
+			<valueFactory>
+				<SpinnerValueFactory.DoubleSpinnerValueFactory
+					min="0.1" max="300.0" amountToStepBy="0.1" />
+			</valueFactory>
+			<tooltip>
+				<Tooltip text="Speed at which ripples grow" />
+			</tooltip>
+		</Spinner>
+
+		<!-- Row 6: Max active ripples -->
+		<Label text="Max active ripples" labelFor="$maxActiveRipples"
+			GridPane.columnIndex="0" GridPane.rowIndex="6" />
+		<Spinner fx:id="maxActiveRipples" id="maxActiveRipples"
+			editable="true" GridPane.columnIndex="1" GridPane.rowIndex="6">
+			<valueFactory>
+				<SpinnerValueFactory.IntegerSpinnerValueFactory
+					min="1" max="300" amountToStepBy="1" />
+			</valueFactory>
+			<tooltip>
+				<Tooltip
+					text="Maximum number of active ripples across all musicians" />
+			</tooltip>
+		</Spinner>
+
+		<!-- Row 7: RippleScreenFraction -->
+		<Label text="Ripple Screen Fraction"
+			labelFor="$rippleScreenFraction" GridPane.columnIndex="0"
+			GridPane.rowIndex="7" />
+		<Spinner fx:id="rippleScreenFraction"
+			id="rippleScreenFraction" editable="true" GridPane.columnIndex="1"
+			GridPane.rowIndex="7">
+			<valueFactory>
+				<SpinnerValueFactory.DoubleSpinnerValueFactory
+					min="0.01" max="1.0" amountToStepBy="0.01" />
+			</valueFactory>
+			<tooltip>
+				<Tooltip
+					text="Fraction of the screen that ripples are allowed to grow before dissipating" />
+			</tooltip>
+		</Spinner>
+
+		<!-- Row 7: Color picker -->
+		<Label text="Background Color" labelFor="$colorPicker"
+			GridPane.columnIndex="0" GridPane.rowIndex="8" />
+		<ColorPicker fx:id="colorPicker" GridPane.columnIndex="1"
+			GridPane.rowIndex="8">
 			<tooltip>
 				<Tooltip text="Background color" />
 			</tooltip>

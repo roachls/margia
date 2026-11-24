@@ -68,10 +68,6 @@ public class AgentPanel extends Pane {
     private boolean isSyncingSelection = false;
     private final MouseHandler mouseHandler = new MouseHandler();
 
-    private static final double RIPPLE_EXPANSION_SPEED = 3.0;
-    private static final double RIPPLE_SCREEN_FRACTION = 0.75;
-    private static final int MAX_ACTIVE_RIPPLES = 32;
-
     private final List<Ripple> ripples = new ArrayList<>();
     @FXML
     private Canvas backgroundCanvas;
@@ -92,10 +88,11 @@ public class AgentPanel extends Pane {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load AgentPanel.fxml", e);
         }
-        
-        this.backgroundProperty().bind(Bindings.createObjectBinding(
-                () -> Background.fill(Options.getInstance().getUiOptions().backgroundColorProperty().get()),
-                Options.getInstance().getUiOptions().backgroundColorProperty()));
+
+        this.backgroundProperty()
+                .bind(Bindings.createObjectBinding(
+                        () -> Background.fill(Options.getInstance().getUiOptions().backgroundColorProperty().get()),
+                        Options.getInstance().getUiOptions().backgroundColorProperty()));
     }
 
     @FXML
@@ -196,15 +193,15 @@ public class AgentPanel extends Pane {
         if (screenSpan <= 0) {
             return;
         }
-        if (ripples.size() >= MAX_ACTIVE_RIPPLES) {
+        if (ripples.size() >= Options.getInstance().getUiOptions().getMaxActiveRipples()) {
             ripples.remove(0); // Recycle oldest ring so new notes always pulse cleanly
         }
         var center = mc.getCenter();
         double startRadius = mc.getRadius() * 0.9;
-        double maxRadius = screenSpan * RIPPLE_SCREEN_FRACTION;
+        double maxRadius = screenSpan * Options.getInstance().getUiOptions().getRippleScreenFraction();
         ripples.add(new Ripple(center.getX(), center.getY(), startRadius, maxRadius, color));
     }
-    
+
     private void drawBackground() {
         double w = backgroundCanvas.getWidth();
         double h = backgroundCanvas.getHeight();
@@ -1249,7 +1246,7 @@ public class AgentPanel extends Pane {
         }
 
         boolean update() {
-            radius += RIPPLE_EXPANSION_SPEED;
+            radius += Options.getInstance().getUiOptions().getRippleExpansionSpeed();
             return radius < maxRadius;
         }
 

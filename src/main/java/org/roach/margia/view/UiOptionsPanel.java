@@ -25,7 +25,13 @@ public class UiOptionsPanel extends VBox {
     @FXML
     CheckBox animateBackground;
     @FXML
+    Spinner<Double> rippleExpansionSpeed;
+    @FXML
     ColorPicker colorPicker;
+    @FXML
+    Spinner<Integer> maxActiveRipples;
+    @FXML
+    Spinner<Double> rippleScreenFraction;
 
     /**
      * constructor
@@ -52,7 +58,10 @@ public class UiOptionsPanel extends VBox {
         edgeLength.getValueFactory().setValue(uiOptions.getEdgeLength());
         showIcons.setSelected(uiOptions.isShowNumbers());
         animateBackground.setSelected(uiOptions.isAnimateBackground());
+        rippleExpansionSpeed.getValueFactory().setValue(uiOptions.getRippleExpansionSpeed());
         colorPicker.setValue(uiOptions.getBackgroundColor());
+        maxActiveRipples.getValueFactory().setValue(uiOptions.getMaxActiveRipples());
+        rippleScreenFraction.getValueFactory().setValue(uiOptions.getRippleScreenFraction());
 
         // Attach change listeners
         gravity.valueProperty().addListener((_, _, newVal) -> {
@@ -76,6 +85,24 @@ public class UiOptionsPanel extends VBox {
         showIcons.selectedProperty().addListener((_, _, newVal) -> uiOptions.setShowNumbers(newVal));
 
         animateBackground.selectedProperty().addListener((_, _, newVal) -> uiOptions.setAnimateBackground(newVal));
+
+        rippleExpansionSpeed.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                uiOptions.setRippleExpansionSpeed(newVal);
+            }
+        });
+
+        maxActiveRipples.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                uiOptions.setMaxActiveRipples(newVal);
+            }
+        });
+
+        rippleScreenFraction.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                uiOptions.setRippleScreenFraction(newVal);
+            }
+        });
 
         colorPicker.valueProperty().addListener((_, _, newVal) -> {
             if (newVal != null) {

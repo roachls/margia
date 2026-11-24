@@ -24,6 +24,10 @@ public class UiOptions {
     private double windSpeed = DEFAULT_WINDSPEED;
     private boolean animateBackground = false;
     private final Map<Integer, MusicianComponentOptions> musicianComponents = new LinkedHashMap<>();
+    private final DoubleProperty rippleExpansionSpeed = new SimpleDoubleProperty(3.0);
+    private final IntegerProperty maxActiveRipples = new SimpleIntegerProperty(32);
+    private final DoubleProperty rippleScreenFraction = new SimpleDoubleProperty(0.75);
+
     /**
      * property name of whether to show numbers
      */
@@ -123,6 +127,50 @@ public class UiOptions {
     }
 
     /**
+     * @return the speed (in pixels) at which ripples expand
+     */
+    public double getRippleExpansionSpeed() { return rippleExpansionSpeed.get(); }
+
+    /**
+     * @param speed the speed (in pixels) at which ripples expand
+     */
+    public void setRippleExpansionSpeed(double speed) {
+        var oldspeed = rippleExpansionSpeed.get();
+        this.rippleExpansionSpeed.set(speed);
+        if (oldspeed != this.rippleExpansionSpeed.get())
+            Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return the JavaFX ripple expansion speed property
+     */
+    public DoubleProperty rippleExpansionSpeedProperty() {
+        return this.rippleExpansionSpeed;
+    }
+
+    /**
+     * @return the maximum number of active ripples to draw
+     */
+    public int getMaxActiveRipples() { return maxActiveRipples.get(); }
+
+    /**
+     * @param max the maximum number of active ripples to draw
+     */
+    public void setMaxActiveRipples(int max) {
+        var oldMax = maxActiveRipples.get();
+        this.maxActiveRipples.set(max);
+        if (oldMax != this.maxActiveRipples.get())
+            Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return the JavaFX max active ripples property
+     */
+    public IntegerProperty maxActiveRipplesProperty() {
+        return this.maxActiveRipples;
+    }
+
+    /**
      * @return the edgeLength
      */
     public int getEdgeLength() { return edgeLength.get(); }
@@ -163,6 +211,29 @@ public class UiOptions {
         }
     }
 
+    /**
+     * @return fraction of the screen that ripples will expand before dissipating
+     */
+    public double getRippleScreenFraction() { return rippleScreenFraction.get(); }
+
+    /**
+     * @param fraction fraction of the screen that ripples will expand before
+     *                 dissipating
+     */
+    public void setRippleScreenFraction(double fraction) {
+        var oldFrac = this.rippleScreenFraction.get();
+        rippleScreenFraction.set(fraction);
+        if (oldFrac != fraction)
+            Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return JavaFX rippleScreenFraction property
+     */
+    public DoubleProperty rippleScreenFractionProperty() {
+        return this.rippleScreenFraction;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
@@ -185,8 +256,11 @@ public class UiOptions {
 
     @Override
     public String toString() {
-        return "UiOptions [showNumbers=" + showNumbers + ", gravity=" + gravity + ", edgeLength=" + edgeLength
-                + ", windSpeed=" + windSpeed + ", musicianComponents=" + musicianComponents + "]";
+        return "UiOptions [showNumbers=" + showNumbers.get() + ", backgroundColor=" + backgroundColor.get()
+                + ", gravity=" + gravity + ", edgeLength=" + edgeLength.get() + ", windSpeed=" + windSpeed
+                + ", animateBackground=" + animateBackground + ", rippleExpansionSpeed=" + rippleExpansionSpeed.get()
+                + ", maxActiveRipples=" + maxActiveRipples.get() + ", rippleScreenFraction="
+                + rippleScreenFraction.get() + "]";
     }
 
     /**
@@ -219,6 +293,9 @@ public class UiOptions {
         this.musicianComponents.clear();
         this.musicianComponents.putAll(other.musicianComponents);
         this.backgroundColor.set(other.backgroundColor.get());
+        this.rippleExpansionSpeed.set(other.rippleExpansionSpeed.get());
+        this.maxActiveRipples.set(other.maxActiveRipples.get());
+        this.rippleScreenFraction.set(other.rippleScreenFraction.get());
     }
 
 }
