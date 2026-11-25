@@ -87,6 +87,7 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                     case "TICK_MODULO" -> threshold > 0 && (m.getCurrentTick() % threshold == 0);
                     case "IS_MUTED" -> Options.getInstance().getMusicians().get(m.getId()).isMuted();
                     case "HAS_LAST_CHORD" -> m.getMyLastChord() != null;
+                    case "QUEUE_EMPTY" -> m.getQueueSize() == 0;
                     default -> throw new IllegalArgumentException("Unknown condition: " + cond.condition());
                     };
                     return matched ? onTrue : (onFalse != null ? onFalse : self);
@@ -243,6 +244,7 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                     int targetId = (rawId != null) ? resolveInt(rawId, props) : musician.getId();
                     yield _ -> List.of(new UnmuteMusician(targetId));
                 }
+                case "CONSUME_MESSAGE" -> _ -> List.of(() -> musician.getNextMessageReceived(true));
                 default -> throw new IllegalArgumentException("Unknown action type: " + act.type());
                 }).toList();
     }
