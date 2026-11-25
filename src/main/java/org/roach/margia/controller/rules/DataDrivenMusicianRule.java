@@ -20,6 +20,9 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
     private final RuleDefinition definition;
     private final List<RulePropertyDescriptor> descriptors;
 
+    /**
+     * @param definition the rule definition to create this rule from
+     */
     public DataDrivenMusicianRule(RuleDefinition definition) {
         this.definition = Objects.requireNonNull(definition, "definition must not be null");
         this.descriptors = definition.buildDescriptors();
@@ -93,10 +96,10 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
 
     private MusicianState createStateInstance(String name, StateDef def, Map<String, Object> props) {
         return switch (def) {
-        case StateDef.AlwaysTransition a -> new AlwaysTransitionState(name);
+        case StateDef.AlwaysTransition _ -> new AlwaysTransitionState(name);
         case StateDef.DelayedTransition d -> new DelayedTransitionState(name, resolveInt(d.delay(), props));
         case StateDef.PseudoRandom p -> new PseudoRandomState(name, resolveInt(p.maxRoll(), props));
-        case StateDef.Countdown c -> throw new IllegalStateException("CountdownState must be instantiated in Pass 2");
+        case StateDef.Countdown _ -> throw new IllegalStateException("CountdownState must be instantiated in Pass 2");
         };
     }
 
@@ -114,28 +117,27 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
 
     private void wireTransitions(MusicianState stateInstance, StateDef def, Map<String, MusicianState> states) {
         switch (def) {
-            case StateDef.AlwaysTransition a -> {
-                if (stateInstance instanceof AlwaysTransitionState always && a.nextState() != null) {
-                    always.setToState(requireTargetState(states, a.nextState()));
+        case StateDef.AlwaysTransition a -> {
+            if (stateInstance instanceof AlwaysTransitionState always && a.nextState() != null) {
+                always.setToState(requireTargetState(states, a.nextState()));
+            }
+        }
+        case StateDef.DelayedTransition d -> {
+            if (stateInstance instanceof DelayedTransitionState delayed && d.wrappedState() != null) {
+                delayed.withWrappedState(requireTargetState(states, d.wrappedState()));
+            }
+        }
+        case StateDef.PseudoRandom p -> {
+            if (stateInstance instanceof PseudoRandomState random) {
+                for (RangeTransition rt : p.rangeTransitions()) {
+                    random.withStateTransition(new NumericRange(rt.min(), rt.max()),
+                            requireTargetState(states, rt.target()));
                 }
             }
-            case StateDef.DelayedTransition d -> {
-                if (stateInstance instanceof DelayedTransitionState delayed && d.wrappedState() != null) {
-                    delayed.withWrappedState(requireTargetState(states, d.wrappedState()));
-                }
-            }
-            case StateDef.PseudoRandom p -> {
-                if (stateInstance instanceof PseudoRandomState random) {
-                    for (RangeTransition rt : p.rangeTransitions()) {
-                        random.withStateTransition(
-                                new NumericRange(rt.min(), rt.max()),
-                                requireTargetState(states, rt.target()));
-                    }
-                }
-            }
-            case StateDef.Countdown c -> {
-                // Already wired via constructor in Pass 2
-            }
+        }
+        case StateDef.Countdown _ -> {
+            // Already wired via constructor in Pass 2
+        }
         }
     }
 
@@ -190,20 +192,20 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
         return raw;
     }
 
-    private Object coerceType(RulePropertyDescriptor desc, Object raw) {
+    private static Object coerceType(RulePropertyDescriptor desc, Object raw) {
         if (raw == null) {
             return desc.defaultValue();
         }
         return switch (desc) {
-        case RulePropertyDescriptor.IntProperty p ->
+        case RulePropertyDescriptor.IntProperty _ ->
             raw instanceof Number n ? n.intValue() : Integer.parseInt(raw.toString());
-        case RulePropertyDescriptor.DoubleProperty p ->
+        case RulePropertyDescriptor.DoubleProperty _ ->
             raw instanceof Number n ? n.doubleValue() : Double.parseDouble(raw.toString());
-        case RulePropertyDescriptor.BooleanProperty p ->
+        case RulePropertyDescriptor.BooleanProperty _ ->
             raw instanceof Boolean b ? b : Boolean.parseBoolean(raw.toString());
-        case RulePropertyDescriptor.StringProperty p -> raw.toString();
-        case RulePropertyDescriptor.StringListProperty p -> raw.toString();
-        case RulePropertyDescriptor.EnumProperty<?> p -> raw;
+        case RulePropertyDescriptor.StringProperty _ -> raw.toString();
+        case RulePropertyDescriptor.StringListProperty _ -> raw.toString();
+        case RulePropertyDescriptor.EnumProperty<?> _ -> raw;
         };
     }
 }

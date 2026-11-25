@@ -3,12 +3,14 @@ package org.roach.margia.view;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.roach.margia.controller.Musician;
 import org.roach.margia.controller.rules.DataDrivenMusicianRule;
 import org.roach.margia.controller.rules.storage.RuleDefinition;
 import org.roach.margia.controller.rules.storage.RuleDefinition.*;
 import org.roach.margia.controller.rules.storage.RuleRepository;
+import org.roach.margia.controller.rules.storage.RuleRepository.RuleSource;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -30,19 +32,30 @@ public class RuleEditorDialog extends Dialog<Void> {
     private final TextArea yamlEditorArea = new TextArea();
     private final Label statusLabel = new Label();
 
-    // Editable models for the visual form
+    private final TabPane tabPane = new TabPane();
+    private Tab visualTab;
+    private Tab yamlTab;
+
+    private final Button saveBtn = new Button("Save & Apply Live");
+    private final Button saveAsBtn = new Button("Save As...");
+    private final Button deleteBtn = new Button("Delete Selected");
+
     private final ObservableList<MutableProperty> propertyRows = FXCollections.observableArrayList();
     private final ObservableList<MutableState> stateRows = FXCollections.observableArrayList();
 
     private final List<Musician> activeMusicians;
     private boolean syncingTabs = false;
 
+    /**
+     * @param owner           the owner of this window
+     * @param activeMusicians the list of active musicians
+     */
     public RuleEditorDialog(Window owner, List<Musician> activeMusicians) {
         this.activeMusicians = activeMusicians != null ? activeMusicians : List.of();
         initOwner(owner);
         setTitle("Rule Editor");
         setResizable(true);
-        getDialogPane().setPrefSize(920, 640);
+        getDialogPane().setPrefSize(940, 650);
         getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
         SplitPane splitPane = new SplitPane();
@@ -60,51 +73,70 @@ public class RuleEditorDialog extends Dialog<Void> {
             ruleListView.getSelectionModel().selectFirst();
         } else {
             loadDefinitionIntoEditor(createStarterTemplate());
+            deleteBtn.setDisable(true);
         }
     }
 
     private VBox buildSidebar() {
-        Label header = new Label("Custom Rules");
+        Label header = new Label("Rules & Templates");
         header.setStyle("-fx-font-weight: bold;");
+
+        ruleListView.setCellFactory(_ -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    boolean isTemplate = RuleRepository.getInstance().getRuleSource(item) == RuleSource.TEMPLATE_YAML;
+                    setText(isTemplate ? item + " [Template]" : item);
+                }
+            }
+        });
 
         Button newBtn = new Button("New Blank");
         newBtn.setMaxWidth(Double.MAX_VALUE);
         newBtn.setOnAction(_ -> {
             ruleListView.getSelectionModel().clearSelection();
             loadDefinitionIntoEditor(createStarterTemplate());
+            saveBtn.setDisable(false);
+            deleteBtn.setDisable(true);
+            ruleNameField.setEditable(true);
             setStatus("Editing new rule (unsaved)", false);
         });
 
-        Button cloneStateBasedBtn = new Button("Clone 'statebased'");
-        cloneStateBasedBtn.setMaxWidth(Double.MAX_VALUE);
-        cloneStateBasedBtn.setOnAction(_ -> {
-            ruleListView.getSelectionModel().clearSelection();
-            loadDefinitionIntoEditor(createStateBasedClone());
-            setStatus("Cloned 'statebased' template (unsaved)", false);
-        });
-
-        Button deleteBtn = new Button("Delete Selected");
         deleteBtn.setMaxWidth(Double.MAX_VALUE);
         deleteBtn.setOnAction(_ -> deleteSelectedRule());
 
         ruleListView.getSelectionModel().selectedItemProperty().addListener((_, _, newVal) -> {
-            if (newVal != null) {
-                RuleDefinition def = RuleRepository.getInstance().getExternalDefinitions().get(newVal);
-                if (def != null) {
-                    loadDefinitionIntoEditor(def);
-                    setStatus("Loaded '" + newVal + "'", false);
-                }
+            if (newVal == null) {
+                return;
+            }
+            var repo = RuleRepository.getInstance();
+            RuleSource source = repo.getRuleSource(newVal);
+            RuleDefinition def = (source == RuleSource.TEMPLATE_YAML) ? repo.getTemplateDefinitions().get(newVal)
+                    : repo.getExternalDefinitions().get(newVal);
+
+            if (def != null) {
+                loadDefinitionIntoEditor(def);
+                boolean isTemplate = (source == RuleSource.TEMPLATE_YAML);
+                saveBtn.setDisable(isTemplate);
+                deleteBtn.setDisable(isTemplate);
+                ruleNameField.setEditable(!isTemplate);
+
+                setStatus(isTemplate
+                        ? "Loaded read-only template '" + newVal + "' (click 'Save As...' to create an editable copy)"
+                        : "Loaded user rule '" + newVal + "'", false);
             }
         });
 
         VBox.setVgrow(ruleListView, Priority.ALWAYS);
-        VBox sidebar = new VBox(8, header, ruleListView, newBtn, cloneStateBasedBtn, deleteBtn);
+        VBox sidebar = new VBox(8, header, ruleListView, newBtn, deleteBtn);
         sidebar.setPadding(new Insets(4));
         return sidebar;
     }
 
     private VBox buildEditorPane() {
-        // Top metadata bar
         GridPane metaGrid = new GridPane();
         metaGrid.setHgap(10);
         metaGrid.setVgap(8);
@@ -117,15 +149,11 @@ public class RuleEditorDialog extends Dialog<Void> {
         metaGrid.add(new Label("Starting State:"), 2, 0);
         metaGrid.add(startingStateCombo, 3, 0);
 
-        // Tabs: Visual Form vs. Raw YAML
-        TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-
-        Tab visualTab = new Tab("Visual Builder", buildVisualBuilder());
+        visualTab = new Tab("Visual Builder", buildVisualBuilder());
         yamlEditorArea.setStyle("-fx-font-family: 'monospaced'; -fx-font-size: 12px;");
-        Tab yamlTab = new Tab("YAML Source", yamlEditorArea);
+        yamlTab = new Tab("YAML Source", yamlEditorArea);
 
-        // Sync form <-> YAML when switching tabs
         tabPane.getSelectionModel().selectedItemProperty().addListener((_, _, newTab) -> {
             if (syncingTabs)
                 return;
@@ -151,13 +179,14 @@ public class RuleEditorDialog extends Dialog<Void> {
         VBox.setVgrow(tabPane, Priority.ALWAYS);
 
         Button validateBtn = new Button("Validate");
-        validateBtn.setOnAction(_ -> validateCurrent(tabPane, yamlTab));
+        validateBtn.setOnAction(_ -> validateCurrent());
 
-        Button saveBtn = new Button("Save & Apply Live");
         saveBtn.setStyle("-fx-font-weight: bold;");
-        saveBtn.setOnAction(_ -> saveCurrentRule(tabPane, yamlTab));
+        saveBtn.setOnAction(_ -> saveCurrentRule());
 
-        HBox actionBar = new HBox(10, validateBtn, saveBtn);
+        saveAsBtn.setOnAction(_ -> saveAsCurrentRule());
+
+        HBox actionBar = new HBox(10, validateBtn, saveBtn, saveAsBtn);
         actionBar.setPadding(new Insets(4, 0, 0, 0));
 
         VBox editorPane = new VBox(10, metaGrid, tabPane, actionBar);
@@ -166,7 +195,6 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     private VBox buildVisualBuilder() {
-        // --- Properties Section ---
         Label propsHeader = new Label("Configurable UI Properties (referenced via $key)");
         propsHeader.setStyle("-fx-font-weight: bold;");
 
@@ -178,7 +206,6 @@ public class RuleEditorDialog extends Dialog<Void> {
         addPropBtn.setOnAction(
                 _ -> propertyRows.add(new MutableProperty("INT", "newParam", "New Param:", "10", "0", "100", "1", "")));
 
-        // --- States Section ---
         Label statesHeader = new Label("States, Actions & Transitions");
         statesHeader.setStyle("-fx-font-weight: bold;");
 
@@ -239,7 +266,7 @@ public class RuleEditorDialog extends Dialog<Void> {
                 stateRows.add(new MutableState(name, "COUNTDOWN", String.valueOf(c.ticks()), c.nextState(), "", ""));
             case StateDef.PseudoRandom pr -> {
                 String ranges = pr.rangeTransitions().stream().map(rt -> rt.min() + "-" + rt.max() + "->" + rt.target())
-                        .reduce((a, b) -> a + "; " + b).orElse("");
+                        .collect(Collectors.joining("; "));
                 stateRows.add(new MutableState(name, "PSEUDO_RANDOM", String.valueOf(pr.maxRoll()), "", actionSummary,
                         ranges));
             }
@@ -266,12 +293,15 @@ public class RuleEditorDialog extends Dialog<Void> {
         return new RuleDefinition(name, start, props, states);
     }
 
-    private void validateCurrent(TabPane tabPane, Tab yamlTab) {
+    private RuleDefinition getActiveDefinition() throws IOException {
+        return (tabPane.getSelectionModel().getSelectedItem() == yamlTab)
+                ? RuleRepository.getInstance().fromYamlString(yamlEditorArea.getText())
+                : buildDefinitionFromForm();
+    }
+
+    private void validateCurrent() {
         try {
-            RuleDefinition def = (tabPane.getSelectionModel().getSelectedItem() == yamlTab)
-                    ? RuleRepository.getInstance().fromYamlString(yamlEditorArea.getText())
-                    : buildDefinitionFromForm();
-            // Dry-run instantiation to verify state references and placeholders
+            RuleDefinition def = getActiveDefinition();
             new DataDrivenMusicianRule(def);
             setStatus("Valid rule definition: '" + def.name() + "'", false);
         } catch (Exception ex) {
@@ -279,15 +309,15 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
     }
 
-    private void saveCurrentRule(TabPane tabPane, Tab yamlTab) {
+    private void saveCurrentRule() {
         try {
-            RuleDefinition def = (tabPane.getSelectionModel().getSelectedItem() == yamlTab)
-                    ? RuleRepository.getInstance().fromYamlString(yamlEditorArea.getText())
-                    : buildDefinitionFromForm();
-            // Validate before saving
+            RuleDefinition def = getActiveDefinition();
+            if (RuleRepository.getInstance().getRuleSource(def.name()) == RuleSource.TEMPLATE_YAML) {
+                setStatus("Cannot overwrite template '" + def.name() + "'. Use 'Save As...' instead.", true);
+                return;
+            }
             new DataDrivenMusicianRule(def);
             RuleRepository.getInstance().saveRule(def);
-            // Hot-reload any active musicians currently using this rule
             int reloadedCount = 0;
             for (Musician m : activeMusicians) {
                 if (m.getRule() != null && def.name().equals(m.getRule().getName())) {
@@ -306,6 +336,37 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
     }
 
+    private void saveAsCurrentRule() {
+        TextInputDialog prompt = new TextInputDialog(ruleNameField.getText().trim() + "_copy");
+        prompt.initOwner(getDialogPane().getScene().getWindow());
+        prompt.setTitle("Save Rule As");
+        prompt.setHeaderText("Save a custom editable copy of this rule");
+        prompt.setContentText("New rule name:");
+        prompt.showAndWait().ifPresent(newName -> {
+            String trimmed = newName.trim();
+            if (trimmed.isEmpty()) {
+                setStatus("Rule name cannot be empty.", true);
+                return;
+            }
+            if (RuleRepository.getInstance().getRuleSource(trimmed) == RuleSource.TEMPLATE_YAML) {
+                setStatus("Cannot overwrite a built-in template name: '" + trimmed + "'", true);
+                return;
+            }
+            try {
+                RuleDefinition baseDef = getActiveDefinition();
+                RuleDefinition renamedDef = new RuleDefinition(trimmed, baseDef.startingState(), baseDef.properties(),
+                        baseDef.states());
+                loadDefinitionIntoEditor(renamedDef);
+                ruleNameField.setEditable(true);
+                saveBtn.setDisable(false);
+                deleteBtn.setDisable(false);
+                saveCurrentRule();
+            } catch (Exception ex) {
+                setStatus("Save As failed: " + ex.getMessage(), true);
+            }
+        });
+    }
+
     private void deleteSelectedRule() {
         String selected = ruleListView.getSelectionModel().getSelectedItem();
         if (selected == null)
@@ -320,7 +381,11 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     private void refreshRuleList() {
-        ruleListView.getItems().setAll(RuleRepository.getInstance().getExternalDefinitions().keySet());
+        var repo = RuleRepository.getInstance();
+        List<String> combined = new ArrayList<>();
+        combined.addAll(repo.getExternalDefinitions().keySet());
+        combined.addAll(repo.getTemplateDefinitions().keySet());
+        ruleListView.getItems().setAll(combined);
     }
 
     private void refreshStartingStateChoices() {
@@ -337,14 +402,12 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     private static String serializeActionsSummary(List<ActionDef> actions) {
-        if (actions == null || actions.isEmpty()) {
+        if (actions == null || actions.isEmpty())
             return "";
-        }
         return actions.stream().map(a -> a.params().isEmpty() ? a.type() : a.type() + a.params())
-                .collect(java.util.stream.Collectors.joining(", "));
+                .collect(Collectors.joining(", "));
     }
 
-    // --- Templates ---
     private static RuleDefinition createStarterTemplate() {
         return new RuleDefinition("customEchoRule", "playAndHold",
                 List.of(new PropertyDef.IntProp("holdTicks", "Hold Ticks:", 8, 1, 128, 1)),
@@ -353,41 +416,6 @@ public class RuleEditorDialog extends Dialog<Void> {
                         "playAndHold", new StateDef.DelayedTransition("$holdTicks", "play")));
     }
 
-    private static RuleDefinition createStateBasedClone() {
-        Map<String, StateDef> states = new LinkedHashMap<>();
-        states.put("tickDelay", new StateDef.Countdown("$initialTickDelay", "sequenceCountdown"));
-        states.put("sequenceCountdown", new StateDef.DelayedTransition("$sequenceLength", "directRepeat"));
-        states.put("directRepeat", new StateDef.PseudoRandom(30, List.of(new ActionDef("PLAY_CHORD", Map.of())),
-                List.of(new RangeTransition(1, 3, "upFourthDelayed"), new RangeTransition(4, 6, "downFourthDelayed"),
-                        new RangeTransition(7, 8, "increaseVelocityDelayed"),
-                        new RangeTransition(9, 10, "decreaseVelocityDelayed"),
-                        new RangeTransition(11, 12, "halfSpeedDelayed"),
-                        new RangeTransition(13, 14, "doubleSpeedDelayed"))));
-        states.put("upFourth",
-                new StateDef.AlwaysTransition(List.of(new ActionDef("PLAY_CHORD", Map.of())), "sequenceCountdown"));
-        states.put("upFourthDelayed", new StateDef.DelayedTransition("$sequenceLength", "upFourth"));
-        states.put("downFourth", new StateDef.AlwaysTransition(
-                List.of(new ActionDef("PLAY_CHORD_DOWN_INTERVAL", Map.of("interval", 5))), "sequenceCountdown"));
-        states.put("downFourthDelayed", new StateDef.DelayedTransition("$sequenceLength", "downFourth"));
-        states.put("doubleSpeed", new StateDef.AlwaysTransition(
-                List.of(new ActionDef("PLAY_CHORD_TWICE_LENGTH", Map.of())), "sequenceCountdown"));
-        states.put("doubleSpeedDelayed", new StateDef.DelayedTransition("$sequenceLength", "doubleSpeed"));
-        states.put("halfSpeed", new StateDef.AlwaysTransition(
-                List.of(new ActionDef("PLAY_CHORD_HALF_LENGTH", Map.of())), "sequenceCountdown"));
-        states.put("halfSpeedDelayed", new StateDef.DelayedTransition("$sequenceLength", "halfSpeed"));
-        states.put("increaseVelocity", new StateDef.AlwaysTransition(
-                List.of(new ActionDef("PLAY_CHORD_UP_VELOCITY", Map.of("delta", 15))), "sequenceCountdown"));
-        states.put("increaseVelocityDelayed", new StateDef.DelayedTransition("$sequenceLength", "increaseVelocity"));
-        states.put("decreaseVelocity", new StateDef.AlwaysTransition(
-                List.of(new ActionDef("PLAY_CHORD_DOWN_VELOCITY", Map.of("delta", 15))), "sequenceCountdown"));
-        states.put("decreaseVelocityDelayed", new StateDef.DelayedTransition("$sequenceLength", "decreaseVelocity"));
-        return new RuleDefinition("statebasedCustom", "tickDelay",
-                List.of(new PropertyDef.IntProp("sequenceLength", "Sequence Length:", 16, 1, 256, 1),
-                        new PropertyDef.IntProp("initialTickDelay", "Initial Tick Delay:", 0, 0, 256, 1)),
-                states);
-    }
-
-    // --- Mutable Row Models & ListCells for Visual Builder ---
     private static class MutableProperty {
         String type, key, label, defaultVal, min, max, step, listValues;
 
@@ -484,7 +512,6 @@ public class RuleEditorDialog extends Dialog<Void> {
             }
             return ranges;
         }
-
     }
 
     private static class PropertyCell extends ListCell<MutableProperty> {
@@ -505,7 +532,6 @@ public class RuleEditorDialog extends Dialog<Void> {
                     FXCollections.observableArrayList("INT", "DOUBLE", "BOOLEAN", "STRING", "STRING_LIST"));
             typeBox.setValue(item.type);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
-
             TextField keyField = field(item.key, "key", 110, v -> item.key = v);
             TextField labelField = field(item.label, "Label:", 130, v -> item.label = v);
             TextField defField = field(item.defaultVal, "default", 70, v -> item.defaultVal = v);
@@ -513,7 +539,6 @@ public class RuleEditorDialog extends Dialog<Void> {
             TextField maxField = field(item.max, "max", 55, v -> item.max = v);
             Button removeBtn = new Button("X");
             removeBtn.setOnAction(_ -> onRemove.accept(item));
-
             setGraphic(new HBox(6, typeBox, keyField, labelField, defField, minField, maxField, removeBtn));
         }
 

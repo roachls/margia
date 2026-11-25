@@ -156,8 +156,6 @@
 					<Separator />
 					<Button fx:id="showUiOptions" text="Options"
 						focusTraversable="false" onAction="#onShowOptionsClicked" />
-					<Button fx:id="showUiOptions" text="Options"
-						focusTraversable="false" onAction="#onShowOptionsClicked" />
 					<Button fx:id="ruleEditorBtn" text="Rules..."
 						focusTraversable="false" onAction="#onRuleEditorClicked" />
 					<Separator />
