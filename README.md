@@ -16,7 +16,13 @@ The basic unit of time in MARGIA is the tick, which corresponds to a 16th-note i
 
 ### Musician rules
 
-Each Musician has a pre-defined set of rules that tells it how to react to the notes that it "hears". Currently these rules are written in Java, and creating new ones is not for the faint of heart, but I do have plans to create a graphical editor to simplify the process.
+Each Musician has a pre-defined set of rules that tells it how to react to the notes that it "hears". MARGIA supports three tiers of rules:
+
+1. **User-created YAML rules** stored in `~/.margia/rules/*.yaml`, which can be created, edited visually or graphically, imported/exported, and hot-reloaded live inside the built-in **Rule Editor**.
+2. **Bundled YAML template rules** included inside the application JAR. Templates are read-only, but you can inspect them in the Rule Editor and use **Save As...** to create your own editable version.
+3. **Built-in Java rules** compiled directly into MARGIA.
+
+See the [Rule Editor & YAML Rules Guide](docs/RULE_EDITOR.md) for full details on creating custom rules, including all supported states, actions, and configurable UI properties.
 
 ### The Musician time cycle
 
@@ -41,30 +47,30 @@ Each "tick" (16th-note), each Musician does the following steps:
 	<li><b>Musical actions</b>. After all musicians have submitted their actions, the MidiController actually performs them.</li>
 </ul>
 
-#### Built-in rulesets
+#### Built-in rulesets and templates
 
-Currently the following rulesets are available, although this will change once the graphical editor is available:
+MARGIA includes both compiled Java rulesets and bundled YAML templates (which can be cloned and customized via **Edit -> Rule Editor...** or the **Rules...** toolbar button):
 
 <ul>
-	<li>"random". The Musician plays random notes. Optional parameters:
+	<li><b>"random"</b> (Java). The Musician plays random notes. Optional parameters:
 		<ul>
 			<li><code>maxChordStringLength (int)</code>: the maximum number of chords to play in a row. Default is 5.</li>
 			<li><code>chordSize (int)</code>: number of notes to play in a chord. Default is 1.</li>
 			<li><code>restsBetweenChordStrings (int)</code>: number of ticks to rest before starting a new chord string. Default is 1.</li>
 		</ul>
 	</li>
-	<li>"randomFlavor". Just like Random except the chordSize is always 3.
+	<li><b>"randomFlavor"</b> (Java / YAML). Just like Random except the chordSize is always 3.
 		<ul>
 			<li><code>flavor (enum)</code>: the "flavor" of chord to play. Default is MAJOR. Other options are MINOR, DIMINISHED, and AUGMENTED.</li>
 		</ul>
 	</li>
-	<li>StateBasedRule: Musicians have a State that determines their behavior, and they switch states according to the value of a pseudo-random number calculated using the Musician's ID, the current tick number, and the last note the musician played.
+	<li><b>"statebased" / "StateBased Template" / "statebased2"</b> (Java / YAML): Musicians have a State that determines their behavior, and they switch states according to the value of a pseudo-random number calculated using the Musician's ID, the current tick number, and the last note the musician played.
 		<ul>
 			<li>States:
 				<ul>
 					<li>Direct-repeat: repeat the last note heard</li>
-					<li>Up-4th: repeat the last note heard, but up a 4th</li>
-					<li>Down-4th: repeat the last note heard, but down a 4th</li>
+					<li>Up-4th / Up-3rd: repeat the last note heard, transposed up an interval</li>
+					<li>Down-4th: repeat the last note heard, transposed down a 4th</li>
 					<li>Increase velocity: repeat the last note heard, but with increased velocity</li>
 					<li>Decrease velocity: repeat the last note heard, but with decreased velocity</li>
 					<li>Double-speed: repeat the last note heard, but at half the length (no less than one tick)</li>
@@ -79,12 +85,15 @@ Currently the following rulesets are available, although this will change once t
 			</li>
 		</ul>
 	</li>
-	<li>Receiver rule: special rule that listens for notes from an external MIDI controller (such as a keyboard) and plays them.</li>
+	<li><b>"chordbased"</b> (Java / YAML): Transitions between transposition states based on the normalized pitch classes of incoming chords.</li>
+	<li><b>"repeat"</b> (Java / YAML): Repeats incoming chords after a configurable <code>sequenceLength</code> tick delay.</li>
+	<li><b>"Crescendo Wave" &amp; "Simple Echo"</b> (Bundled YAML Templates): Ready-to-use templates demonstrating velocity swells and pitched echo delays.</li>
+	<li><b>Receiver rule</b> (Java): special rule that listens for notes from an external MIDI controller (such as a keyboard) and plays them.</li>
 </ul>
 
 #### Settings
 
-All settings are stored in YAML format with a ".margia" extension. Some settings, particularly rule-specific options as listed above, are only editable with your preferred YAML editor (I use Notepad++ on Windows). (This will change).
+All session settings are stored in YAML format with a ".margia" extension. Rule-specific options can be configured directly in each Musician's Options panel in the UI, and custom rule definitions can be created or edited in the built-in [Rule Editor](docs/RULE_EDITOR.md).
 
 *Note:* Usually the easiest way to create a .margia file is to run MARGIA, put in a few Musicians, and then save the file, at which point you can customize it using an editor.
 
@@ -120,7 +129,13 @@ All settings are stored in YAML format with a ".margia" extension. Some settings
 			<li><code>gravity (double)</code>: The amount of gravity pulling Musicians towards the center of the screen. Use 0.0 for no gravity, positive values to pull them towards the center, and negative values to push them away from the center. Default is 5.0.</li>
 			<li><code>edgeLength (int)</code>: The length, in pixels that an arrow between two Musicians should try to obtain. Note that this may be overridden by things like gravity. Default is 60.</li>
 			<li><code>windSpeed (double)</code>: The speed of the "wind" that causes Musicians to rotate around the center. Positive numbers will result in clockwise rotation, while negative numbers will result in counter-clockwise rotation. However, due to how vectors are calculated, these directions will be reversed if gravity is negative. Also, wind will have no effect if gravity is 0.0. Default is 0.0.</li>
-			<li><code>animateBackground (boolean)</code>: Set to true to have the background gradient animated. Default is false.</li>
+			<li><code>animateBackground (boolean)</code>: Set to true to draw ripples from each Musician. Default is false.
+				<ul>
+					<li><code>rippleExpansionSpeed (double)</code>: the speed at which ripples will expand. Default is 3.0</li>
+					<li><code>maxActiveRipples (int)</code>: the maximum number of ripples that will be displayed globally. Default is 32.</li>
+					<li>rippleScreenFraction (double)</code>: the fraction of the screen from 0.0-1.0 that ripples will expand to before dissipating. Default is 0.75</li>
+				</ul>
+			</li>
 		</ul>
 	</li>
 	<li>Musician-specific UI options
@@ -183,4 +198,5 @@ If using Windows internal MIDI, stop. To use with the Reason DAW, continue:
   will start at 1.0f and decrease to 0.0f over the course of the note's duration.
 - Musicians that are "muted" (i.e., they can only be heard by connected Musicians, not by us) will be "grayed out"
 - Lines will glow in the color of the note emitted by the Musician.
-- Each Musician will emit "ripples" when it triggers a MIDI note.
+- Each Musician will emit "ripples" when it triggers a MIDI note (if animateBackground is enabled)
+- Open **Edit -> Rule Editor...** (or click **Rules...** on the toolbar) to visually design, graph, import/export, and live-reload custom YAML Musician rules.

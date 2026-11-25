@@ -10,6 +10,7 @@ import javax.swing.event.ChangeListener;
 
 import org.roach.margia.controller.rules.AbstractMusicianRule;
 import org.roach.margia.controller.rules.MusicianRule;
+import org.roach.margia.controller.rules.storage.RuleRepository;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
@@ -369,7 +370,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     /**
      * @param rule the rule this musician will use for generating notes
      */
-    private void setRule(AbstractMusicianRule rule) {
+    public void setRule(AbstractMusicianRule rule) {
         if (rule == null)
             return;
         this.rule = rule;
@@ -429,17 +430,13 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      */
     private static void findRuleFromName(Musician m, RuleOptions ruleOpts, String ruleName) {
         if (ruleName != null) {
-            var availableRules = ServiceLoader.load(MusicianRule.class);
-            for (var availableRule : availableRules) {
-                if (ruleName.equals(availableRule.getName())) {
-                    var realRule = ((AbstractMusicianRule) availableRule).copy();
-                    realRule.restoreFromStorage(ruleOpts);
-                    m.setRule(realRule);
-                    break;
-                }
-            }
+            RuleRepository.getInstance().createRuleByName(ruleName).ifPresent(realRule -> {
+                realRule.restoreFromStorage(ruleOpts);
+                m.setRule(realRule);
+            });
         }
     }
+
 
     @Override
     public void stateChanged(ChangeEvent e) {

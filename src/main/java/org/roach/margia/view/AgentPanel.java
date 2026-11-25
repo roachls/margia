@@ -9,7 +9,6 @@ import java.util.stream.IntStream;
 import org.roach.margia.command.Command;
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.Musician;
-import org.roach.margia.controller.rules.StateBasedRule;
 import org.roach.margia.model.*;
 import org.roach.margia.storage.Global;
 import org.roach.margia.storage.Options;
@@ -1085,7 +1084,6 @@ public class AgentPanel extends Pane {
                     arr[y][x] = Musician.newInstance();
                     arr[y][x].getOptions().setMuted(true);
                     MusicianList.getInstance().addMusician(arr[y][x]);
-                    arr[y][x].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
                     list.add(arr[y][x]);
                 }
             }
@@ -1160,7 +1158,6 @@ public class AgentPanel extends Pane {
                 arr[y] = Musician.newInstance();
                 arr[y].getOptions().setMuted(true);
                 MusicianList.getInstance().addMusician(arr[y]);
-                arr[y].getOptions().getRuleOptions().setName(new StateBasedRule().getName());
             }
             // make connections
             for (var y = 0; y < num; y++) {

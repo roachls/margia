@@ -1,0 +1,126 @@
+name: StateBased Template
+startingState: tickDelay
+
+properties:
+  - type: INT
+    key: sequenceLength
+    label: "Sequence Length:"
+    defaultValue: 16
+    min: 1
+    max: 256
+    step: 1
+  - type: INT
+    key: initialTickDelay
+    label: "Initial Tick Delay:"
+    defaultValue: 0
+    min: 0
+    max: 256
+    step: 1
+
+states:
+  tickDelay:
+    type: COUNTDOWN
+    ticks: "$initialTickDelay"
+    nextState: sequenceCountdown
+
+  sequenceCountdown:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: directRepeat
+
+  directRepeat:
+    type: PSEUDO_RANDOM
+    maxRoll: 30
+    actions:
+      - type: PLAY_CHORD
+    rangeTransitions:
+      - min: 1
+        max: 3
+        target: upFourthDelayed
+      - min: 4
+        max: 6
+        target: downFourthDelayed
+      - min: 7
+        max: 8
+        target: increaseVelocityDelayed
+      - min: 9
+        max: 10
+        target: decreaseVelocityDelayed
+      - min: 11
+        max: 12
+        target: halfSpeedDelayed
+      - min: 13
+        max: 14
+        target: doubleSpeedDelayed
+
+  upFourth:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD
+    nextState: sequenceCountdown
+
+  upFourthDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: upFourth
+
+  downFourth:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD_DOWN_INTERVAL
+        params:
+          interval: 5
+    nextState: sequenceCountdown
+
+  downFourthDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: downFourth
+
+  doubleSpeed:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD_TWICE_LENGTH
+    nextState: sequenceCountdown
+
+  doubleSpeedDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: doubleSpeed
+
+  halfSpeed:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD_HALF_LENGTH
+    nextState: sequenceCountdown
+
+  halfSpeedDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: halfSpeed
+
+  increaseVelocity:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD_UP_VELOCITY
+        params:
+          delta: 15
+    nextState: sequenceCountdown
+
+  increaseVelocityDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: increaseVelocity
+
+  decreaseVelocity:
+    type: ALWAYS_TRANSITION
+    actions:
+      - type: PLAY_CHORD_DOWN_VELOCITY
+        params:
+          delta: 15
+    nextState: sequenceCountdown
+
+  decreaseVelocityDelayed:
+    type: DELAYED_TRANSITION
+    delay: "$sequenceLength"
+    wrappedState: decreaseVelocity
