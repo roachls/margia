@@ -47,30 +47,57 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
     public void initActionsAfterMusicianAssigned() {
         RuleOptions ruleOptions = Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions();
 
+        // 0. Resolve current property values from RuleOptions (falling back to
+        // descriptor defaults)
         Map<String, Object> resolvedProps = new LinkedHashMap<>();
         for (RulePropertyDescriptor desc : descriptors) {
             Object rawVal = ruleOptions.getRuleSpecificOptionOrDefault(desc.key(), desc.defaultValue());
             resolvedProps.put(desc.key(), coerceType(desc, rawVal));
         }
 
+        // Pass 1: Instantiate states that don't require target MusicianState references
+        // in their constructor
         Map<String, MusicianState> states = new LinkedHashMap<>();
         definition.states().forEach((stateName, stateDef) -> {
-            if (!(stateDef instanceof StateDef.Countdown)) {
+            if (!(stateDef instanceof StateDef.Countdown) && !(stateDef instanceof StateDef.Conditional)) {
                 MusicianState stateInstance = createStateInstance(stateName, stateDef, resolvedProps);
                 attachActions(stateInstance, stateDef.actions(), resolvedProps);
                 states.put(stateName, stateInstance);
             }
         });
 
+        // Pass 2: Instantiate constructor-wired states (Countdown, Conditional) now
+        // that Pass 1 targets exist
         definition.states().forEach((stateName, stateDef) -> {
             if (stateDef instanceof StateDef.Countdown c) {
                 MusicianState target = requireTargetState(states, c.nextState());
                 CountdownState countdown = new CountdownState(stateName, resolveInt(c.ticks(), resolvedProps), target);
                 attachActions(countdown, stateDef.actions(), resolvedProps);
                 states.put(stateName, countdown);
+            } else if (stateDef instanceof StateDef.Conditional cond) {
+                MusicianState onTrue = requireTargetState(states, cond.trueState());
+                MusicianState onFalse = (cond.falseState() != null && !cond.falseState().isBlank())
+                        ? requireTargetState(states, cond.falseState())
+                        : null;
+                int threshold = cond.threshold() != null ? resolveInt(cond.threshold(), resolvedProps) : 0;
+
+                FunctionBasedState fnState = new FunctionBasedState(stateName, (self, m) -> {
+                    boolean matched = switch (cond.condition().toUpperCase()) {
+                    case "CHORDS_PLAYED_GTE" -> m.getChordsIvePlayed() >= threshold;
+                    case "TICK_MODULO" -> threshold > 0 && (m.getCurrentTick() % threshold == 0);
+                    case "IS_MUTED" -> Options.getInstance().getMusicians().get(m.getId()).isMuted();
+                    case "HAS_LAST_CHORD" -> m.getMyLastChord() != null;
+                    default -> throw new IllegalArgumentException("Unknown condition: " + cond.condition());
+                    };
+                    return matched ? onTrue : (onFalse != null ? onFalse : self);
+                });
+                attachActions(fnState, stateDef.actions(), resolvedProps);
+                states.put(stateName, fnState);
             }
         });
 
+        // Pass 3: Wire mutable transitions (AlwaysTransition, DelayedTransition,
+        // PseudoRandom, DieRolling)
         definition.states().forEach((stateName, stateDef) -> {
             MusicianState stateInstance = states.get(stateName);
             wireTransitions(stateInstance, stateDef, states);
@@ -90,7 +117,11 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
         case StateDef.AlwaysTransition _ -> new AlwaysTransitionState(name);
         case StateDef.DelayedTransition d -> new DelayedTransitionState(name, resolveInt(d.delay(), props));
         case StateDef.PseudoRandom p -> new PseudoRandomState(name, resolveInt(p.maxRoll(), props));
-        case StateDef.Countdown _ -> throw new IllegalStateException("CountdownState must be instantiated in Pass 2");
+        case StateDef.DieRolling dr -> new DieRollingState(name, resolveString(dr.dice(), props));
+        case StateDef.NeverTransition _ -> new NeverTransitionState(name);
+        case StateDef.NoteBased _ -> new NoteBasedTransitionState(name);
+        default -> throw new IllegalStateException(
+                "State type must be instantiated in Pass 2: " + def.getClass().getSimpleName());
         };
     }
 
@@ -99,10 +130,8 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
             return;
         }
         List<Function<MusicianMessage, List<MusicalAction>>> actionFns = buildActions(actionDefs, props);
-        if (stateInstance instanceof AlwaysTransitionState always) {
-            actionFns.forEach(always::withAction);
-        } else if (stateInstance instanceof PseudoRandomState random) {
-            actionFns.forEach(random::withAction);
+        if (stateInstance instanceof AbstractMusicianState<?> absState) {
+            actionFns.forEach(absState::withAction);
         }
     }
 
@@ -126,8 +155,23 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                 }
             }
         }
-        case StateDef.Countdown _ -> {
-            // do nothing
+        case StateDef.DieRolling dr -> {
+            if (stateInstance instanceof DieRollingState dieRolling) {
+                for (RangeTransition rt : dr.rangeTransitions()) {
+                    dieRolling.withStateTransition(new NumericRange(rt.min(), rt.max()),
+                            requireTargetState(states, rt.target()));
+                }
+            }
+        }
+        case StateDef.NoteBased nb -> {
+            if (stateInstance instanceof NoteBasedTransitionState noteState) {
+                for (NoteTransition nt : nb.noteTransitions()) {
+                    noteState.withStateTransition(nt.notes(), requireTargetState(states, nt.target()));
+                }
+            }
+        }
+        default -> {
+            // Pass 2 states (Countdown, Conditional) are already wired via constructor
         }
         }
     }
@@ -145,6 +189,10 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
         return actionDefs.stream()
                 .<Function<MusicianMessage, List<MusicalAction>>>map(act -> switch (act.type().toUpperCase()) {
                 case "PLAY_CHORD" -> c -> List.of(new PlayChord(musician, c));
+                case "PLAY_CHORD_UP_INTERVAL" -> {
+                    int interval = resolveInt(act.params().get("interval"), props);
+                    yield c -> List.of(new PlayChordUpInterval(musician, c, interval));
+                }
                 case "PLAY_CHORD_DOWN_INTERVAL" -> {
                     int interval = resolveInt(act.params().get("interval"), props);
                     yield c -> List.of(new PlayChordDownInterval(musician, c, interval));
@@ -152,16 +200,14 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                 case "PLAY_CHORD_TWICE_LENGTH" -> c -> List.of(new PlayChordTwiceLength(musician, c));
                 case "PLAY_CHORD_HALF_LENGTH" -> c -> List.of(new PlayChordHalfLength(musician, c));
                 case "PLAY_CHORD_UP_VELOCITY" -> {
-                    int delta = resolveInt(act.params().get("delta"), props);
-                    yield c -> List.of(new PlayChordUpVelocity(musician, c, delta));
+                    Object rawDiff = act.params().getOrDefault("diff", act.params().get("delta"));
+                    int diff = resolveInt(rawDiff, props);
+                    yield c -> List.of(new PlayChordUpVelocity(musician, c, diff));
                 }
                 case "PLAY_CHORD_DOWN_VELOCITY" -> {
-                    int delta = resolveInt(act.params().get("delta"), props);
-                    yield c -> List.of(new PlayChordDownVelocity(musician, c, delta));
-                }
-                case "PLAY_CHORD_UP_INTERVAL" -> {
-                    int interval = resolveInt(act.params().get("interval"), props);
-                    yield c -> List.of(new PlayChordUpInterval(musician, c, interval));
+                    Object rawDiff = act.params().getOrDefault("diff", act.params().get("delta"));
+                    int diff = resolveInt(rawDiff, props);
+                    yield c -> List.of(new PlayChordDownVelocity(musician, c, diff));
                 }
                 case "PLAY_NOTE_UP_OCTAVE" -> c -> List.of(new PlayNoteUpOctave(musician, c));
                 case "PLAY_PSEUDO_RANDOM_CHORD" -> {
@@ -184,15 +230,19 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                     yield _ -> List.of(new PlayRandomChord(musician, dice, num, maxNotesDice));
                 }
                 case "REPEAT_LAST_CHORD" -> _ -> List.of(new RepeatLastChord(musician));
-                case "RESET_PLAYED_CHORDS" -> _ -> List.of(new ResetPlayedChords(musician));
-                case "REST_ONE_TICK" -> _ -> List.of(new RestOneTick(musician));
                 case "SET_LAST_CHORD" -> c -> List.of(new SetLastChord(musician, c));
+                case "REST_ONE_TICK" -> _ -> List.of(new RestOneTick(musician));
+                case "RESET_PLAYED_CHORDS" -> _ -> List.of(new ResetPlayedChords(musician));
+                case "MUTE_MUSICIAN" -> {
+                    Object rawId = act.params().get("musicianId");
+                    int targetId = (rawId != null) ? resolveInt(rawId, props) : musician.getId();
+                    yield _ -> List.of(new MuteMusician(targetId));
+                }
                 case "UNMUTE_MUSICIAN" -> {
                     Object rawId = act.params().get("musicianId");
                     int targetId = (rawId != null) ? resolveInt(rawId, props) : musician.getId();
                     yield _ -> List.of(new UnmuteMusician(targetId));
                 }
-
                 default -> throw new IllegalArgumentException("Unknown action type: " + act.type());
                 }).toList();
     }

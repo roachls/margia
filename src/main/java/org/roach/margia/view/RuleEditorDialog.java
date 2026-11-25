@@ -91,6 +91,15 @@ public class RuleEditorDialog extends Dialog<Void> {
             "RESET_PLAYED_CHORDS",
             "MUTE_MUSICIAN",
             "UNMUTE_MUSICIAN");
+    private static final List<String> SUPPORTED_STATE_TYPES = List.of(
+            "ALWAYS_TRANSITION",
+            "DELAYED_TRANSITION",
+            "PSEUDO_RANDOM",
+            "DIE_ROLLING",
+            "COUNTDOWN",
+            "CONDITIONAL",
+            "NEVER_TRANSITION",
+            "NOTE_BASED");
     // @formatter:on
 
     /**
@@ -434,6 +443,22 @@ public class RuleEditorDialog extends Dialog<Void> {
                         .collect(Collectors.joining("; "));
                 yield new MutableState(name, "PSEUDO_RANDOM", String.valueOf(pr.maxRoll()), "", actionSummary, ranges);
             }
+            case StateDef.DieRolling dr -> {
+                String rangesText = dr.rangeTransitions().stream()
+                        .map(rt -> rt.min() + "-" + rt.max() + "->" + rt.target()).collect(Collectors.joining("; "));
+                yield new MutableState(name, "DIE_ROLLING", dr.dice(), "", actionSummary, rangesText);
+            }
+            case StateDef.Conditional cond -> {
+                String number = cond.condition() + ":" + cond.threshold();
+                String targetState = cond.trueState() + (cond.falseState() != null ? "," + cond.falseState() : "");
+                yield new MutableState(name, "CONDITIONAL", number, targetState, actionSummary, "");
+            }
+            case StateDef.NeverTransition _ -> new MutableState(name, "NEVER_TRANSITION", "", "", actionSummary, "");
+            case StateDef.NoteBased nb -> {
+                String rangesText = nb.noteTransitions().stream().map(rt -> rt.notes() + "->" + rt.target())
+                        .collect(Collectors.joining("; "));
+                yield new MutableState(name, "NOTE_BASED", "", "", actionSummary, rangesText);
+            }
             };
             if (stateDef.x() != null && stateDef.y() != null) {
                 ms.x = stateDef.x();
@@ -679,7 +704,8 @@ public class RuleEditorDialog extends Dialog<Void> {
             }
 
             for (MutableState src : stateRows) {
-                if ("PSEUDO_RANDOM".equals(src.type)) {
+                switch (src.type) {
+                case "PSEUDO_RANDOM", "DIE_ROLLING" -> {
                     for (RangeTransition rt : MutableState.parseRanges(src.rangesText)) {
                         MutableState dst = byName.get(rt.target());
                         if (dst != null) {
@@ -689,19 +715,61 @@ public class RuleEditorDialog extends Dialog<Void> {
                             });
                         }
                     }
-                } else if (src.targetState != null && !src.targetState.isBlank()) {
-                    MutableState dst = byName.get(src.targetState.trim());
-                    if (dst != null) {
-                        String lbl = switch (src.type) {
-                        case "DELAYED_TRANSITION" -> "delay " + src.numberOrPlaceholder;
-                        case "COUNTDOWN" -> "count " + src.numberOrPlaceholder;
-                        default -> "next";
-                        };
-                        drawArrow(src, dst, lbl, () -> {
-                            src.targetState = "";
-                            redraw();
-                        });
+                }
+                case "NOTE_BASED" -> {
+                    for (NoteTransition nt : MutableState.parseNoteTransitions(src.rangesText)) {
+                        MutableState dst = byName.get(nt.target());
+                        if (dst != null) {
+                            drawArrow(src, dst, nt.notes().toString(), () -> {
+                                removeNoteTransition(src, nt);
+                                redraw();
+                            });
+                        }
                     }
+                }
+                case "CONDITIONAL" -> {
+                    if (src.targetState != null && !src.targetState.isBlank()) {
+                        List<String> targets = List.of(src.targetState.split(",", 2));
+                        String trueName = targets.getFirst().trim();
+                        MutableState dstTrue = byName.get(trueName);
+                        if (dstTrue != null) {
+                            drawArrow(src, dstTrue, "true", () -> {
+                                String rem = targets.size() > 1 ? "," + targets.get(1).trim() : "";
+                                src.targetState = rem;
+                                redraw();
+                            });
+                        }
+                        if (targets.size() > 1 && !targets.get(1).trim().isEmpty()) {
+                            String falseName = targets.get(1).trim();
+                            MutableState dstFalse = byName.get(falseName);
+                            if (dstFalse != null) {
+                                drawArrow(src, dstFalse, "false", () -> {
+                                    src.targetState = trueName;
+                                    redraw();
+                                });
+                            }
+                        }
+                    }
+                }
+                case "NEVER_TRANSITION" -> {
+                    // Terminal state: no outgoing transitions
+                }
+                default -> {
+                    if (src.targetState != null && !src.targetState.isBlank()) {
+                        MutableState dst = byName.get(src.targetState.trim());
+                        if (dst != null) {
+                            String lbl = switch (src.type) {
+                            case "DELAYED_TRANSITION" -> "delay " + src.numberOrPlaceholder;
+                            case "COUNTDOWN" -> "count " + src.numberOrPlaceholder;
+                            default -> "next";
+                            };
+                            drawArrow(src, dst, lbl, () -> {
+                                src.targetState = "";
+                                redraw();
+                            });
+                        }
+                    }
+                }
                 }
             }
         }
@@ -848,6 +916,13 @@ public class RuleEditorDialog extends Dialog<Void> {
                     .collect(Collectors.joining("; "));
         }
 
+        private void removeNoteTransition(MutableState src, NoteTransition toRemove) {
+            List<NoteTransition> remaining = new ArrayList<>(MutableState.parseNoteTransitions(src.rangesText));
+            remaining.remove(toRemove);
+            src.rangesText = remaining.stream().map(nt -> nt.notes() + "->" + nt.target())
+                    .collect(Collectors.joining("; "));
+        }
+
         private void promptNewStateAt(double x, double y) {
             TextInputDialog dialog = new TextInputDialog("state_" + (stateRows.size() + 1));
             dialog.initOwner(getDialogPane().getScene().getWindow());
@@ -920,8 +995,7 @@ public class RuleEditorDialog extends Dialog<Void> {
                     redraw();
                 }
             });
-            ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList("ALWAYS_TRANSITION",
-                    "DELAYED_TRANSITION", "PSEUDO_RANDOM", "COUNTDOWN"));
+            ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_STATE_TYPES));
             typeBox.setValue(st.type);
             typeBox.setOnAction(_ -> {
                 st.type = typeBox.getValue();
@@ -1099,6 +1173,23 @@ public class RuleEditorDialog extends Dialog<Void> {
             case "COUNTDOWN" -> new StateDef.Countdown(numericArg, targetState.trim(), savedX, savedY);
             case "PSEUDO_RANDOM" ->
                 new StateDef.PseudoRandom(numericArg, actions, parseRanges(rangesText), savedX, savedY);
+            case "NEVER_TRANSITION" -> new StateDef.NeverTransition(actions, savedX, savedY);
+            case "DIE_ROLLING" ->
+                new StateDef.DieRolling(numberOrPlaceholder.trim(), actions, parseRanges(rangesText), savedX, savedY);
+            case "NOTE_BASED" -> new StateDef.NoteBased(actions, parseNoteTransitions(rangesText), savedX, savedY);
+            case "CONDITIONAL" -> {
+                List<String> condParts = List.of(numberOrPlaceholder.split(":", 2));
+                String condName = condParts.getFirst().trim();
+                Object thresh = 0;
+                if (condParts.size() > 1 && !condParts.get(1).trim().isEmpty()) {
+                    String rawThresh = condParts.get(1).trim();
+                    thresh = rawThresh.startsWith("$") ? rawThresh : Integer.parseInt(rawThresh);
+                }
+                List<String> targets = List.of(targetState.split(",", 2));
+                String onTrue = targets.getFirst().trim();
+                String onFalse = targets.size() > 1 ? targets.get(1).trim() : null;
+                yield new StateDef.Conditional(condName, thresh, actions, onTrue, onFalse, savedX, savedY);
+            }
             default -> throw new IllegalArgumentException("Unsupported state type: " + type);
             };
         }
@@ -1152,6 +1243,22 @@ public class RuleEditorDialog extends Dialog<Void> {
                 }
             }
             return ranges;
+        }
+
+        private static List<NoteTransition> parseNoteTransitions(String text) {
+            if (text == null || text.isBlank())
+                return List.of();
+            List<NoteTransition> list = new ArrayList<>();
+            for (String part : text.split(";")) {
+                List<String> arrow = List.of(part.trim().split("->"));
+                if (arrow.size() == 2) {
+                    String noteSpec = arrow.getFirst().trim().replace("[", "").replace("]", "");
+                    Set<Integer> notes = Arrays.stream(noteSpec.split(",")).map(String::trim).filter(s -> !s.isEmpty())
+                            .map(Integer::parseInt).collect(Collectors.toCollection(LinkedHashSet::new));
+                    list.add(new NoteTransition(notes, arrow.get(1).trim()));
+                }
+            }
+            return list;
         }
 
     }
@@ -1216,8 +1323,7 @@ public class RuleEditorDialog extends Dialog<Void> {
                 item.name = newV;
                 onNameChanged.run();
             });
-            ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList("ALWAYS_TRANSITION",
-                    "DELAYED_TRANSITION", "PSEUDO_RANDOM", "COUNTDOWN"));
+            ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_STATE_TYPES));
             typeBox.setValue(item.type);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
             TextField numField = new TextField(item.numberOrPlaceholder);

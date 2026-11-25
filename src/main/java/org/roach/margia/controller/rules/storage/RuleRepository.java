@@ -34,9 +34,11 @@ public class RuleRepository {
     }
 
     /**
-     * Package-private constructor for unit testing against a temporary directory.
+     * Constructor for unit testing against a temporary directory.
+     * 
+     * @param rulesDir directory to look for rules
      */
-    RuleRepository(Path rulesDir) {
+    public RuleRepository(Path rulesDir) {
         this.rulesDir = Objects.requireNonNull(rulesDir, "rulesDir must not be null");
         this.yamlMapper = YAMLMapper.builder().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER)
                 .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES).build();
