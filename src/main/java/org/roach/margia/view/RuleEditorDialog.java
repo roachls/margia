@@ -67,6 +67,11 @@ public class RuleEditorDialog extends Dialog<Void> {
         VBox.setVgrow(splitPane, Priority.ALWAYS);
         root.setPadding(new Insets(10));
         getDialogPane().setContent(root);
+        setOnShown(_ -> {
+            if (getDialogPane().getScene().getWindow() instanceof javafx.stage.Stage stage) {
+                stage.setMaximized(true);
+            }
+        });
 
         refreshRuleList();
         if (!ruleListView.getItems().isEmpty()) {
@@ -194,18 +199,22 @@ public class RuleEditorDialog extends Dialog<Void> {
         return editorPane;
     }
 
-    private VBox buildVisualBuilder() {
+    private SplitPane buildVisualBuilder() {
         Label propsHeader = new Label("Configurable UI Properties (referenced via $key)");
         propsHeader.setStyle("-fx-font-weight: bold;");
 
         ListView<MutableProperty> propList = new ListView<>(propertyRows);
-        propList.setPrefHeight(150);
+        VBox.setVgrow(propList, Priority.ALWAYS);
         propList.setCellFactory(_ -> new PropertyCell(propertyRows::remove));
 
         Button addPropBtn = new Button("+ Add Property");
-        addPropBtn.setOnAction(
-                _ -> propertyRows.add(new MutableProperty("INT", "newParam", "New Param:", "10", "0", "100", "1", "")));
+        addPropBtn.setOnAction(_ -> propertyRows.add(
+                new MutableProperty("INT", "newParam", "New Param:", "10", "0", "100", "1", "")));
 
+        VBox propertiesPane = new VBox(8, propsHeader, propList, addPropBtn);
+        propertiesPane.setPadding(new Insets(8));
+
+        // Bottom pane: States, Actions & Transitions
         Label statesHeader = new Label("States, Actions & Transitions");
         statesHeader.setStyle("-fx-font-weight: bold;");
 
@@ -215,16 +224,21 @@ public class RuleEditorDialog extends Dialog<Void> {
 
         Button addStateBtn = new Button("+ Add State");
         addStateBtn.setOnAction(_ -> {
-            stateRows.add(new MutableState("state_" + (stateRows.size() + 1), "ALWAYS_TRANSITION", "16", "",
-                    "PLAY_CHORD", ""));
+            stateRows.add(new MutableState("state_" + (stateRows.size() + 1),
+                    "ALWAYS_TRANSITION", "16", "", "PLAY_CHORD", ""));
             refreshStartingStateChoices();
         });
 
-        VBox box = new VBox(8, propsHeader, propList, addPropBtn, new Separator(), statesHeader, stateList,
-                addStateBtn);
-        box.setPadding(new Insets(8));
-        return box;
+        VBox statesPane = new VBox(8, statesHeader, stateList, addStateBtn);
+        statesPane.setPadding(new Insets(8));
+
+        // Vertical SplitPane with draggable divider
+        SplitPane verticalSplit = new SplitPane(propertiesPane, statesPane);
+        verticalSplit.setOrientation(Orientation.VERTICAL);
+        verticalSplit.setDividerPositions(0.32);
+        return verticalSplit;
     }
+
 
     private void loadDefinitionIntoEditor(RuleDefinition def) {
         populateFormFromDefinition(def);
