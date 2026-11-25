@@ -6,14 +6,14 @@ import java.util.*;
 import org.roach.margia.controller.rules.MusicianRule;
 import org.roach.margia.controller.rules.RulePropertyDescriptor;
 import org.roach.margia.controller.rules.RulePropertyDescriptor.*;
+import org.roach.margia.controller.rules.storage.RuleRepository;
 import org.roach.margia.model.RuleOptions;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 /**
  * Panel for setting musician rule options
@@ -276,11 +276,26 @@ public class MusicianRuleOptionsPanel extends VBox {
 
     @FXML
     private void initialize() {
-        ServiceLoader.load(MusicianRule.class).forEach(r -> {
-            availableRules.put(r.getName(), r);
-            ruleNames.add(r.getName());
-        });
-        rule.getItems().addAll(ruleNames);
+        refreshAvailableRules();
+        RuleRepository.getInstance().addRepositoryChangeListener(() -> Platform.runLater(this::refreshAvailableRules));
+    }
+
+    private void refreshAvailableRules() {
+        String previouslySelected = rule.getValue();
+        availableRules.clear();
+        ruleNames.clear();
+
+        for (String name : RuleRepository.getInstance().getAllRuleNames()) {
+            RuleRepository.getInstance().createRuleByName(name).ifPresent(r -> {
+                availableRules.put(name, r);
+                ruleNames.add(name);
+            });
+        }
+
+        rule.getItems().setAll(ruleNames);
+        if (previouslySelected != null && ruleNames.contains(previouslySelected)) {
+            rule.setValue(previouslySelected);
+        }
     }
 
     @Override

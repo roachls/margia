@@ -1,5 +1,7 @@
 package org.roach.margia.controller.rules;
 
+import java.util.List;
+
 import org.roach.margia.controller.Musician;
 
 /**
@@ -40,8 +42,8 @@ public sealed interface MusicianRule permits AbstractMusicianRule {
     /**
      * @return descriptors for any rule-specific options configurable in the UI
      */
-    default java.util.List<RulePropertyDescriptor> getPropertyDescriptors() {
-        return java.util.List.of();
+    default List<RulePropertyDescriptor> getPropertyDescriptors() {
+        return List.of();
     }
 
 }

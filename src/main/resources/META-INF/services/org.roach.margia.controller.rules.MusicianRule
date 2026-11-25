@@ -1,5 +1,4 @@
 org.roach.margia.controller.rules.RandomRule
-org.roach.margia.controller.rules.StateBasedRule
 org.roach.margia.controller.rules.StateBasedRule2
 org.roach.margia.controller.rules.RandomFlavorRule
 org.roach.margia.controller.rules.ReceiverRule
