@@ -28,11 +28,11 @@
 				<Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
 			</padding>
 			<children>
-				<SplitPane dividerPositions="0.1" orientation="HORIZONTAL"
-					VBox.vgrow="ALWAYS">
+				<SplitPane dividerPositions="0.20"
+					orientation="HORIZONTAL" VBox.vgrow="ALWAYS">
 					<items>
 						<!-- Left Sidebar: Rules & Templates -->
-						<VBox spacing="8.0">
+						<VBox prefWidth="150.0" spacing="8.0">
 							<padding>
 								<Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
 							</padding>
@@ -115,6 +115,32 @@
 															<children>
 																<Label style="-fx-font-weight: bold;"
 																	text="Configurable UI Properties (referenced via $key)" />
+																<!-- Property Column Headers -->
+																<HBox spacing="6.0" style="-fx-padding: 0 0 0 8;">
+																	<children>
+																		<Label prefWidth="115.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Type" />
+																		<Label prefWidth="110.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Key ($name)" />
+																		<Label prefWidth="130.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="UI Label" />
+																		<Label prefWidth="70.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Default" />
+																		<Label prefWidth="55.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Min" />
+																		<Label prefWidth="55.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Max" />
+																		<Label prefWidth="140.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="List Values (CSV)" />
+																	</children>
+																</HBox>
 																<ListView fx:id="propListView"
 																	VBox.vgrow="ALWAYS" />
 																<Button onAction="#onAddPropertyClicked"
@@ -129,6 +155,28 @@
 															<children>
 																<Label style="-fx-font-weight: bold;"
 																	text="States, Actions &amp; Transitions" />
+																<HBox spacing="6.0" style="-fx-padding: 0 0 0 8;">
+																	<children>
+																		<Label prefWidth="120.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="State Name" />
+																		<Label prefWidth="165.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="State Type" />
+																		<Label prefWidth="135.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Ticks / Dice / Cond" />
+																		<Label prefWidth="130.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Next / True,False" />
+																		<Label prefWidth="180.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Actions" />
+																		<Label prefWidth="200.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Ranges" />
+																	</children>
+																</HBox>
 																<ListView fx:id="stateListView"
 																	VBox.vgrow="ALWAYS" />
 																<Button onAction="#onAddStateClicked"

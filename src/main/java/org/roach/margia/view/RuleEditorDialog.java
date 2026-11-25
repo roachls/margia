@@ -1279,16 +1279,20 @@ public class RuleEditorDialog extends Dialog<Void> {
             }
             ComboBox<String> typeBox = new ComboBox<>(
                     FXCollections.observableArrayList("INT", "DOUBLE", "BOOLEAN", "STRING", "STRING_LIST"));
+            typeBox.setPrefWidth(115);
             typeBox.setValue(item.type);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
+
             TextField keyField = field(item.key, "key", 110, v -> item.key = v);
             TextField labelField = field(item.label, "Label:", 130, v -> item.label = v);
             TextField defField = field(item.defaultVal, "default", 70, v -> item.defaultVal = v);
             TextField minField = field(item.min, "min", 55, v -> item.min = v);
             TextField maxField = field(item.max, "max", 55, v -> item.max = v);
+            TextField listField = field(item.listValues, "a,b,c (STRING_LIST)", 140, v -> item.listValues = v);
             Button removeBtn = new Button("X");
             removeBtn.setOnAction(_ -> onRemove.accept(item));
-            setGraphic(new HBox(6, typeBox, keyField, labelField, defField, minField, maxField, removeBtn));
+
+            setGraphic(new HBox(6, typeBox, keyField, labelField, defField, minField, maxField, listField, removeBtn));
         }
 
         private static TextField field(String val, String prompt, double width, Consumer<String> onChange) {
@@ -1323,24 +1327,30 @@ public class RuleEditorDialog extends Dialog<Void> {
                 item.name = newV;
                 onNameChanged.run();
             });
+            
             ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_STATE_TYPES));
             typeBox.setValue(item.type);
+            typeBox.setPrefWidth(165);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
             TextField numField = new TextField(item.numberOrPlaceholder);
+            
             numField.setPromptText("ticks / maxRoll / $prop");
-            numField.setPrefWidth(110);
+            numField.setPrefWidth(135);
             numField.textProperty().addListener((_, _, newV) -> item.numberOrPlaceholder = newV);
+            
             TextField targetField = new TextField(item.targetState);
             targetField.setPromptText("next / wrapped state");
-            targetField.setPrefWidth(120);
+            targetField.setPrefWidth(130);
             targetField.textProperty().addListener((_, _, newV) -> item.targetState = newV);
+            
             TextField actionsField = new TextField(item.actionsText);
             actionsField.setPromptText("Actions (e.g. PLAY_CHORD)");
-            actionsField.setPrefWidth(160);
+            actionsField.setPrefWidth(180);
             actionsField.textProperty().addListener((_, _, newV) -> item.actionsText = newV);
+            
             TextField rangesField = new TextField(item.rangesText);
             rangesField.setPromptText("Ranges (1-3->stateA; 4-6->stateB)");
-            rangesField.setPrefWidth(180);
+            rangesField.setPrefWidth(200);
             rangesField.textProperty().addListener((_, _, newV) -> item.rangesText = newV);
             Button removeBtn = new Button("X");
             removeBtn.setOnAction(_ -> {
