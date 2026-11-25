@@ -106,6 +106,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
      * @param chord the {@link Chord} to play
      */
     public void playChord(Chord chord) {
+        if (chord == null) return;
         var adjustedNotes = new ArrayList<Integer>();
         for (var note : chord.getNotes()) {
             if (note == null || note == Note.REST)
