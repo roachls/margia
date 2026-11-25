@@ -72,8 +72,26 @@ public class RuleEditorDialog extends Dialog<Void> {
     private final List<Musician> activeMusicians;
     private StateGraphPane graphPane;
     private boolean syncingTabs = false;
-    private static final List<String> SUPPORTED_ACTIONS = List.of("PLAY_CHORD", "PLAY_CHORD_DOWN_INTERVAL",
-            "PLAY_CHORD_TWICE_LENGTH", "PLAY_CHORD_HALF_LENGTH", "PLAY_CHORD_UP_VELOCITY", "PLAY_CHORD_DOWN_VELOCITY");
+    // @formatter:off
+    private static final List<String> SUPPORTED_ACTIONS = List.of(
+            "PLAY_CHORD",
+            "PLAY_CHORD_UP_INTERVAL",
+            "PLAY_CHORD_DOWN_INTERVAL",
+            "PLAY_CHORD_TWICE_LENGTH",
+            "PLAY_CHORD_HALF_LENGTH",
+            "PLAY_CHORD_UP_VELOCITY",
+            "PLAY_CHORD_DOWN_VELOCITY",
+            "PLAY_NOTE_UP_OCTAVE",
+            "PLAY_PSEUDO_RANDOM_CHORD",
+            "PLAY_PSEUDO_RANDOM_CHORD_FLAVOR",
+            "PLAY_RANDOM_CHORD",
+            "REPEAT_LAST_CHORD",
+            "SET_LAST_CHORD",
+            "REST_ONE_TICK",
+            "RESET_PLAYED_CHORDS",
+            "MUTE_MUSICIAN",
+            "UNMUTE_MUSICIAN");
+    // @formatter:on
 
     /**
      * @param owner           the {@link Window} that owns this dialog
@@ -961,34 +979,39 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
 
         private void appendActionWithPrompt(MutableState st, String actionType, TextField actionsField) {
-            String paramKey = switch (actionType) {
-            case "PLAY_CHORD_DOWN_INTERVAL" -> "interval";
-            case "PLAY_CHORD_UP_VELOCITY", "PLAY_CHORD_DOWN_VELOCITY" -> "delta";
+            String templateParams = switch (actionType) {
+            case "PLAY_CHORD_UP_INTERVAL", "PLAY_CHORD_DOWN_INTERVAL" -> "interval=5";
+            case "PLAY_CHORD_UP_VELOCITY", "PLAY_CHORD_DOWN_VELOCITY" -> "diff=15";
+            case "PLAY_PSEUDO_RANDOM_CHORD" -> "spread=20; num=10; numNotes=3";
+            case "PLAY_PSEUDO_RANDOM_CHORD_FLAVOR" -> "spread=20; num=10; flavor=MAJOR";
+            case "PLAY_RANDOM_CHORD" -> "dice=1d20; num=10; maxNotesDiceDescription=1d4";
+            case "MUTE_MUSICIAN", "UNMUTE_MUSICIAN" -> "";
             default -> null;
             };
-            if (paramKey == null) {
-                String next = (st.actionsText == null || st.actionsText.isBlank()) ? actionType
-                        : st.actionsText + ", " + actionType;
-                st.actionsText = next;
-                actionsField.setText(next);
+
+            if (templateParams == null) {
+                appendFormattedAction(st, actionType, actionsField);
                 return;
             }
-            String defaultParam = paramKey.equals("interval") ? "5" : "15";
-            TextInputDialog dialog = new TextInputDialog(defaultParam);
+
+            TextInputDialog dialog = new TextInputDialog(templateParams);
             dialog.initOwner(getDialogPane().getScene().getWindow());
-            dialog.setTitle("Action Parameter");
+            dialog.setTitle("Action Parameters");
             dialog.setHeaderText("Configure '" + actionType + "'");
-            dialog.setContentText("Enter '" + paramKey + "' (number or $propertyKey):");
+            dialog.setContentText("Parameters (key=value separated by ';', or blank for default):");
+
             dialog.showAndWait().ifPresent(val -> {
                 String trimmed = val.trim();
-                if (trimmed.isEmpty())
-                    return;
-                String formatted = actionType + "{" + paramKey + "=" + trimmed + "}";
-                String next = (st.actionsText == null || st.actionsText.isBlank()) ? formatted
-                        : st.actionsText + ", " + formatted;
-                st.actionsText = next;
-                actionsField.setText(next);
+                String formatted = trimmed.isEmpty() ? actionType : actionType + "{" + trimmed + "}";
+                appendFormattedAction(st, formatted, actionsField);
             });
+        }
+
+        private void appendFormattedAction(MutableState st, String formatted, TextField actionsField) {
+            String next = (st.actionsText == null || st.actionsText.isBlank()) ? formatted
+                    : st.actionsText + ", " + formatted;
+            st.actionsText = next;
+            actionsField.setText(next);
         }
 
         private void renameStateReferences(String oldName, String newName) {
@@ -1095,7 +1118,17 @@ public class RuleEditorDialog extends Dialog<Void> {
                         String[] parts = kv.split("=", 2);
                         if (parts.length == 2) {
                             String v = parts[1].trim();
-                            params.put(parts[0].trim(), v.startsWith("$") ? v : Integer.parseInt(v));
+                            Object parsedVal;
+                            if (v.startsWith("$")) {
+                                parsedVal = v;
+                            } else {
+                                try {
+                                    parsedVal = Integer.parseInt(v);
+                                } catch (NumberFormatException e) {
+                                    parsedVal = v;
+                                }
+                            }
+                            params.put(parts[0].trim(), parsedVal);
                         }
                     }
                     list.add(new ActionDef(actType, params));

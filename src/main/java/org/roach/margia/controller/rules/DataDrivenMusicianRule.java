@@ -7,8 +7,7 @@ import org.roach.margia.actions.*;
 import org.roach.margia.controller.rules.states.*;
 import org.roach.margia.controller.rules.storage.RuleDefinition;
 import org.roach.margia.controller.rules.storage.RuleDefinition.*;
-import org.roach.margia.model.MusicianMessage;
-import org.roach.margia.model.RuleOptions;
+import org.roach.margia.model.*;
 import org.roach.margia.storage.Options;
 
 /**
@@ -48,16 +47,12 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
     public void initActionsAfterMusicianAssigned() {
         RuleOptions ruleOptions = Options.getInstance().getMusicians().get(musician.getId()).getRuleOptions();
 
-        // 1. Resolve current property values from RuleOptions (falling back to
-        // descriptor defaults)
         Map<String, Object> resolvedProps = new LinkedHashMap<>();
         for (RulePropertyDescriptor desc : descriptors) {
             Object rawVal = ruleOptions.getRuleSpecificOptionOrDefault(desc.key(), desc.defaultValue());
             resolvedProps.put(desc.key(), coerceType(desc, rawVal));
         }
 
-        // 2. Pass 1: Instantiate all non-Countdown states first so CountdownState
-        // targets exist
         Map<String, MusicianState> states = new LinkedHashMap<>();
         definition.states().forEach((stateName, stateDef) -> {
             if (!(stateDef instanceof StateDef.Countdown)) {
@@ -67,8 +62,6 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
             }
         });
 
-        // 3. Pass 2: Instantiate CountdownState instances now that their target states
-        // exist
         definition.states().forEach((stateName, stateDef) -> {
             if (stateDef instanceof StateDef.Countdown c) {
                 MusicianState target = requireTargetState(states, c.nextState());
@@ -78,8 +71,6 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
             }
         });
 
-        // 4. Pass 3: Wire mutable transitions (AlwaysTransition, DelayedTransition,
-        // PseudoRandom)
         definition.states().forEach((stateName, stateDef) -> {
             MusicianState stateInstance = states.get(stateName);
             wireTransitions(stateInstance, stateDef, states);
@@ -136,7 +127,7 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
             }
         }
         case StateDef.Countdown _ -> {
-            // Already wired via constructor in Pass 2
+            // do nothing
         }
         }
     }
@@ -168,6 +159,40 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
                     int delta = resolveInt(act.params().get("delta"), props);
                     yield c -> List.of(new PlayChordDownVelocity(musician, c, delta));
                 }
+                case "PLAY_CHORD_UP_INTERVAL" -> {
+                    int interval = resolveInt(act.params().get("interval"), props);
+                    yield c -> List.of(new PlayChordUpInterval(musician, c, interval));
+                }
+                case "PLAY_NOTE_UP_OCTAVE" -> c -> List.of(new PlayNoteUpOctave(musician, c));
+                case "PLAY_PSEUDO_RANDOM_CHORD" -> {
+                    int spread = resolveInt(act.params().get("spread"), props);
+                    int num = resolveInt(act.params().get("num"), props);
+                    int numNotes = resolveInt(act.params().get("numNotes"), props);
+                    yield _ -> List.of(new PlayPseudoRandomChord(musician, spread, num, numNotes));
+                }
+                case "PLAY_PSEUDO_RANDOM_CHORD_FLAVOR" -> {
+                    int spread = resolveInt(act.params().get("spread"), props);
+                    int num = resolveInt(act.params().get("num"), props);
+                    String flavorStr = resolveString(act.params().get("flavor"), props);
+                    ChordFlavor flavor = ChordFlavor.valueOf(flavorStr.toUpperCase());
+                    yield _ -> List.of(new PlayPseudoRandomChordFlavor(musician, spread, num, flavor));
+                }
+                case "PLAY_RANDOM_CHORD" -> {
+                    String dice = resolveString(act.params().get("dice"), props);
+                    int num = resolveInt(act.params().get("num"), props);
+                    String maxNotesDice = resolveString(act.params().get("maxNotesDiceDescription"), props);
+                    yield _ -> List.of(new PlayRandomChord(musician, dice, num, maxNotesDice));
+                }
+                case "REPEAT_LAST_CHORD" -> _ -> List.of(new RepeatLastChord(musician));
+                case "RESET_PLAYED_CHORDS" -> _ -> List.of(new ResetPlayedChords(musician));
+                case "REST_ONE_TICK" -> _ -> List.of(new RestOneTick(musician));
+                case "SET_LAST_CHORD" -> c -> List.of(new SetLastChord(musician, c));
+                case "UNMUTE_MUSICIAN" -> {
+                    Object rawId = act.params().get("musicianId");
+                    int targetId = (rawId != null) ? resolveInt(rawId, props) : musician.getId();
+                    yield _ -> List.of(new UnmuteMusician(targetId));
+                }
+
                 default -> throw new IllegalArgumentException("Unknown action type: " + act.type());
                 }).toList();
     }
@@ -178,6 +203,14 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
             return n.intValue();
         }
         return Integer.parseInt(String.valueOf(resolved));
+    }
+
+    private String resolveString(Object raw, Map<String, Object> props) {
+        Object resolved = resolvePlaceholder(raw, props);
+        if (resolved == null) {
+            throw new IllegalArgumentException("Missing required string parameter in rule '" + getName() + "'");
+        }
+        return String.valueOf(resolved);
     }
 
     private Object resolvePlaceholder(Object raw, Map<String, Object> props) {
