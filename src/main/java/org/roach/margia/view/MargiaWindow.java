@@ -5,12 +5,14 @@ import static org.roach.margia.view.Icons.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.List;
 import java.util.prefs.BackingStoreException;
 
 import org.roach.margia.command.CommandCaretaker;
 import org.roach.margia.controller.*;
 import org.roach.margia.controller.timing.TimingSource;
 import org.roach.margia.model.Key;
+import org.roach.margia.model.MusicianList;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.DieRoller;
 import org.roach.margia.util.MargiaFileUtils;
@@ -133,6 +135,8 @@ public class MargiaWindow extends Stage {
     private MenuItem aboutMenuItem;
     @FXML
     private MenuItem keyboardShortcutMenuItem;
+    @FXML
+    private Button ruleEditorBtn;
 
     @FXML
     private Button selectAllBtn;
@@ -341,7 +345,7 @@ public class MargiaWindow extends Stage {
         Options.getInstance().getUiOptions().showNumbersProperty().addListener(MusicianComponent.SHOW_NUMBERS_LISTENER);
         Options.getInstance().getMusicOptions().tempoProperty().addListener(MusicianComponent.TEMPO_LISTENER);
         Options.getInstance().dirtyProperty().addListener((_, _, _) -> Platform.runLater(this::updateTitle));
-        
+
         var noAgentsSelected = Bindings.isEmpty(agentPanel.getSelectedMusicians());
 
         deleteMenuItem.disableProperty().bind(noAgentsSelected);
@@ -576,6 +580,14 @@ public class MargiaWindow extends Stage {
         if (showCustomInputDialog("Add Musician Fan", grid)) {
             agentPanel.new AddFanCommand(levelSpinner.getValue(), directionBox.getValue()).execute();
         }
+    }
+
+    @FXML
+    private void onRuleEditorClicked() {
+        Window owner = rootLayout.getScene().getWindow();
+        List<Musician> activeMusicians = List.copyOf(MusicianList.getInstance().getMusicians().values());
+        RuleEditorDialog dialog = new RuleEditorDialog(owner, activeMusicians);
+        dialog.showAndWait();
     }
 
     private static GridPane createDialogGrid() {

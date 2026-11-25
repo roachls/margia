@@ -29,7 +29,6 @@ public class RuleRepository {
 
     private RuleRepository() {
         this.rulesDir = Paths.get(System.getProperty("user.home"), ".margia", "rules");
-        System.out.println("**********" + rulesDir);
         this.yamlMapper = YAMLMapper.builder().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER)
                 .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES).build();
         loadBuiltInRules();
@@ -184,4 +183,13 @@ public class RuleRepository {
         String lower = path.getFileName().toString().toLowerCase();
         return lower.endsWith(".yaml") || lower.endsWith(".yml");
     }
+
+    public String toYamlString(RuleDefinition definition) throws IOException {
+        return yamlMapper.writeValueAsString(definition);
+    }
+
+    public RuleDefinition fromYamlString(String yamlContent) throws IOException {
+        return yamlMapper.readValue(yamlContent, RuleDefinition.class);
+    }
+
 }

@@ -370,7 +370,7 @@ public class Musician implements PropertyChangeEmitter, PropertyChangeListener, 
     /**
      * @param rule the rule this musician will use for generating notes
      */
-    private void setRule(AbstractMusicianRule rule) {
+    public void setRule(AbstractMusicianRule rule) {
         if (rule == null)
             return;
         this.rule = rule;
