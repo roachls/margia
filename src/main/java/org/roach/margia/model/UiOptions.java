@@ -27,6 +27,7 @@ public class UiOptions {
     private final DoubleProperty rippleExpansionSpeed = new SimpleDoubleProperty(3.0);
     private final IntegerProperty maxActiveRipples = new SimpleIntegerProperty(32);
     private final DoubleProperty rippleScreenFraction = new SimpleDoubleProperty(0.75);
+    private final BooleanProperty threeDMode = new SimpleBooleanProperty(false);
 
     /**
      * property name of whether to show numbers
@@ -234,6 +235,30 @@ public class UiOptions {
         return this.rippleScreenFraction;
     }
 
+    // 2. Getter, Setter, and Property
+    /**
+     * @return {@code true} if the visualization is in 3D mode, {@code false} for 2D mode
+     */
+    public boolean isThreeDMode() { return threeDMode.get(); }
+
+    /**
+     * @param threeDMode {@code true} to enable 3D mode, {@code false} for 2D mode
+     */
+    public void setThreeDMode(boolean threeDMode) {
+        var oldMode = this.threeDMode.get();
+        this.threeDMode.set(threeDMode);
+        if (oldMode != threeDMode) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    /**
+     * @return JavaFX property controlling 2D vs. 3D visualization mode
+     */
+    public BooleanProperty threeDModeProperty() {
+        return this.threeDMode;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(edgeLength, gravity, musicianComponents, showNumbers, windSpeed);
@@ -296,6 +321,7 @@ public class UiOptions {
         this.rippleExpansionSpeed.set(other.rippleExpansionSpeed.get());
         this.maxActiveRipples.set(other.maxActiveRipples.get());
         this.rippleScreenFraction.set(other.rippleScreenFraction.get());
+        this.threeDMode.set(other.threeDMode.get());
     }
 
 }

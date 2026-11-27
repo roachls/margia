@@ -76,7 +76,6 @@ public class AgentPanel extends Pane {
 
     // 3D Scene Graph & Camera Rig
     private final Group worldRoot = new Group();
-    private final Group rippleLayer = new Group();
     private final Group edgeLayer = new Group();
     private final Group nodeLayer = new Group();
     private final Group cameraPivot = new Group();
@@ -139,10 +138,45 @@ public class AgentPanel extends Pane {
                 MusicianComponent.setTickLengthMillis(tickLengthMillis);
             }
         });
+        Options.getInstance().getUiOptions().threeDModeProperty().addListener((_, _, is3D) -> {
+            Platform.runLater(() -> applyDimensionMode(is3D));
+        });
+        applyDimensionMode(Options.getInstance().getUiOptions().isThreeDMode());
+    }
+
+    private void applyDimensionMode(boolean is3D) {
+        if (is3D) {
+            // Tilt camera slightly into 3D perspective
+            cameraRotateX.setAngle(-20);
+            cameraRotateY.setAngle(15);
+
+            // Give coplanar Z=0 nodes a slight random Z nudge so repulsion blooms into 3D
+            for (var mc : musicianComponents.values()) {
+                var pos = mc.getPosition();
+                if (Math.abs(pos.getZ()) < 0.01) {
+                    double zNudge = RANDOM.nextDouble(-35.0, 35.0);
+                    mc.getOptions().setPosition(new Point3D(pos.getX(), pos.getY(), zNudge));
+                    mc.updateLocation();
+                }
+            }
+        } else {
+            // Reset camera to straight-on top-down view
+            cameraRotateX.setAngle(0);
+            cameraRotateY.setAngle(0);
+            camera.setTranslateZ(-950.0);
+
+            // Flatten all nodes back onto the Z = 0 plane
+            for (var mc : musicianComponents.values()) {
+                var pos = mc.getPosition();
+                mc.getOptions().setPosition(new Point3D(pos.getX(), pos.getY(), 0.0));
+                mc.setVelocity(mc.getVelocity().getX(), mc.getVelocity().getY(), 0.0);
+                mc.updateLocation();
+            }
+        }
     }
 
     private void setup3DScene() {
-        worldRoot.getChildren().addAll(rippleLayer, edgeLayer, nodeLayer);
+        worldRoot.getChildren().addAll(edgeLayer, nodeLayer);
 
         // Lighting for 3D spheres and edges
         AmbientLight ambientLight = new AmbientLight(Color.color(0.45, 0.45, 0.45));
@@ -178,7 +212,6 @@ public class AgentPanel extends Pane {
 
         nodeLayer.getChildren().clear();
         edgeLayer.getChildren().clear();
-        rippleLayer.getChildren().clear();
     }
 
     void initMusicians() {
@@ -209,9 +242,15 @@ public class AgentPanel extends Pane {
             compOptions.setPosition(initialPos);
             n.updateLocation();
         } else if (compOptions.getPosition().equals(Point3D.ZERO)) {
-            int spawnSpan = (int) (WORLD_HALF_EXTENT * 0.6);
-            compOptions.setPosition(new Point3D(RANDOM.nextInt(-spawnSpan, spawnSpan + 1),
-                    RANDOM.nextInt(-spawnSpan, spawnSpan + 1), RANDOM.nextInt(-spawnSpan, spawnSpan + 1)));
+            boolean is3D = Options.getInstance().getUiOptions().isThreeDMode();
+            if (is3D) {
+                int spawnSpan = (int) (WORLD_HALF_EXTENT * 0.6);
+                compOptions.setPosition(new Point3D(RANDOM.nextInt(-spawnSpan, spawnSpan + 1),
+                        RANDOM.nextInt(-spawnSpan, spawnSpan + 1), RANDOM.nextInt(-spawnSpan, spawnSpan + 1)));
+            } else {
+                compOptions.setPosition(new Point3D(RANDOM.nextInt((int) -getWidth() / 2, (int) getWidth() / 2),
+                        RANDOM.nextInt((int) -getHeight() / 2, (int) getHeight() / 2), 0));
+            }
             n.updateLocation();
         }
 
@@ -231,16 +270,8 @@ public class AgentPanel extends Pane {
         updateEdges3D();
 
         if (Options.getInstance().getUiOptions().isAnimateBackground()) {
-            var iter = ripples.iterator();
-            while (iter.hasNext()) {
-                var ripple = iter.next();
-                if (!ripple.update()) {
-                    rippleLayer.getChildren().remove(ripple.node);
-                    iter.remove();
-                }
-            }
+            ripples.removeIf(ripple -> !ripple.update());
         } else if (!ripples.isEmpty()) {
-            ripples.forEach(r -> rippleLayer.getChildren().remove(r.node));
             ripples.clear();
         }
 
@@ -256,15 +287,12 @@ public class AgentPanel extends Pane {
             return;
         }
         if (ripples.size() >= Options.getInstance().getUiOptions().getMaxActiveRipples()) {
-            Ripple oldest = ripples.remove(0);
-            rippleLayer.getChildren().remove(oldest.node);
+            ripples.remove(0);
         }
         var center = mc.getCenter();
         double startRadius = mc.getRadius() * 0.9;
         double maxRadius = screenSpan * Options.getInstance().getUiOptions().getRippleScreenFraction();
-        var ripple = new Ripple(center, startRadius, maxRadius, color);
-        ripples.add(ripple);
-        rippleLayer.getChildren().add(ripple.node);
+        ripples.add(new Ripple(center, startRadius, maxRadius, color));
     }
 
     private void updateEdges3D() {
@@ -276,8 +304,8 @@ public class AgentPanel extends Pane {
     }
 
     /**
-     * Renders 2D HUD elements (ID numbers, status badges, selection boxes, and
-     * connection drag lines) onto the transparent top Canvas.
+     * Renders 2D HUD elements (perspective ripples, ID numbers, status badges,
+     * selection boxes, and connection drag lines) onto the transparent top Canvas.
      */
     private void drawOverlayHUD() {
         double w = backgroundCanvas.getWidth();
@@ -285,10 +313,44 @@ public class AgentPanel extends Pane {
         if (w <= 0 || h <= 0) {
             return;
         }
+
         var gc = backgroundCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
-        // Project 3D musician centers to 2D screen coordinates for crisp ID numbers &
-        // status badges
+
+        if (!ripples.isEmpty()) {
+            gc.save();
+            gc.setLineDashes(null);
+
+            double fovRad = Math.toRadians(camera.getFieldOfView());
+            double focalLength = (h / 2.0) / Math.tan(fovRad / 2.0);
+
+            for (var ripple : ripples) {
+                double alpha = ripple.opacity();
+                if (alpha <= 0.005) {
+                    continue;
+                }
+
+                Point3D camSpace = camera.sceneToLocal(worldRoot.localToScene(ripple.center));
+                if (camSpace == null || camSpace.getZ() <= camera.getNearClip()) {
+                    continue;
+                }
+
+                double perspectiveScale = focalLength / camSpace.getZ();
+                double screenX = (w / 2.0) + camSpace.getX() * perspectiveScale;
+                double screenY = (h / 2.0) + camSpace.getY() * perspectiveScale;
+                double screenRadius = ripple.radius * perspectiveScale;
+
+                if (screenRadius <= 0.5) {
+                    continue;
+                }
+
+                gc.setStroke(ripple.color.deriveColor(0, 1.0, 1.0, alpha));
+                gc.setLineWidth(2.2 * Math.clamp(perspectiveScale, 0.4, 2.5));
+                gc.strokeOval(screenX - screenRadius, screenY - screenRadius, screenRadius * 2.0, screenRadius * 2.0);
+            }
+            gc.restore();
+        }
+
         if (MusicianComponent.isShowNumbers()) {
             gc.save();
             for (var mc : musicianComponents.values()) {
@@ -299,17 +361,22 @@ public class AgentPanel extends Pane {
                 double radius = mc.getRadius();
                 var font = Font.font("Serif", FontWeight.BOLD, Math.max(10.0, 12.0 * radius / 20.0));
                 String idText = Integer.toString(mc.getMusician().getId());
+
                 var textHelper = new Text(idText);
                 textHelper.setFont(font);
                 var bounds = textHelper.getLayoutBounds();
+
                 double textX = screenPos.getX() - bounds.getWidth() / 2.0;
                 double textY = screenPos.getY() + bounds.getHeight() / 4.0;
+
                 gc.setFill(Color.color(0, 0, 0, 0.75));
                 gc.fillOval(textX - 2.0, textY - bounds.getHeight() + 2.0, bounds.getWidth() + 4.0,
                         bounds.getHeight() + 2.0);
+
                 gc.setFont(font);
                 gc.setFill(Color.WHITE);
                 gc.fillText(idText, textX, textY);
+
                 String status = "";
                 if (mc.isLocked()) {
                     status += "🔒";
@@ -325,6 +392,8 @@ public class AgentPanel extends Pane {
             }
             gc.restore();
         }
+
+        // 3. Draw active connection preview line
         if (startSelection != null && endSelection != null) {
             gc.save();
             gc.setStroke(Color.RED);
@@ -333,6 +402,8 @@ public class AgentPanel extends Pane {
             gc.strokeLine(startSelection.getX(), startSelection.getY(), endSelection.getX(), endSelection.getY());
             gc.restore();
         }
+
+        // 4. Draw multi-select rubber-band rectangle
         if (dragStart != null && dragEnd != null) {
             gc.save();
             gc.setStroke(Color.YELLOW);
@@ -345,11 +416,36 @@ public class AgentPanel extends Pane {
     }
 
     private Point2D projectToOverlay(MusicianComponent mc) {
-        Point3D scenePt = mc.localToScene(Point3D.ZERO);
-        if (scenePt == null) {
+        return projectWorldToCanvas(mc.getCenter());
+    }
+
+    /**
+     * Projects a 3D point in worldRoot space into exact 2D pixel coordinates on
+     * backgroundCanvas, accounting for the PerspectiveCamera's field of view and
+     * depth divide.
+     */
+    private Point2D projectWorldToCanvas(Point3D worldPoint) {
+        double w = backgroundCanvas.getWidth();
+        double h = backgroundCanvas.getHeight();
+        if (w <= 0 || h <= 0) {
             return null;
         }
-        return backgroundCanvas.sceneToLocal(scenePt.getX(), scenePt.getY());
+
+        // Transform world point into camera-local space (camera looks down +Z from
+        // origin)
+        Point3D camSpace = camera.sceneToLocal(worldRoot.localToScene(worldPoint));
+        if (camSpace == null || camSpace.getZ() <= camera.getNearClip()) {
+            return null; // Behind camera or clipped
+        }
+
+        // Compute exact focal length from SubScene height and camera vertical FOV
+        double fovRad = Math.toRadians(camera.getFieldOfView());
+        double focalLength = (h / 2.0) / Math.tan(fovRad / 2.0);
+        double scale = focalLength / camSpace.getZ();
+
+        double screenX = (w / 2.0) + camSpace.getX() * scale;
+        double screenY = (h / 2.0) + camSpace.getY() * scale;
+        return new Point2D(screenX, screenY);
     }
 
     private void calcEdges() {
@@ -419,28 +515,45 @@ public class AgentPanel extends Pane {
                 n2.setForce(n2.getForce().add(forceVec));
             }
         }
-        // Central gravity toward (0,0,0) and 3D orbital wind around Y-axis
-        Point3D upAxis = new Point3D(0, 1, 0);
+
+        // Central gravity toward (0,0,0) and orbital wind around the Z-axis (clockwise
+        // in XY plane)
+        boolean is3D = Options.getInstance().getUiOptions().isThreeDMode();
+        Point3D swirlAxis = is3D ? new Point3D(0.35, 0.35, 1.0).normalize() : new Point3D(0, 0, 1);
+
         for (var n1 : nodes) {
             Point3D radialVec = n1.getCenter();
             double dist = radialVec.magnitude();
             if (dist < 0.001) {
                 continue;
             }
+
             double gravity = Options.getInstance().getUiOptions().getGravity();
             double force = n1.getMass() * gravity / dist;
             Point3D forceVec = radialVec.multiply(force);
             n1.setForce(n1.getForce().subtract(forceVec));
-            Point3D tangent = radialVec.crossProduct(upAxis);
+
+            // Cross swirlAxis (0,0,1) with radialVec (x,y,z) -> (-y, x, 0) (clockwise in
+            // screen XY)
+            Point3D tangent = swirlAxis.crossProduct(radialVec);
             if (tangent.magnitude() > 0.001) {
                 Point3D windVec = tangent.normalize().multiply(Options.getInstance().getUiOptions().getWindSpeed());
                 n1.setForce(n1.getForce().add(windVec));
             }
         }
+
         // Update velocities and positions
         for (MusicianComponent node : nodes) {
             node.applyForces();
-            node.clampPosition(WORLD_HALF_EXTENT);
+            if (is3D)
+                node.clampPosition(WORLD_HALF_EXTENT);
+            else {
+                var options = node.getOptions();
+                var pos = options.getPosition();
+                options.setPosition(new Point3D(Math.clamp(pos.getX(), -getWidth() / 2, getWidth() / 2),
+                        Math.clamp(pos.getY(), -getHeight() / 2, getHeight() / 2), 0));
+                node.updatePosition();
+            }
         }
         if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
             Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
@@ -475,7 +588,7 @@ public class AgentPanel extends Pane {
             lastMousePos = new Point2D(e.getX(), e.getY());
             // Right-click or Alt+Left-click orbits the 3D camera
             if (e.getButton() == MouseButton.SECONDARY || (e.getButton() == MouseButton.PRIMARY && e.isAltDown())) {
-                isOrbiting = true;
+                isOrbiting = Options.getInstance().getUiOptions().isThreeDMode();
                 setCursor(Cursor.CLOSED_HAND);
                 return;
             }
@@ -1039,7 +1152,8 @@ public class AgentPanel extends Pane {
         private final Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions;
         private final Map<Integer, List<Integer>> mapOfOthersToThese;
 
-        RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians, Map<Integer, MusicianOptions> deletedMusicianOptions,
+        RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
+                Map<Integer, MusicianOptions> deletedMusicianOptions,
                 Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions,
                 Map<Integer, List<Integer>> mapOfOthersToThese) {
             this.deletedMusicians = deletedMusicians;
@@ -1201,7 +1315,6 @@ public class AgentPanel extends Pane {
             this.edges.forEach(e -> edgeLayer.getChildren().remove(e.group));
             this.edges.clear();
         }
-        this.ripples.forEach(r -> rippleLayer.getChildren().remove(r.node));
         this.ripples.clear();
         this.numMusicians = 0;
         drawOverlayHUD();
@@ -1308,7 +1421,19 @@ public class AgentPanel extends Pane {
      * Direction in which fan peer relationships should be constructed
      */
     public enum FanDirection {
-        DOWN, UP, BIDIRECTIONAL;
+        /**
+         * Connections go from the root of the tree down to the leaves
+         */
+        DOWN,
+        /**
+         * Connections go from the leaves up the tree up to the root
+         */
+        UP,
+        /**
+         * Connections go from the root of the tree down to the leaves, and from the
+         * leaves back up to the root
+         */
+        BIDIRECTIONAL;
     }
 
     class AddFanCommand implements Command {
@@ -1398,41 +1523,27 @@ public class AgentPanel extends Pane {
         return lastRemovedAgent;
     }
 
-    /**
-     * 3D expanding translucent sphere triggered when a musician plays a note.
-     */
     private static final class Ripple {
-        final Sphere node;
-        final PhongMaterial material;
+        final Point3D center;
         double radius;
         final double maxRadius;
         final Color color;
 
         Ripple(Point3D center, double startRadius, double maxRadius, Color color) {
+            this.center = center;
             this.radius = startRadius;
             this.maxRadius = maxRadius;
             this.color = color;
-            this.material = new PhongMaterial();
-            this.material.setDiffuseColor(color.deriveColor(0, 1.0, 1.0, opacity()));
-            this.node = new Sphere(startRadius);
-            this.node.setMaterial(material);
-            this.node.setMouseTransparent(true);
-            this.node.setCullFace(CullFace.FRONT); // Prevents occluding the sphere inside
-            this.node.setTranslateX(center.getX());
-            this.node.setTranslateY(center.getY());
-            this.node.setTranslateZ(center.getZ());
         }
 
         boolean update() {
             radius += Options.getInstance().getUiOptions().getRippleExpansionSpeed();
-            node.setRadius(radius);
-            material.setDiffuseColor(color.deriveColor(0, 1.0, 1.0, opacity()));
             return radius < maxRadius;
         }
 
         double opacity() {
             double progress = Math.clamp(radius / maxRadius, 0.0, 1.0);
-            return Math.pow(1.0 - progress, 1.8) * 0.45;
+            return Math.pow(1.0 - progress, 1.8) * 0.55;
         }
     }
 }

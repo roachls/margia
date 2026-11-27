@@ -33,6 +33,7 @@
 			<RowConstraints />
 			<RowConstraints />
 			<RowConstraints />
+			<RowConstraints />
 		</rowConstraints>
 
 		<!-- Row 0: Gravitational Constant -->
@@ -133,7 +134,7 @@
 			</tooltip>
 		</Spinner>
 
-		<!-- Row 7: Color picker -->
+		<!-- Row 8: Color picker -->
 		<Label text="Background Color" labelFor="$colorPicker"
 			GridPane.columnIndex="0" GridPane.rowIndex="8" />
 		<ColorPicker fx:id="colorPicker" GridPane.columnIndex="1"
@@ -142,5 +143,13 @@
 				<Tooltip text="Background color" />
 			</tooltip>
 		</ColorPicker>
+		
+		<!-- Row 8: 3D mode -->
+		<CheckBox fx:id="threeDMode" text="3D mode"
+            GridPane.columnIndex="1" GridPane.rowIndex="9">
+            <tooltip>
+                <Tooltip text="3D mode" />
+            </tooltip>
+        </CheckBox>
 	</GridPane>
 </fx:root>

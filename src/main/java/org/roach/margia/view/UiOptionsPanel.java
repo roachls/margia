@@ -32,6 +32,8 @@ public class UiOptionsPanel extends VBox {
     Spinner<Integer> maxActiveRipples;
     @FXML
     Spinner<Double> rippleScreenFraction;
+    @FXML
+    CheckBox threeDMode;
 
     /**
      * constructor
@@ -62,6 +64,7 @@ public class UiOptionsPanel extends VBox {
         colorPicker.setValue(uiOptions.getBackgroundColor());
         maxActiveRipples.getValueFactory().setValue(uiOptions.getMaxActiveRipples());
         rippleScreenFraction.getValueFactory().setValue(uiOptions.getRippleScreenFraction());
+        threeDMode.setSelected(uiOptions.isThreeDMode());
 
         // Attach change listeners
         gravity.valueProperty().addListener((_, _, newVal) -> {
@@ -109,6 +112,8 @@ public class UiOptionsPanel extends VBox {
                 uiOptions.setBackgroundColor(newVal);
             }
         });
+        
+        threeDMode.selectedProperty().addListener((_, _, newVal) -> uiOptions.setThreeDMode(newVal));
     }
 
     @Override
