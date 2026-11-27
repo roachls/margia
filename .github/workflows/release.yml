@@ -11,11 +11,28 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            type: exe
-            icon: src/installer/margia.ico
+        strategy:
+        fail-fast: false
+        matrix:
+          include:
+            - os: windows-latest
+              type: exe
+              icon: src/installer/margia.ico
+              arch: x64
+            - os: macos-15 # Apple Silicon
+              type: dmg
+              icon: src/installer/margia.icns
+              arch: arm64
+            - os: macos-15-intel # Intel
+              type: dmg
+              icon: src/installer/margia.icns
+              arch: x64
+            - os: ubuntu-latest
+              type: deb
+              icon: src/installer/margia.png
+              arch: amd64
 
     runs-on: ${{ matrix.os }}
 
@@ -30,11 +47,18 @@ jobs:
           distribution: 'temurin'
           java-package: 'jdk+jmods'
 
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
+
       - name: Build with Maven
         run: mvn clean package
 
       - name: Prepare jpackage input
-        run: cp target/*.jar target/libs/
+        shell: bash
+        run: |
+          mkdir -p target/libs
+          cp target/*.jar target/libs/
 
       - name: Package native installer
         shell: bash
@@ -47,8 +71,14 @@ jobs:
             --type ${{ matrix.type }} \
             --icon ${{ matrix.icon }} \
             --app-version ${GITHUB_REF_NAME#v} \
-            --dest target/dist
+            --dest target/dist \
             --file-associations file-assoc.properties
+
+      - name: Rename macOS DMG with architecture
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mv "target/dist/MARGIA-${VERSION}.dmg" "target/dist/MARGIA-${VERSION}-macOS-${{ matrix.arch }}.dmg"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
