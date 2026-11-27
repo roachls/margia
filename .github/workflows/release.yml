@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         strategy:
-          fail-fast: false
           matrix:
             include:
               - os: windows-latest
