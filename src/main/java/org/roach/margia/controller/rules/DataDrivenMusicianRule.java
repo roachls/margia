@@ -387,12 +387,19 @@ public class DataDrivenMusicianRule extends AbstractMusicianRule {
         }
 
         <E extends Enum<E>> E requireEnum(String key, Class<E> enumClass) {
-            String val = requireString(key);
+            Object resolved = resolvePlaceholder(requireRaw(key), key);
+            if (resolved instanceof Collection<?> col && !col.isEmpty()) {
+                resolved = col.iterator().next();
+            }
+            if (enumClass.isInstance(resolved)) {
+                return enumClass.cast(resolved);
+            }
+            String val = String.valueOf(resolved).trim();
             try {
                 return Enum.valueOf(enumClass, val.toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid value '" + val + "' for parameter '" + key + "' in "
-                        + context + " of rule '" + getName() + "'", e);
+                throw new IllegalArgumentException(
+                        "Invalid value '" + val + "' for parameter '" + key + "' in " + context + " of rule '" + getName() + "'", e);
             }
         }
 

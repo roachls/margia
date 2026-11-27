@@ -34,6 +34,7 @@ public class MusicianRuleOptionsPanel extends VBox {
     private final int id;
     private final RuleOptions options;
     private final List<MusicianRuleOptionsPanel> selectedPanels;
+    private boolean refreshingRules = false;
 
     /**
      * Constructor
@@ -52,6 +53,9 @@ public class MusicianRuleOptionsPanel extends VBox {
         rebuildDynamicControls(options.getName());
 
         rule.valueProperty().addListener((_, _, newVal) -> {
+            if (refreshingRules) {
+                return;
+            }
             if (newVal != null) {
                 options.setName(newVal);
                 rebuildDynamicControls(newVal);
@@ -85,14 +89,15 @@ public class MusicianRuleOptionsPanel extends VBox {
         rebuildDynamicControls(options.getName());
 
         rule.valueProperty().addListener((_, _, newVal) -> {
-            if (newVal == null || newVal.isEmpty()) {
+            if (refreshingRules) {
                 return;
             }
-            rule.setStyle("");
-            options.setName(newVal);
-            others.forEach(o -> o.rule.setValue(newVal));
-            rebuildDynamicControls(newVal);
+            if (newVal != null) {
+                options.setName(newVal);
+                rebuildDynamicControls(newVal);
+            }
         });
+
     }
 
     private void rebuildDynamicControls(String ruleName) {
@@ -160,7 +165,8 @@ public class MusicianRuleOptionsPanel extends VBox {
     }
 
     private Spinner<Integer> buildIntSpinner(IntProperty prop, Object currentVal) {
-        int initial = (currentVal instanceof Number n) ? n.intValue() : prop.defaultValue();
+        int raw = (currentVal instanceof Number n) ? n.intValue() : prop.defaultValue();
+        int initial = Math.max(prop.min(), Math.min(prop.max(), raw));
         var spinner = new Spinner<Integer>(prop.min(), prop.max(), initial, prop.step());
         spinner.setEditable(true);
 
@@ -174,7 +180,8 @@ public class MusicianRuleOptionsPanel extends VBox {
     }
 
     private Spinner<Double> buildDoubleSpinner(DoubleProperty prop, Object currentVal) {
-        double initial = (currentVal instanceof Number n) ? n.doubleValue() : prop.defaultValue();
+        double raw = (currentVal instanceof Number n) ? n.doubleValue() : prop.defaultValue();
+        double initial = Math.max(prop.min(), Math.min(prop.max(), raw));
         var spinner = new Spinner<Double>(prop.min(), prop.max(), initial, prop.step());
         spinner.setEditable(true);
 
@@ -281,20 +288,30 @@ public class MusicianRuleOptionsPanel extends VBox {
     }
 
     private void refreshAvailableRules() {
-        String previouslySelected = rule.getValue();
-        availableRules.clear();
-        ruleNames.clear();
+        refreshingRules = true;
+        try {
+            String previouslySelected = rule.getValue();
+            availableRules.clear();
+            ruleNames.clear();
 
-        for (String name : RuleRepository.getInstance().getAllRuleNames()) {
-            RuleRepository.getInstance().createRuleByName(name).ifPresent(r -> {
-                availableRules.put(name, r);
-                ruleNames.add(name);
-            });
-        }
+            for (String name : RuleRepository.getInstance().getAllRuleNames()) {
+                RuleRepository.getInstance().createRuleByName(name).ifPresent(r -> {
+                    availableRules.put(name, r);
+                    ruleNames.add(name);
+                });
+            }
 
-        rule.getItems().setAll(ruleNames);
-        if (previouslySelected != null && ruleNames.contains(previouslySelected)) {
-            rule.setValue(previouslySelected);
+            rule.getItems().setAll(ruleNames);
+            if (previouslySelected != null && ruleNames.contains(previouslySelected)) {
+                rule.setValue(previouslySelected);
+                rebuildDynamicControls(previouslySelected);
+            } else if (previouslySelected != null && !previouslySelected.isEmpty()) {
+                // Selected rule was deleted from repository
+                rule.setValue(null);
+                rebuildDynamicControls(null);
+            }
+        } finally {
+            refreshingRules = false;
         }
     }
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import org.roach.margia.controller.rules.*;
@@ -25,7 +26,7 @@ public class RuleRepository {
     private final Map<String, AbstractMusicianRule> builtInRules = new LinkedHashMap<>();
     private final Map<String, DataDrivenMusicianRule> templateRules = new LinkedHashMap<>();
     private final Map<String, DataDrivenMusicianRule> externalRules = new ConcurrentHashMap<>();
-    private final List<Runnable> repositoryChangeListeners = new ArrayList<>();
+    private final List<Runnable> repositoryChangeListeners = new CopyOnWriteArrayList<>();
 
     private static final RuleRepository INSTANCE = new RuleRepository();
 
@@ -116,11 +117,11 @@ public class RuleRepository {
                 LOGGER.warn("Skipping rule file with missing 'name': {}", file);
                 return;
             }
-            DataDrivenMusicianRule rule = new DataDrivenMusicianRule(def);
-            externalRules.put(def.name(), rule);
+            DataDrivenMusicianRule.validate(def);
+            externalRules.put(def.name(), new DataDrivenMusicianRule(def));
             LOGGER.info("Loaded external YAML rule '{}' from {}", def.name(), file.getFileName());
         } catch (Exception e) {
-            LOGGER.error("Failed to parse rule file: {}", file, e);
+            LOGGER.error("Failed to load rule file: {}", file, e);
         }
     }
 
@@ -192,7 +193,7 @@ public class RuleRepository {
      * @return sorted list of all available rule names (built-in + external)
      */
     public List<String> getAllRuleNames() {
-        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER.thenComparing(Comparator.naturalOrder()));
         names.addAll(builtInRules.keySet());
         names.addAll(templateRules.keySet());
         names.addAll(externalRules.keySet());
@@ -250,11 +251,26 @@ public class RuleRepository {
      * @param listener a listener for changes to the repository
      */
     public void addRepositoryChangeListener(Runnable listener) {
-        repositoryChangeListeners.add(listener);
+        if (listener != null) {
+            repositoryChangeListeners.add(listener);
+        }
+    }
+
+    /**
+     * @param listener listener to be removed
+     */
+    public void removeRepositoryChangeListener(Runnable listener) {
+        repositoryChangeListeners.remove(listener);
     }
 
     private void notifyListeners() {
-        repositoryChangeListeners.forEach(Runnable::run);
+        for (Runnable listener : repositoryChangeListeners) {
+            try {
+                listener.run();
+            } catch (Exception e) {
+                LOGGER.warn("Error notifying repository change listener", e);
+            }
+        }
     }
 
     private boolean isYamlFile(Path path) {
