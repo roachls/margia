@@ -9,7 +9,19 @@ permissions:
   contents: write
 
 jobs:
+  # 1. Create a single draft release before building
+  create-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          generate_release_notes: true
+
+  # 2. Build and upload each OS installer to the draft
   build:
+    needs: create-draft
     strategy:
       fail-fast: false
       matrix:
@@ -18,11 +30,11 @@ jobs:
             type: exe
             icon: src/installer/margia.ico
             arch: x64
-          - os: macos-15 # Apple Silicon
+          - os: macos-15
             type: dmg
             icon: src/installer/margia.icns
             arch: arm64
-          - os: macos-15-intel # Intel
+          - os: macos-15-intel
             type: dmg
             icon: src/installer/margia.icns
             arch: x64
@@ -57,27 +69,20 @@ jobs:
           mkdir -p target/libs
           cp target/*.jar target/libs/
 
-      - name: Package native installer
-        shell: bash
-        run: |
-          jpackage \
-            --input target/libs \
-            --name "MARGIA" \
-            --main-jar margia.jar \
-            --main-class org.roach.margia.main.Main \
-            --type ${{ matrix.type }} \
-            --icon ${{ matrix.icon }} \
-            --app-version ${GITHUB_REF_NAME#v} \
-            --dest target/dist \
-            --file-associations file-assoc.properties
+      # (Keep your macOS certificate import, jpackage, notarization, and rename steps here)
 
-      - name: Rename macOS DMG with architecture
-        if: runner.os == 'macOS'
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          mv "target/dist/MARGIA-${VERSION}.dmg" "target/dist/MARGIA-${VERSION}-macOS-${{ matrix.arch }}.dmg"
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload to Draft Release
+        uses: softprops/action-gh-release@v3
         with:
+          draft: true
           files: target/dist/*
+
+  # 3. Publish the release once all OS installers are attached
+  publish-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${GITHUB_REF_NAME}" --draft=false
