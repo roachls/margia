@@ -123,11 +123,16 @@ public record RuleDefinition(String name, String startingState, List<PropertyDef
          */
         record StringListProp(String key, String label, String defaultValue, Set<String> values)
                 implements PropertyDef {
+            public StringListProp {
+                values = values != null ? Collections.unmodifiableSet(new LinkedHashSet<>(values)) : Set.of();
+            }
+
             @Override
             public RulePropertyDescriptor toDescriptor() {
                 return new RulePropertyDescriptor.StringListProperty(key, label, defaultValue, values);
             }
         }
+
     }
 
     /**
@@ -187,9 +192,18 @@ public record RuleDefinition(String name, String startingState, List<PropertyDef
          * @param x            the x-position on screen
          * @param y            the y-position on screen
          */
-        record DelayedTransition(Object delay, String wrappedState, Double x, Double y) implements StateDef {
+        record DelayedTransition(Object delay, List<ActionDef> actions, String wrappedState, Double x, Double y)
+                implements StateDef {
+            public DelayedTransition {
+                actions = actions != null ? List.copyOf(actions) : List.of();
+            }
+
+            public DelayedTransition(Object delay, String wrappedState, Double x, Double y) {
+                this(delay, List.of(), wrappedState, x, y);
+            }
+
             public DelayedTransition(Object delay, String wrappedState) {
-                this(delay, wrappedState, null, null);
+                this(delay, List.of(), wrappedState, null, null);
             }
         }
 
@@ -225,9 +239,18 @@ public record RuleDefinition(String name, String startingState, List<PropertyDef
          * @param x         x-position on screen
          * @param y         y-position on screen
          */
-        record Countdown(Object ticks, String nextState, Double x, Double y) implements StateDef {
+        record Countdown(Object ticks, List<ActionDef> actions, String nextState, Double x, Double y)
+                implements StateDef {
+            public Countdown {
+                actions = actions != null ? List.copyOf(actions) : List.of();
+            }
+
+            public Countdown(Object ticks, String nextState, Double x, Double y) {
+                this(ticks, List.of(), nextState, x, y);
+            }
+
             public Countdown(Object ticks, String nextState) {
-                this(ticks, nextState, null, null);
+                this(ticks, List.of(), nextState, null, null);
             }
         }
 
@@ -235,7 +258,7 @@ public record RuleDefinition(String name, String startingState, List<PropertyDef
          * Rolls a die and decides whether to transition to a different state based on
          * the roll
          * 
-         * @param maxRoll          max roll possible
+         * @param dice             dice expression (e.g., "1d20")
          * @param actions          actions to perform
          * @param rangeTransitions possible transitions
          * @param x                x-position on screen
@@ -341,7 +364,7 @@ public record RuleDefinition(String name, String startingState, List<PropertyDef
          * @param params parameters of action
          */
         public ActionDef {
-            params = params != null ? params : Map.of();
+            params = params != null ? Collections.unmodifiableMap(new LinkedHashMap<>(params)) : Map.of();
         }
     }
 

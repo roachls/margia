@@ -205,7 +205,7 @@ public class RuleEditorDialog extends Dialog<Void> {
 
     @FXML
     private void onAddStateClicked() {
-        stateRows.add(new MutableState(nextUniqueStateName(), "ALWAYS_TRANSITION", "16", "",
+        stateRows.add(new MutableState(nextUniqueStateName(), "ALWAYS_TRANSITION", "", "",
                 List.of(new ActionDef("PLAY_CHORD", Map.of())), ""));
         refreshStartingStateChoices();
     }
@@ -1181,8 +1181,10 @@ public class RuleEditorDialog extends Dialog<Void> {
             return switch (type) {
             case "ALWAYS_TRANSITION" ->
                 new StateDef.AlwaysTransition(immutableActions, targetState.trim(), savedX, savedY);
-            case "DELAYED_TRANSITION" -> new StateDef.DelayedTransition(numericArg, targetState.trim(), savedX, savedY);
-            case "COUNTDOWN" -> new StateDef.Countdown(numericArg, targetState.trim(), savedX, savedY);
+            case "DELAYED_TRANSITION" ->
+                new StateDef.DelayedTransition(numericArg, immutableActions, targetState.trim(), savedX, savedY);
+            case "COUNTDOWN" ->
+                new StateDef.Countdown(numericArg, immutableActions, targetState.trim(), savedX, savedY);
             case "PSEUDO_RANDOM" ->
                 new StateDef.PseudoRandom(numericArg, immutableActions, parseRanges(rangesText), savedX, savedY);
             case "NEVER_TRANSITION" -> new StateDef.NeverTransition(immutableActions, savedX, savedY);
