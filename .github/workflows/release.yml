@@ -69,6 +69,11 @@ jobs:
           mkdir -p target/libs
           cp target/*.jar target/libs/
 
+      - name: Prepare file-assoc.properties
+        shell: bash
+        run: |
+          echo "icon=${{ matrix.icon }}" >> file-assoc.properties
+
       - name: Package native installer
         shell: bash
         run: |
