@@ -7,6 +7,9 @@ import org.roach.margia.controller.Musician;
 import org.roach.margia.storage.Options;
 import org.roach.margia.util.RangeCheck;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
 /**
  * Options for a specific {@link Musician}
  * 
@@ -20,7 +23,7 @@ public class MusicianOptions {
     private String deviceName;
     private int channel;
     private final List<Integer> peerIds = new ArrayList<>();
-    private boolean muted;
+    private final BooleanProperty muted = new SimpleBooleanProperty(false);
     private boolean listening = true;
     private int id;
     private RuleOptions ruleOptions = new RuleOptions();
@@ -84,16 +87,23 @@ public class MusicianOptions {
     /**
      * @return the muted
      */
-    public boolean isMuted() { return muted; }
+    public boolean isMuted() { return muted.get(); }
 
     /**
      * @param muted the muted to set
      */
     public void setMuted(boolean muted) {
-        var oldMuted = this.muted;
-        this.muted = muted;
-        if (oldMuted != this.muted)
+        var oldMuted = this.muted.get();
+        this.muted.set(muted);
+        if (oldMuted != muted)
             Options.getInstance().setDirty();
+    }
+
+    /**
+     * @return the JavaFX muted property
+     */
+    public BooleanProperty mutedProperty() {
+        return this.muted;
     }
 
     /**
@@ -174,7 +184,7 @@ public class MusicianOptions {
     public MusicianOptions copy(int newId) {
         var copy = new MusicianOptions();
         copy.channel = channel;
-        copy.muted = muted;
+        copy.setMuted(muted.get());
         copy.listening = listening;
         copy.ruleOptions = ruleOptions.copy();
         copy.keyName = keyName;
@@ -194,7 +204,7 @@ public class MusicianOptions {
         target.setChannel(this.channel);
         target.setKeyName(this.keyName);
         target.setListening(this.listening);
-        target.setMuted(this.muted);
+        target.setMuted(this.muted.get());
         target.setRange(this.range.copy());
         target.setDeviceName(this.deviceName);
         this.ruleOptions.copyInto(target.ruleOptions);

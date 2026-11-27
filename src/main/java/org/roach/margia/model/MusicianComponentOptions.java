@@ -4,21 +4,22 @@ import org.roach.margia.storage.Options;
 import org.roach.margia.view.MusicianComponent;
 
 import javafx.beans.property.*;
-import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
 
 /**
  * UI Options for {@link MusicianComponent}s
  * 
  * Note to implementers: this class is persisted directly to YAML. Do not add
- * new getters/setters that you don't wanted persisted. If you must add a field
+ * new getters/setters that you don't want persisted. If you must add a field
  * that won't be persisted, use non-JavaBean getters/setters for it, i.e., if
  * the field is called {@code foo}, use {@code foo()} for a getter and
  * {@code foo(Foo f)} for a setter.
  */
 public class MusicianComponentOptions {
     private boolean locked;
-    private final ObjectProperty<Point2D> position = new SimpleObjectProperty<Point2D>(Point2D.ZERO);
-    private IntegerProperty radius = new SimpleIntegerProperty(MusicianComponentOptions.DEFAULT_RADIUS);
+    private final ObjectProperty<Point3D> position = new SimpleObjectProperty<>(Point3D.ZERO);
+    private final IntegerProperty radius = new SimpleIntegerProperty(MusicianComponentOptions.DEFAULT_RADIUS);
+
     /**
      * property to update position
      */
@@ -33,9 +34,9 @@ public class MusicianComponentOptions {
     public static final int DEFAULT_RADIUS = 20;
 
     /**
-     * @return the position
+     * @return the 3D position
      */
-    public Point2D getPosition() { return position.get(); }
+    public Point3D getPosition() { return position.get(); }
 
     /**
      * @return the locked
@@ -48,29 +49,31 @@ public class MusicianComponentOptions {
     public void setLocked(boolean locked) {
         var oldLocked = this.locked;
         this.locked = locked;
-        if (oldLocked != this.locked)
+        if (oldLocked != this.locked) {
             Options.getInstance().setDirty();
+        }
     }
 
     /**
-     * Sets the position, but only if not {@code locked}
+     * Sets the 3D position
      * 
-     * @param position new position
+     * @param position new 3D position
      */
-    public void setPosition(Point2D position) {
-        this.position.set(position);
+    public void setPosition(Point3D position) {
+        this.position.set(position != null ? position : Point3D.ZERO);
     }
 
     /**
      * @return the position property
      */
-    public ObjectProperty<Point2D> positionProperty() {
+    public ObjectProperty<Point3D> positionProperty() {
         return this.position;
     }
 
     @Override
     public String toString() {
-        return "MusicianComponentOptions [locked=" + locked + ", position=" + position + ", radius=" + radius + "]";
+        return "MusicianComponentOptions [locked=" + locked + ", position=" + position.get() + ", radius="
+                + radius.get() + "]";
     }
 
     /**
@@ -98,9 +101,8 @@ public class MusicianComponentOptions {
 
     MusicianComponentOptions copy() {
         var copy = new MusicianComponentOptions();
-        copy.locked = locked;
-        copy.radius = radius;
-
+        copy.setLocked(this.locked);
+        copy.setRadius(this.radius.get());
         return copy;
     }
 

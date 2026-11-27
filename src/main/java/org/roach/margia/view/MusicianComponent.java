@@ -3,6 +3,7 @@ package org.roach.margia.view;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 import org.roach.margia.controller.MidiController;
@@ -15,26 +16,26 @@ import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.geometry.Point2D;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.*;
-import javafx.scene.text.*;
+import javafx.geometry.Point3D;
+import javafx.scene.Group;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.*;
 import javafx.util.Duration;
 
 /**
- * GUI element that displays an agent as a colored circle
+ * 3D GUI element that displays an agent as a shaded sphere in 3D space.
  */
 @SuppressWarnings({ "java:S1948", "java:S115" })
-public class MusicianComponent extends Pane implements PropertyChangeListener {
+public class MusicianComponent extends Group implements PropertyChangeListener {
     private final Musician musician;
-    private Color color;
+    private Color color = Color.BLACK;
     private static int tickLengthMillis;
 
     private boolean selected;
 
-    private Vector2D velocity = new Vector2D(0, 0);
-    private Vector2D force = new Vector2D(0, 0);
+    private Point3D velocity = Point3D.ZERO;
+    private Point3D force = Point3D.ZERO;
     private static final double DAMPING = 0.6; // Damping factor
     private static final double TIMESTEP = 0.8; // Simulation speed/stability
     private final MusicianComponentOptions options;
@@ -53,10 +54,19 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
         tickLengthMillis = Length.getMillisForTempo(1, tempo).getValue().intValue();
     }
 
-    static final double SELECTED_LINE_WIDTH = 2.0;
-    private static final Font LOCK_FONT = Font.font("SansSerif", 15);
     private static final double ρ = 0.00009;
-    private final Canvas canvas = new Canvas();
+
+    // 3D Scene Graph Nodes
+    private final Sphere sphere = new Sphere();
+    private final PhongMaterial sphereMaterial = new PhongMaterial();
+    private final Box selectionBox = new Box();
+    private final PhongMaterial selectionMaterial = new PhongMaterial(Color.RED);
+
+    private final ChangeListener<Boolean> mutedListener = (_, _, _) -> Platform.runLater(this::updateAppearance);
+    private final ChangeListener<Number> radiusListener = (_, _, newVal) -> Platform
+            .runLater(() -> updateSize(newVal.intValue()));
+    private final PositionChangeListener positionListener = new PositionChangeListener();
+
     private BiConsumer<MusicianComponent, Color> onNotePlayedCallback;
     private Timeline fadeTimeline;
 
@@ -74,28 +84,40 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                     return newOpts;
                 });
 
-        // Bind canvas dimensions to the Pane's width/height
-        canvas.widthProperty().bind(widthProperty());
-        canvas.heightProperty().bind(heightProperty());
-        getChildren().add(canvas);
+        // Configure primary 3D sphere
+        sphereMaterial.setSpecularColor(Color.WHITE);
+        sphereMaterial.setSpecularPower(32.0);
+        sphere.setMaterial(sphereMaterial);
+        sphere.radiusProperty().bind(options.radiusProperty());
 
-        options.radiusProperty()
-                .addListener((_, _, newVal) -> Platform.runLater(() -> this.updateSize(newVal.intValue())));
-        options.positionProperty().addListener(new PositionChangeListener());
+        // Configure 3D wireframe selection indicator
+        selectionBox.setMaterial(selectionMaterial);
+        selectionBox.setDrawMode(DrawMode.LINE);
+        selectionBox.setCullFace(CullFace.NONE);
+        selectionBox.setMouseTransparent(true);
+        selectionBox.setVisible(false);
 
-        updatePosition();
+        getChildren().addAll(sphere, selectionBox);
+
+        options.radiusProperty().addListener(radiusListener);
+        options.positionProperty().addListener(positionListener);
+        musician.getOptions().mutedProperty().addListener(mutedListener);
+
         setId("Musician_" + musician.getId());
         musician.addPropertyChangeListener(this);
-        this.color = Color.BLACK;
+
         updateSize(options.getRadius());
+        updateLocation();
+        updateAppearance();
     }
 
-    private class PositionChangeListener implements ChangeListener<Point2D> {
+    private class PositionChangeListener implements ChangeListener<Point3D> {
 
         @Override
-        public void changed(ObservableValue<? extends Point2D> observable, Point2D oldValue, Point2D newValue) {
-            if (musician.isMuted())
+        public void changed(ObservableValue<? extends Point3D> observable, Point3D oldValue, Point3D newValue) {
+            if (newValue == null || musician.isMuted()) {
                 return;
+            }
             if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
                 sendStereoPanning(newValue);
             }
@@ -104,25 +126,24 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
             }
         }
 
-        private void sendVerticalPanning(Point2D pos) {
+        private void sendVerticalPanning(Point3D pos) {
             double height;
             int verticalPanValue;
             if (Options.getInstance().getMidiOptions().isVerticalPanWithRelativeLocations()) {
                 height = Global.getMaxComponentY() - Global.getMinComponentY();
-                // get distance from max because we want the "top" (i.e., smaller y's) to send
-                // higher numbers
+                // Higher Y in 3D space is downward on screen, so invert for MIDI CC
                 verticalPanValue = height == 0 ? 63 : (int) (127d * (Global.getMaxComponentY() - pos.getY()) / height);
             } else {
                 height = Global.getScreenHeight();
-                // use "height - pos.y" instead of just pos.y because we want the "top" (i.e.,
-                // smaller y's) to send higher numbers
-                verticalPanValue = height == 0 ? 63 : (int) (127d * (height - pos.getY()) / height);
+                // Map centered 3D Y coordinates [-height/2, +height/2] to [0, 127]
+                double normalizedY = (height / 2.0) - pos.getY();
+                verticalPanValue = height == 0 ? 63 : (int) Math.clamp(127d * normalizedY / height, 0, 127);
             }
             MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getVerticalPanController(), verticalPanValue);
         }
 
-        private void sendStereoPanning(Point2D pos) {
+        private void sendStereoPanning(Point3D pos) {
             double width;
             int panValue;
             if (Options.getInstance().getMidiOptions().isPanWithRelativeLocations()) {
@@ -130,19 +151,20 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                 panValue = width == 0 ? 63 : (int) (127d * (pos.getX() - Global.getMinComponentX()) / width);
             } else {
                 width = Global.getScreenWidth();
-                panValue = width == 0 ? 63 : (int) (127d * pos.getX() / width);
+                // Map centered 3D X coordinates [-width/2, +width/2] to [0, 127]
+                double normalizedX = pos.getX() + (width / 2.0);
+                panValue = width == 0 ? 63 : (int) Math.clamp(127d * normalizedX / width, 0, 127);
             }
             MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
                     Options.getInstance().getMidiOptions().getPanController(), panValue);
         }
-
     }
 
     @Override
     @SuppressWarnings("java:S1301")
     public void propertyChange(PropertyChangeEvent evt) {
         Platform.runLater(() -> {
-            var brightness = new java.util.concurrent.atomic.AtomicReference<>(1.0);
+            var brightness = new AtomicReference<>(1.0);
             switch (evt.getPropertyName()) {
             case Musician.LAST_CHORD_PROPERTY -> {
                 Chord chord = (Chord) evt.getNewValue();
@@ -151,7 +173,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                 }
                 if (Musician.REST.equals(chord)) {
                     this.color = Color.BLACK;
-                    draw();
+                    updateAppearance();
                 } else {
                     double hueDegrees = (chord.averageNote() / 127.0) * 360.0;
                     double normalizedSaturation = Math.clamp(chord.getVelocity() / 127.0, 0.0, 1.0);
@@ -164,7 +186,7 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
                     fadeTimeline = new Timeline(new KeyFrame(Duration.millis(delayMillis), _ -> {
                         double currentBrightness = brightness.get();
                         color = Color.hsb(hueDegrees, normalizedSaturation, currentBrightness);
-                        draw();
+                        updateAppearance();
                         if (currentBrightness <= 0.0) {
                             fadeTimeline.stop();
                         } else {
@@ -191,105 +213,43 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
         this.onNotePlayedCallback = callback;
     }
 
-    void draw() {
-        double w = getWidth();
-        double h = getHeight();
-        if (w <= 0 || h <= 0) {
-            return;
-        }
-
-        var gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, w, h);
-
-        double radius = options.getRadius();
-
-        // Radial gradient from offset highlight (radius + 3, radius + 3) to outer color
-        var gradient = new RadialGradient(0, // focusAngle
-                0, // focusDistance
-                radius + 3.0, // centerX
-                radius + 3.0, // centerY
-                radius, // radius
-                false, CycleMethod.NO_CYCLE, new Stop(0.0, Color.WHITE), new Stop(1.0, color));
-
-        gc.setFill(gradient);
-        gc.fillOval(0, 0, w, h);
-
-        if (showNumbers) {
-            var font = Font.font("Serif", FontWeight.BOLD, 12.0 * radius / 20.0);
-            String idText = Integer.toString(musician.getId());
-
-            var textHelper = new Text(idText);
-            textHelper.setFont(font);
-            var bounds = textHelper.getLayoutBounds();
-
-            double textX = radius - 6.0;
-            double textY = radius + 3.0; // Baseline Y coordinate
-
-            // Draw black background oval around the ID number
-            gc.setFill(Color.BLACK);
-            gc.fillOval(textX - 1.0, textY - bounds.getHeight() + 2.0, bounds.getWidth() + 2.0,
-                    bounds.getHeight() + 2.0);
-
-            // Draw white ID number
-            gc.setFont(font);
-            gc.setFill(Color.WHITE);
-            gc.fillText(idText, textX, textY);
-
-            // Draw status icons for locked / not listening
-            String status = "";
-            if (options.isLocked()) {
-                status += "🔒";
-            }
-            if (!musician.isListening()) {
-                status += "🎤\u033D";
-            }
-            if (!status.isEmpty()) {
-                gc.setFont(LOCK_FONT);
-                gc.setFill(Color.YELLOW);
-                gc.fillText(status, 0, h - 2.0);
-            }
-        }
-
-        if (musician.isMuted()) {
-            // Semi-transparent gray oval over the whole circle
-            gc.setFill(Color.color(0.5, 0.5, 0.5, 0.8));
-            gc.fillOval(0, 0, w, h);
-        }
-
-        if (selected) {
-            gc.setStroke(Color.RED);
-            gc.setLineWidth(SELECTED_LINE_WIDTH);
-            gc.setLineDashes(null); // Ensure solid line
-            gc.strokeRect(1.0, 1.0, w - 2.0, h - 2.0);
-        }
+    /**
+     * Updates the 3D sphere material and wireframe selection indicator.
+     */
+    void updateAppearance() {
+        Color displayColor = musician.isMuted() ? color.interpolate(Color.GRAY, 0.75) : color;
+        sphereMaterial.setDiffuseColor(displayColor);
+        sphereMaterial.setSpecularColor(musician.isMuted() ? Color.DARKGRAY : Color.WHITE);
+        selectionBox.setVisible(selected);
     }
 
     void updateLocation() {
         var position = options.getPosition();
-        setLayoutX(position.getX());
-        setLayoutY(position.getY());
+        if (position != null) {
+            setTranslateX(position.getX());
+            setTranslateY(position.getY());
+            setTranslateZ(position.getZ());
+        }
     }
 
     /**
-     * @return radius of displayed circle
+     * @return radius of displayed sphere
      */
     int getRadius() { return options.getRadius(); }
 
     /**
-     * @return diameter of displayed circle
+     * @return diameter of displayed sphere
      */
     int getDiameter() { return options.getRadius() * 2; }
 
     /**
-     * @param circleRadius radius of displayed circle
+     * @param sphereRadius radius of displayed sphere
      */
-    void updateSize(int circleRadius) {
-        double diameter = getDiameter();
-        setPrefSize(diameter, diameter);
-        setMinSize(diameter, diameter);
-        setMaxSize(diameter, diameter);
-        resize(diameter, diameter);
-        draw();
+    void updateSize(int sphereRadius) {
+        double boxExtent = sphereRadius * 2.3;
+        selectionBox.setWidth(boxExtent);
+        selectionBox.setHeight(boxExtent);
+        selectionBox.setDepth(boxExtent);
     }
 
     /**
@@ -298,6 +258,8 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
     public static void setTickLengthMillis(int tickLengthMillis) {
         MusicianComponent.tickLengthMillis = tickLengthMillis;
     }
+
+    static boolean isShowNumbers() { return showNumbers; }
 
     Color getColor() { return this.color; }
 
@@ -333,12 +295,12 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     void setSelected(boolean selected) {
         this.selected = selected;
-        draw();
+        updateAppearance();
     }
 
     /**
      * Mass is ρ * 4/3 * πr^3, where ρ = density
-     * 
+     *
      * @return the mass of the component
      */
     double getMass() {
@@ -346,67 +308,72 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
         return (4d / 3d) * Math.PI * Math.pow(r, 3) * ρ;
     }
 
-    Point2D getPosition() { return options.getPosition(); }
+    Point3D getPosition() { return options.getPosition(); }
 
     void updatePosition() {
         updateLocation();
     }
 
-    Vector2D getVelocity() { return velocity; }
+    Point3D getVelocity() { return velocity; }
 
-    void setVelocity(double x, double y) {
+    void setVelocity(double x, double y, double z) {
         if (options.isLocked())
             return;
-        velocity = new Vector2D(x, y);
+        velocity = new Point3D(x, y, z);
     }
 
-    Vector2D getForce() { return force; }
+    Point3D getForce() { return force; }
 
-    void setForce(double x, double y) {
+    void setForce(double x, double y, double z) {
         if (options.isLocked())
             return;
-        force = new Vector2D(x, y);
+        force = new Point3D(x, y, z);
     }
 
-    void setForce(Vector2D force) {
+    void setForce(Point3D force) {
         if (options.isLocked())
             return;
         this.force = force;
     }
 
     void resetForce() {
-        this.force = new Vector2D(0, 0);
-    }
-
-    Point2D getCenter() {
-        var position = options.getPosition();
-        return new Point2D(position.getX() + getWidth() / 2.0, position.getY() + getHeight() / 2.0);
-    }
-
-    void applyForces() {
-        var scaledForceVec = force.divide(getMass()).multiply(TIMESTEP);
-        velocity = velocity.add(scaledForceVec).multiply(DAMPING);
-        var scaledVelocity = velocity.multiply(TIMESTEP);
-        options.setPosition(PointMath.movePoint(options.getPosition(), scaledVelocity));
+        this.force = Point3D.ZERO;
     }
 
     /**
-     * Clamp this component's position to within 1 radius of the boundaries given.
-     * 
-     * @param width
-     * @param height
+     * Since the Group is centered at (0,0,0), the center is identical to the
+     * position.
+     *
+     * @return 3D center coordinates
      */
-    void clampPosition(double width, double height) {
-        var radius = options.getRadius();
-        if (width <= radius * 4d || height <= radius * 4d)
+    Point3D getCenter() { return options.getPosition(); }
+
+    void applyForces() {
+        if (options.isLocked()) {
+            velocity = Point3D.ZERO;
             return;
-        /*
-         * Note that the position is the upper-left corner of the bounding rectangle,
-         * not the center, which is why we multiply radius by 3 for the bounds.
-         */
-        var position = options.getPosition();
-        options.setPosition(new Point2D(Math.clamp(position.getX(), radius, width - radius * 3.0),
-                Math.clamp(position.getY(), radius, height - radius * 3.0)));
+        }
+        var scaledForceVec = force.multiply(TIMESTEP / getMass());
+        velocity = velocity.add(scaledForceVec).multiply(DAMPING);
+        var scaledVelocity = velocity.multiply(TIMESTEP);
+        options.setPosition(options.getPosition().add(scaledVelocity));
+    }
+
+    /**
+     * Clamps this component's 3D position symmetrically around the origin (0, 0, 0)
+     * within [-halfExtent + radius, +halfExtent - radius].
+     *
+     * @param halfExtent half-width of the 3D bounding cube
+     */
+    void clampPosition(double halfExtent) {
+        double radius = options.getRadius();
+        double limit = halfExtent - radius;
+        if (limit <= 0) {
+            return;
+        }
+        var pos = options.getPosition();
+        options.setPosition(new Point3D(Math.clamp(pos.getX(), -limit, limit), Math.clamp(pos.getY(), -limit, limit),
+                Math.clamp(pos.getZ(), -limit, limit)));
         updatePosition();
     }
 
@@ -426,6 +393,9 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     void dispose() {
         musician.removePropertyChangeListener(this);
+        options.radiusProperty().removeListener(radiusListener);
+        options.positionProperty().removeListener(positionListener);
+        musician.getOptions().mutedProperty().removeListener(mutedListener);
         if (fadeTimeline != null) {
             fadeTimeline.stop();
         }
@@ -433,5 +403,8 @@ public class MusicianComponent extends Pane implements PropertyChangeListener {
 
     void reattach() {
         musician.addPropertyChangeListener(this);
+        options.radiusProperty().addListener(radiusListener);
+        options.positionProperty().addListener(positionListener);
+        musician.getOptions().mutedProperty().addListener(mutedListener);
     }
 }

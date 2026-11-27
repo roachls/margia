@@ -5,11 +5,11 @@
 <?import javafx.scene.shape.Rectangle?>
 
 <fx:root type="javafx.scene.layout.Pane"
-	xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
-	<clip>
-		<Rectangle fx:id="clipRect" />
-	</clip>
-	<children>
-		<Canvas fx:id="backgroundCanvas" />
-	</children>
+    xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <clip>
+        <Rectangle fx:id="clipRect" />
+    </clip>
+    <children>
+        <Canvas fx:id="backgroundCanvas" mouseTransparent="true" />
+    </children>
 </fx:root>

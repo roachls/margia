@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
 import javafx.scene.paint.Color;
 
 /**
@@ -18,24 +19,26 @@ public class JavaFXMapperModule extends SimpleModule {
      */
     public JavaFXMapperModule() {
         // Add Serializer for Point2D
-        addSerializer(Point2D.class, new JsonSerializer<>() {
+        addSerializer(Point3D.class, new JsonSerializer<>() {
             @Override
-            public void serialize(Point2D point, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            public void serialize(Point3D point, JsonGenerator gen, SerializerProvider serializers) throws IOException {
                 gen.writeStartObject();
                 gen.writeNumberField("x", point.getX());
                 gen.writeNumberField("y", point.getY());
+                gen.writeNumberField("z", point.getZ());
                 gen.writeEndObject();
             }
         });
 
-        // Add Deserializer for Point2D
-        addDeserializer(Point2D.class, new JsonDeserializer<>() {
+        // Add Deserializer for Point3D
+        addDeserializer(Point3D.class, new JsonDeserializer<>() {
             @Override
-            public Point2D deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            public Point3D deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
                 JsonNode node = p.getCodec().readTree(p);
                 double x = node.has("x") ? node.get("x").asDouble() : 0.0;
                 double y = node.has("y") ? node.get("y").asDouble() : 0.0;
-                return new Point2D(x, y);
+                double z = node.has("z") ? node.get("z").asDouble() : 0.0;
+                return new Point3D(x, y, z);
             }
         });
 

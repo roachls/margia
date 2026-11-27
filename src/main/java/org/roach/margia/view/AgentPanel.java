@@ -22,34 +22,38 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.*;
-import javafx.scene.Cursor;
-import javafx.scene.Node;
+import javafx.scene.*;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.*;
+import javafx.scene.text.*;
+import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 
 /**
- * GUI element that displays multiple {@link Musician Musicians} in a
- * {@link Pane}
+ * 3D GUI element that displays multiple {@link Musician Musicians} in a
+ * {@link SubScene} with a 2D HUD overlay.
  */
 public class AgentPanel extends Pane {
     int numMusicians;
     private final Map<Integer, MusicianComponent> musicianComponents = new TreeMap<>();
-    private List<Edge> edges = new ArrayList<>();
+    private final List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
+    private static final double WORLD_HALF_EXTENT = 450.0; // Half-size of 3D simulation cube
     private int tickLengthMillis;
+
     private Point2D startSelection;
     private Point2D endSelection;
     private boolean isConnecting;
     private EditMode mode = EditMode.SELECT;
     private Point2D dragStart;
     private Point2D dragEnd;
+
     private List<MusicianComponent> copiedComponents;
     private MusicianComponentOptions copiedComponentOptions;
     private MusicianOptions copiedMusicianOptions;
@@ -57,6 +61,7 @@ public class AgentPanel extends Pane {
 
     private static final double SELECTION_LINE_WIDTH = 2.0;
     private static final double[] SELECTION_LINE_DASHES = new double[] { 10.0, 10.0 };
+    private static final Font LOCK_FONT = Font.font("SansSerif", 14);
 
     private final ObservableList<Musician> selectedMusicians = FXCollections.observableArrayList();
     private final ObservableList<Musician> readOnlySelectedMusicians = FXCollections
@@ -68,6 +73,18 @@ public class AgentPanel extends Pane {
     private final MouseHandler mouseHandler = new MouseHandler();
 
     private final List<Ripple> ripples = new ArrayList<>();
+
+    // 3D Scene Graph & Camera Rig
+    private final Group worldRoot = new Group();
+    private final Group rippleLayer = new Group();
+    private final Group edgeLayer = new Group();
+    private final Group nodeLayer = new Group();
+    private final Group cameraPivot = new Group();
+    private final Rotate cameraRotateX = new Rotate(-20, Rotate.X_AXIS);
+    private final Rotate cameraRotateY = new Rotate(0, Rotate.Y_AXIS);
+    private final PerspectiveCamera camera = new PerspectiveCamera(true);
+    private SubScene subScene;
+
     @FXML
     private Canvas backgroundCanvas;
     @FXML
@@ -96,8 +113,12 @@ public class AgentPanel extends Pane {
 
     @FXML
     private void initialize() {
+        setup3DScene();
+
         backgroundCanvas.widthProperty().bind(widthProperty());
         backgroundCanvas.heightProperty().bind(heightProperty());
+        backgroundCanvas.setMouseTransparent(true);
+        backgroundCanvas.toFront();
 
         clipRect.widthProperty().bind(widthProperty());
         clipRect.heightProperty().bind(heightProperty());
@@ -120,14 +141,44 @@ public class AgentPanel extends Pane {
         });
     }
 
+    private void setup3DScene() {
+        worldRoot.getChildren().addAll(rippleLayer, edgeLayer, nodeLayer);
+
+        // Lighting for 3D spheres and edges
+        AmbientLight ambientLight = new AmbientLight(Color.color(0.45, 0.45, 0.45));
+        PointLight keyLight = new PointLight(Color.WHITE);
+        keyLight.setTranslateX(-400);
+        keyLight.setTranslateY(-500);
+        keyLight.setTranslateZ(-800);
+        worldRoot.getChildren().addAll(ambientLight, keyLight);
+
+        // Orbital camera rig centered at (0, 0, 0)
+        camera.setNearClip(1.0);
+        camera.setFarClip(6000.0);
+        camera.setTranslateZ(-950.0);
+        cameraPivot.getTransforms().addAll(cameraRotateY, cameraRotateX);
+        cameraPivot.getChildren().add(camera);
+        worldRoot.getChildren().add(cameraPivot);
+
+        subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED);
+        subScene.setCamera(camera);
+        subScene.setFill(Color.TRANSPARENT);
+        subScene.widthProperty().bind(widthProperty());
+        subScene.heightProperty().bind(heightProperty());
+
+        // Insert 3D SubScene behind the 2D HUD Canvas
+        getChildren().add(0, subScene);
+    }
+
     void init() {
         var defTempo = Options.getInstance().getMusicOptions().getTempo();
         this.tickLengthMillis = 60000 / (defTempo * 24);
         this.numMusicians = MusicianList.getInstance().numMusicians();
         this.musicianComponents.clear();
 
-        // Clear previous musician nodes while keeping backgroundCanvas at index 0
-        getChildren().retainAll(backgroundCanvas);
+        nodeLayer.getChildren().clear();
+        edgeLayer.getChildren().clear();
+        rippleLayer.getChildren().clear();
     }
 
     void initMusicians() {
@@ -149,39 +200,51 @@ public class AgentPanel extends Pane {
         return addMusicianComponent(musician, null);
     }
 
-    private MusicianComponent addMusicianComponent(Musician musician, Point2D initialPos) {
+    private MusicianComponent addMusicianComponent(Musician musician, Point3D initialPos) {
         var n = new MusicianComponent(musician);
         n.setOnNotePlayedCallback(this::spawnRipple);
         var compOptions = n.getOptions();
+
         if (initialPos != null) {
             compOptions.setPosition(initialPos);
             n.updateLocation();
-        } else if (compOptions.getPosition().getX() == 0.0 && compOptions.getPosition().getY() == 0.0) {
-            int panelWidth = getWidth() > n.getDiameter() * 2 ? (int) getWidth() : 800;
-            int panelHeight = getHeight() > n.getDiameter() * 2 ? (int) getHeight() : 600;
-
-            compOptions.setPosition(new Point2D(RANDOM.nextInt(n.getDiameter(), panelWidth - n.getDiameter()),
-                    RANDOM.nextInt(n.getDiameter(), panelHeight - n.getDiameter())));
+        } else if (compOptions.getPosition().equals(Point3D.ZERO)) {
+            int spawnSpan = (int) (WORLD_HALF_EXTENT * 0.6);
+            compOptions.setPosition(new Point3D(RANDOM.nextInt(-spawnSpan, spawnSpan + 1),
+                    RANDOM.nextInt(-spawnSpan, spawnSpan + 1), RANDOM.nextInt(-spawnSpan, spawnSpan + 1)));
             n.updateLocation();
         }
+
         musicianComponents.put(musician.getId(), n);
         Platform.runLater(() -> {
-            if (!getChildren().contains(n))
-                getChildren().add(n);
+            if (!nodeLayer.getChildren().contains(n)) {
+                nodeLayer.getChildren().add(n);
+            }
         });
         numMusicians = musicianComponents.size();
-        lastAddedAgent.set(n); // Fires once, with the final position already set
+        lastAddedAgent.set(n);
         return n;
     }
 
     private void onAnimationTick() {
         updatePhysics();
+        updateEdges3D();
+
         if (Options.getInstance().getUiOptions().isAnimateBackground()) {
-            ripples.removeIf(ripple -> !ripple.update());
+            var iter = ripples.iterator();
+            while (iter.hasNext()) {
+                var ripple = iter.next();
+                if (!ripple.update()) {
+                    rippleLayer.getChildren().remove(ripple.node);
+                    iter.remove();
+                }
+            }
         } else if (!ripples.isEmpty()) {
+            ripples.forEach(r -> rippleLayer.getChildren().remove(r.node));
             ripples.clear();
         }
-        drawBackground();
+
+        drawOverlayHUD();
     }
 
     private void spawnRipple(MusicianComponent mc, Color color) {
@@ -193,74 +256,75 @@ public class AgentPanel extends Pane {
             return;
         }
         if (ripples.size() >= Options.getInstance().getUiOptions().getMaxActiveRipples()) {
-            ripples.remove(0); // Recycle oldest ring so new notes always pulse cleanly
+            Ripple oldest = ripples.remove(0);
+            rippleLayer.getChildren().remove(oldest.node);
         }
         var center = mc.getCenter();
         double startRadius = mc.getRadius() * 0.9;
         double maxRadius = screenSpan * Options.getInstance().getUiOptions().getRippleScreenFraction();
-        ripples.add(new Ripple(center.getX(), center.getY(), startRadius, maxRadius, color));
+        var ripple = new Ripple(center, startRadius, maxRadius, color);
+        ripples.add(ripple);
+        rippleLayer.getChildren().add(ripple.node);
     }
 
-    private void drawBackground() {
+    private void updateEdges3D() {
+        synchronized (edges) {
+            for (Edge edge : edges) {
+                edge.updateTransform();
+            }
+        }
+    }
+
+    /**
+     * Renders 2D HUD elements (ID numbers, status badges, selection boxes, and
+     * connection drag lines) onto the transparent top Canvas.
+     */
+    private void drawOverlayHUD() {
         double w = backgroundCanvas.getWidth();
         double h = backgroundCanvas.getHeight();
         if (w <= 0 || h <= 0) {
             return;
         }
-
         var gc = backgroundCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
-
-        if (!ripples.isEmpty()) {
+        // Project 3D musician centers to 2D screen coordinates for crisp ID numbers &
+        // status badges
+        if (MusicianComponent.isShowNumbers()) {
             gc.save();
-            gc.setLineDashes(null);
-            gc.setLineWidth(2.2);
-            for (var ripple : ripples) {
-                double alpha = ripple.opacity();
-                if (alpha <= 0.005) {
+            for (var mc : musicianComponents.values()) {
+                Point2D screenPos = projectToOverlay(mc);
+                if (screenPos == null) {
                     continue;
                 }
-                gc.setStroke(ripple.color.deriveColor(0, 1.0, 1.0, alpha));
-                double d = ripple.radius * 2.0;
-                gc.strokeOval(ripple.x - ripple.radius, ripple.y - ripple.radius, d, d);
+                double radius = mc.getRadius();
+                var font = Font.font("Serif", FontWeight.BOLD, Math.max(10.0, 12.0 * radius / 20.0));
+                String idText = Integer.toString(mc.getMusician().getId());
+                var textHelper = new Text(idText);
+                textHelper.setFont(font);
+                var bounds = textHelper.getLayoutBounds();
+                double textX = screenPos.getX() - bounds.getWidth() / 2.0;
+                double textY = screenPos.getY() + bounds.getHeight() / 4.0;
+                gc.setFill(Color.color(0, 0, 0, 0.75));
+                gc.fillOval(textX - 2.0, textY - bounds.getHeight() + 2.0, bounds.getWidth() + 4.0,
+                        bounds.getHeight() + 2.0);
+                gc.setFont(font);
+                gc.setFill(Color.WHITE);
+                gc.fillText(idText, textX, textY);
+                String status = "";
+                if (mc.isLocked()) {
+                    status += "🔒";
+                }
+                if (!mc.getMusician().isListening()) {
+                    status += "🎤\u033D";
+                }
+                if (!status.isEmpty()) {
+                    gc.setFont(LOCK_FONT);
+                    gc.setFill(Color.YELLOW);
+                    gc.fillText(status, screenPos.getX() - radius * 0.7, screenPos.getY() + radius * 0.9);
+                }
             }
             gc.restore();
         }
-
-        for (Edge edge : edges) {
-            gc.save();
-            var edgeColor = edge.source.getColor();
-            gc.setStroke(edgeColor);
-            gc.setFill(edgeColor);
-            gc.setLineWidth(1.0);
-            gc.setLineDashes(null);
-
-            var sCenter = edge.source.getCenter();
-            var tCenter = edge.target.getCenter();
-            var vector = new Vector2D(sCenter, tCenter);
-            var angle = vector.angle();
-            var dist = sCenter.distance(tCenter) - edge.target.getRadius();
-
-            gc.translate(sCenter.getX(), sCenter.getY());
-            gc.rotate(Math.toDegrees(angle - Math.PI / 2.0));
-
-            gc.beginPath();
-            gc.moveTo(0, 0);
-            gc.quadraticCurveTo(5.0, dist / 2.0, 0, dist);
-            gc.stroke();
-
-            // Draw filled arrowhead triangle at target radius
-            gc.beginPath();
-            gc.moveTo(0, dist - 5.0);
-            gc.lineTo(3.0, dist - 5.0);
-            gc.lineTo(0, dist);
-            gc.lineTo(-3.0, dist - 5.0);
-            gc.closePath();
-            gc.fill();
-
-            gc.restore();
-        }
-
         if (startSelection != null && endSelection != null) {
             gc.save();
             gc.setStroke(Color.RED);
@@ -269,7 +333,6 @@ public class AgentPanel extends Pane {
             gc.strokeLine(startSelection.getX(), startSelection.getY(), endSelection.getX(), endSelection.getY());
             gc.restore();
         }
-
         if (dragStart != null && dragEnd != null) {
             gc.save();
             gc.setStroke(Color.YELLOW);
@@ -281,86 +344,104 @@ public class AgentPanel extends Pane {
         }
     }
 
+    private Point2D projectToOverlay(MusicianComponent mc) {
+        Point3D scenePt = mc.localToScene(Point3D.ZERO);
+        if (scenePt == null) {
+            return null;
+        }
+        return backgroundCanvas.sceneToLocal(scenePt.getX(), scenePt.getY());
+    }
+
     private void calcEdges() {
-        edges.clear();
-        for (var musEntry : MusicianList.getInstance().getMusicians().entrySet()) {
-            var id = musEntry.getKey();
-            var mus = musEntry.getValue();
-            var peerIds = mus.peerIds();
-            for (var peerId : peerIds) {
-                edges.add(new Edge(musicianComponents.get(id), musicianComponents.get(peerId),
-                        Options.getInstance().getUiOptions().getEdgeLength()));
+        synchronized (edges) {
+            edges.forEach(e -> edgeLayer.getChildren().remove(e.group));
+            edges.clear();
+            for (var musEntry : MusicianList.getInstance().getMusicians().entrySet()) {
+                var id = musEntry.getKey();
+                var mus = musEntry.getValue();
+                for (var peerId : mus.peerIds()) {
+                    var sourceComp = musicianComponents.get(id);
+                    var targetComp = musicianComponents.get(peerId);
+                    if (sourceComp != null && targetComp != null) {
+                        addEdgeInternal(sourceComp, targetComp, Options.getInstance().getUiOptions().getEdgeLength());
+                    }
+                }
             }
         }
     }
 
-    private void updatePhysics() {
-        // Reset forces
-        musicianComponents.values().forEach(MusicianComponent::resetForce);
+    private void addEdgeInternal(MusicianComponent source, MusicianComponent target, double idealLength) {
+        var edge = new Edge(source, target, idealLength);
+        edges.add(edge);
+        edgeLayer.getChildren().add(edge.group);
+    }
 
-        // Calculate repulsive forces between ALL pairs of nodes (O(N^2))
-        for (var n1 : musicianComponents.values()) {
-            for (var n2 : musicianComponents.values().stream().filter(n -> !n.equals(n1)).toList()) {
-                var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
-                double distance = n1.getCenter().distance(n2.getCenter());
-                if (distance == 0) { // prevent division by 0
+    private void removeEdgeInternal(Edge edge) {
+        edges.remove(edge);
+        edgeLayer.getChildren().remove(edge.group);
+    }
+
+    private void updatePhysics() {
+        musicianComponents.values().forEach(MusicianComponent::resetForce);
+        // Repulsive forces between ALL pairs of nodes in 3D (O(N^2))
+        var nodes = new ArrayList<>(musicianComponents.values());
+        for (int i = 0; i < nodes.size(); i++) {
+            var n1 = nodes.get(i);
+            for (int j = i + 1; j < nodes.size(); j++) {
+                var n2 = nodes.get(j);
+                Point3D diff = n1.getCenter().subtract(n2.getCenter());
+                double distance = diff.magnitude();
+                if (distance < 0.001) {
                     continue;
                 }
-
-                // Repulsion force (inverse square law)
+                Point3D unitVec = diff.normalize();
                 double force = K_REPULSION / (distance * distance);
-                var forceVec = unitVec.multiply(force);
+                Point3D forceVec = unitVec.multiply(force);
                 n1.setForce(n1.getForce().add(forceVec));
                 n2.setForce(n2.getForce().subtract(forceVec));
             }
         }
-
+        // Spring forces along edges in 3D
         synchronized (edges) {
             for (var edge : edges) {
                 MusicianComponent n1 = edge.source;
                 MusicianComponent n2 = edge.target;
-                var unitVec = PointMath.unitVector(n2.getCenter(), n1.getCenter());
-                double distance = n1.getCenter().distance(n2.getCenter());
-
-                // Spring force (Hooke's law analog)
+                Point3D diff = n1.getCenter().subtract(n2.getCenter());
+                double distance = diff.magnitude();
+                if (distance < 0.001) {
+                    continue;
+                }
+                Point3D unitVec = diff.normalize();
                 double displacement = distance - edge.idealLength;
                 double force = K_SPRING * displacement;
-                var forceVec = unitVec.multiply(force);
-
+                Point3D forceVec = unitVec.multiply(force);
                 n1.setForce(n1.getForce().subtract(forceVec));
                 n2.setForce(n2.getForce().add(forceVec));
             }
         }
-
-        // Apply gravity and wind
-        var center = new Point2D(getWidth() / 2.0, getHeight() / 2.0);
-        for (var n1 : musicianComponents.values()) {
-            var vec = new Vector2D(center, n1.getCenter());
-            var dist = n1.getCenter().distance(center);
-            if (dist == 0.0) { // prevent division by zero
+        // Central gravity toward (0,0,0) and 3D orbital wind around Y-axis
+        Point3D upAxis = new Point3D(0, 1, 0);
+        for (var n1 : nodes) {
+            Point3D radialVec = n1.getCenter();
+            double dist = radialVec.magnitude();
+            if (dist < 0.001) {
                 continue;
             }
-
-            var gravity = Options.getInstance().getUiOptions().getGravity();
-            var force = n1.getMass() * gravity / dist;
-            var forceVec = vec.multiply(force);
+            double gravity = Options.getInstance().getUiOptions().getGravity();
+            double force = n1.getMass() * gravity / dist;
+            Point3D forceVec = radialVec.multiply(force);
             n1.setForce(n1.getForce().subtract(forceVec));
-
-            /*
-             * 5. wind - blow objects clockwise. We take the gravity, negate it so it points
-             * away from the center, and rotate it clockwise 90 degrees.
-             */
-            var windVec = forceVec.flip().rotateClockwise90().normalize()
-                    .multiply(Options.getInstance().getUiOptions().getWindSpeed());
-            n1.setForce(n1.getForce().add(windVec));
+            Point3D tangent = radialVec.crossProduct(upAxis);
+            if (tangent.magnitude() > 0.001) {
+                Point3D windVec = tangent.normalize().multiply(Options.getInstance().getUiOptions().getWindSpeed());
+                n1.setForce(n1.getForce().add(windVec));
+            }
         }
-
         // Update velocities and positions
-        for (MusicianComponent node : musicianComponents.values()) {
+        for (MusicianComponent node : nodes) {
             node.applyForces();
-            node.clampPosition(getWidth(), getHeight());
+            node.clampPosition(WORLD_HALF_EXTENT);
         }
-
         if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
             Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
                     .map(mc -> mc.getPosition().getX()).min(Double::compare).ifPresent(Global::setMinComponentX);
@@ -381,18 +462,32 @@ public class AgentPanel extends Pane {
         setOnMouseDragged(mouseHandler::mouseDragged);
         setOnMouseReleased(mouseHandler::mouseReleased);
         setOnMouseMoved(mouseHandler::mouseMoved);
+        setOnScroll(mouseHandler::mouseScrolled);
     }
 
     private class MouseHandler {
         private MusicianComponent source;
         private MusicianComponent movingComponent;
-        // Position of cursor in movingComponent local space
-        private Point2D movingComponentXY;
+        private Point2D lastMousePos;
+        private boolean isOrbiting = false;
 
         void mousePressed(MouseEvent e) {
+            lastMousePos = new Point2D(e.getX(), e.getY());
+            // Right-click or Alt+Left-click orbits the 3D camera
+            if (e.getButton() == MouseButton.SECONDARY || (e.getButton() == MouseButton.PRIMARY && e.isAltDown())) {
+                isOrbiting = true;
+                setCursor(Cursor.CLOSED_HAND);
+                return;
+            }
             if (e.getButton() == MouseButton.PRIMARY) {
                 leftMouseButtonPressed(e);
             }
+        }
+
+        void mouseScrolled(ScrollEvent e) {
+            double zoomFactor = e.getDeltaY() > 0 ? 0.9 : 1.1;
+            double newZ = Math.clamp(camera.getTranslateZ() * zoomFactor, -3500.0, -150.0);
+            camera.setTranslateZ(newZ);
         }
 
         private void leftMouseButtonPressed(MouseEvent e) {
@@ -403,7 +498,7 @@ public class AgentPanel extends Pane {
 
         private void leftMousePressedSingleSelectionMode(MouseEvent e) {
             var clickPoint = new Point2D(e.getX(), e.getY());
-            var mc = findMusicianAt(e.getX(), e.getY());
+            var mc = findMusicianAt(e);
             if (mc != null) {
                 mc.setSelected(false);
                 switch (mode) {
@@ -414,13 +509,12 @@ public class AgentPanel extends Pane {
                     source = mc;
                     mc.setSelected(true);
                     isConnecting = true;
-                    startSelection = clickPoint;
+                    startSelection = projectToOverlay(mc);
                     setCursor(Cursor.CROSSHAIR);
                 }
                 case MOVE -> {
                     mc.setSelected(true);
                     movingComponent = mc;
-                    movingComponentXY = mc.parentToLocal(e.getX(), e.getY());
                     setCursor(Cursor.MOVE);
                 }
                 default -> {
@@ -434,18 +528,30 @@ public class AgentPanel extends Pane {
             }
         }
 
-        private MusicianComponent findMusicianAt(double x, double y) {
-            var children = getChildren();
-            // Iterate in reverse so top-most overlapping musicians are hit first
-            for (int i = children.size() - 1; i >= 0; i--) {
-                if (children.get(i) instanceof MusicianComponent mc && mc.getBoundsInParent().contains(x, y)) {
+        /**
+         * Uses JavaFX 3D raycasting (PickResult) to find the clicked MusicianComponent.
+         */
+        private MusicianComponent findMusicianAt(MouseEvent e) {
+            PickResult pick = e.getPickResult();
+            if (pick == null) {
+                return null;
+            }
+            Node picked = pick.getIntersectedNode();
+            while (picked != null) {
+                if (picked instanceof MusicianComponent mc) {
                     return mc;
                 }
+                picked = picked.getParent();
             }
             return null;
         }
 
         void mouseReleased(MouseEvent e) {
+            if (isOrbiting) {
+                isOrbiting = false;
+                setCursor(Cursor.DEFAULT);
+                return;
+            }
             if (e.getButton() == MouseButton.PRIMARY) {
                 leftMouseButtonReleased(e);
             }
@@ -453,7 +559,6 @@ public class AgentPanel extends Pane {
 
         private void leftMouseButtonReleased(MouseEvent e) {
             if (dragStart != null && dragEnd != null) {
-                // Multi-select drag rectangle completed
                 var rectangle = makeSelectionRectangle(dragStart, dragEnd);
                 var selectedComponents = getComponentsInRectangle(rectangle);
                 dragStart = null;
@@ -470,7 +575,7 @@ public class AgentPanel extends Pane {
         }
 
         private void leftMouseButtonReleasedSingleSelection(MouseEvent e) {
-            var mc = findMusicianAt(e.getX(), e.getY());
+            var mc = findMusicianAt(e);
             switch (mode) {
             case ADD -> {
                 if (mc == null) {
@@ -478,7 +583,7 @@ public class AgentPanel extends Pane {
                 }
             }
             case CONNECT -> handleMusicianConnection(mc);
-            case MOVE -> handleMusicianMove(e);
+            case MOVE -> handleMusicianMove();
             case SELECT -> {
                 if (!e.isControlDown()) {
                     deselectAll();
@@ -494,13 +599,9 @@ public class AgentPanel extends Pane {
             }
         }
 
-        private void handleMusicianMove(MouseEvent e) {
+        private void handleMusicianMove() {
             if (movingComponent != null) {
-                var mcOpts = movingComponent.getOptions();
-                mcOpts.setLocked(false);
-                mcOpts.setPosition(
-                        new Point2D(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
-                mcOpts.setLocked(true);
+                movingComponent.getOptions().setLocked(true);
                 movingComponent.setSelected(false);
                 setCursor(Cursor.DEFAULT);
             }
@@ -510,15 +611,16 @@ public class AgentPanel extends Pane {
         private void handleMusicianConnection(MusicianComponent target) {
             if (isConnecting && target != null && !target.equals(source)) {
                 isConnecting = false;
-                // Check if already connected; if so, disconnect; otherwise, connect
-                edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
-                        .findAny().ifPresentOrElse(connection -> {
-                            connection.source.getMusician().removePeer(connection.target.getMusician());
-                            edges.remove(connection);
-                        }, () -> {
-                            source.getMusician().addPeer(target.getMusician());
-                            edges.add(new Edge(source, target, UiOptions.DEFAULT_EDGE_LENGTH));
-                        });
+                synchronized (edges) {
+                    edges.stream().filter(edge -> source.equals(edge.source)).filter(edge -> target.equals(edge.target))
+                            .findAny().ifPresentOrElse(connection -> {
+                                connection.source.getMusician().removePeer(connection.target.getMusician());
+                                removeEdgeInternal(connection);
+                            }, () -> {
+                                source.getMusician().addPeer(target.getMusician());
+                                addEdgeInternal(source, target, UiOptions.DEFAULT_EDGE_LENGTH);
+                            });
+                }
                 Options.getInstance().setDirty();
                 source.setSelected(false);
                 this.source = null;
@@ -544,19 +646,36 @@ public class AgentPanel extends Pane {
             musOpts.setMuted(true);
             MusicianList.getInstance().addMusician(musician);
             numMusicians = MusicianList.getInstance().numMusicians();
-
-            addMusicianComponent(musician, new Point2D(e.getX(), e.getY()));
+            // Project click offset onto the camera's view plane at Z=0
+            double dx = e.getX() - (getWidth() / 2.0);
+            double dy = e.getY() - (getHeight() / 2.0);
+            Point3D worldPos = cameraPivot.localToParent(dx, dy, 0);
+            addMusicianComponent(musician, worldPos);
             Options.getInstance().setDirty();
         }
 
         void mouseDragged(MouseEvent e) {
+            double dx = e.getX() - lastMousePos.getX();
+            double dy = e.getY() - lastMousePos.getY();
+            lastMousePos = new Point2D(e.getX(), e.getY());
+            if (isOrbiting) {
+                cameraRotateY.setAngle(cameraRotateY.getAngle() + dx * 0.35);
+                cameraRotateX.setAngle(Math.clamp(cameraRotateX.getAngle() - dy * 0.35, -89.0, 89.0));
+                return;
+            }
             if (mode == EditMode.CONNECT && isConnecting) {
+                if (source != null) {
+                    startSelection = projectToOverlay(source);
+                }
                 endSelection = new Point2D(e.getX(), e.getY());
             } else if (mode == EditMode.MOVE && e.isPrimaryButtonDown() && movingComponent != null) {
                 var mcOpts = movingComponent.getOptions();
                 mcOpts.setLocked(false);
-                mcOpts.setPosition(
-                        new Point2D(e.getX() - movingComponentXY.getX(), e.getY() - movingComponentXY.getY()));
+                // Scale screen delta by camera distance and rotate into world space
+                double distanceScale = Math.abs(camera.getTranslateZ()) / 950.0;
+                Point3D worldDelta = cameraPivot.localToParent(dx * distanceScale, dy * distanceScale, 0);
+                mcOpts.setPosition(mcOpts.getPosition().add(worldDelta));
+                movingComponent.updateLocation();
                 mcOpts.setLocked(true);
             } else if (mode == EditMode.SELECT) {
                 dragEnd = new Point2D(e.getX(), e.getY());
@@ -565,19 +684,21 @@ public class AgentPanel extends Pane {
 
         void mouseMoved(MouseEvent e) {
             if (mode == EditMode.CONNECT && isConnecting) {
+                if (source != null) {
+                    startSelection = projectToOverlay(source);
+                }
                 endSelection = new Point2D(e.getX(), e.getY());
             }
         }
 
         private List<MusicianComponent> getComponentsInRectangle(Bounds targetRect) {
             List<MusicianComponent> componentsInArea = new ArrayList<>();
-
-            for (Node node : getChildren()) {
-                if (node instanceof MusicianComponent mc && mc.getBoundsInParent().intersects(targetRect)) {
+            for (MusicianComponent mc : musicianComponents.values()) {
+                Point2D screenPos = projectToOverlay(mc);
+                if (screenPos != null && targetRect.contains(screenPos)) {
                     componentsInArea.add(mc);
                 }
             }
-
             return componentsInArea;
         }
 
@@ -585,18 +706,95 @@ public class AgentPanel extends Pane {
             musicianComponents.values().forEach(mc -> mc.setSelected(false));
             notifyListenersOfSelection();
         }
-
     }
 
+    /**
+     * 3D Edge composed of a Cylinder shaft and a custom Cone arrowhead.
+     */
     static class Edge {
         private final MusicianComponent source;
-        private MusicianComponent target;
-        double idealLength; // the desired distance between nodes
+        private final MusicianComponent target;
+        double idealLength;
+        final Group group = new Group();
+        private final Cylinder shaft = new Cylinder(1.2, 10.0);
+        private final MeshView arrowHead;
+        private final PhongMaterial material = new PhongMaterial();
 
         Edge(MusicianComponent source, MusicianComponent target, double idealLength) {
             this.source = source;
             this.target = target;
             this.idealLength = idealLength;
+            arrowHead = createConeMesh(4.5f, 11.0f, 8);
+            shaft.setMaterial(material);
+            arrowHead.setMaterial(material);
+            group.setMouseTransparent(true);
+            group.getChildren().addAll(shaft, arrowHead);
+            updateTransform();
+        }
+
+        void updateTransform() {
+            Color edgeColor = source.getColor();
+            material.setDiffuseColor(edgeColor);
+            material.setSpecularColor(edgeColor.brighter());
+            Point3D start = source.getCenter();
+            Point3D end = target.getCenter();
+            Point3D diff = end.subtract(start);
+            double totalDist = diff.magnitude();
+            double targetRadius = target.getRadius();
+            if (totalDist <= targetRadius + 2.0) {
+                group.setVisible(false);
+                return;
+            }
+            group.setVisible(true);
+            Point3D dir = diff.normalize();
+            Point3D tipPos = end.subtract(dir.multiply(targetRadius));
+            double shaftLen = Math.max(1.0, totalDist - targetRadius - 8.0);
+            Point3D shaftEnd = start.add(dir.multiply(shaftLen));
+            Point3D shaftMid = start.midpoint(shaftEnd);
+            // Compute rotation from Y-axis (0,1,0) to edge direction vector
+            Point3D yAxis = new Point3D(0, 1, 0);
+            Point3D rotAxis = yAxis.crossProduct(dir);
+            double angle = Math.toDegrees(Math.acos(Math.clamp(yAxis.dotProduct(dir), -1.0, 1.0)));
+            shaft.setHeight(shaftLen);
+            shaft.setTranslateX(shaftMid.getX());
+            shaft.setTranslateY(shaftMid.getY());
+            shaft.setTranslateZ(shaftMid.getZ());
+            arrowHead.setTranslateX(tipPos.getX());
+            arrowHead.setTranslateY(tipPos.getY());
+            arrowHead.setTranslateZ(tipPos.getZ());
+            if (rotAxis.magnitude() > 0.0001) {
+                Rotate rot = new Rotate(angle, rotAxis);
+                shaft.getTransforms().setAll(rot);
+                arrowHead.getTransforms().setAll(rot);
+            } else {
+                shaft.getTransforms().clear();
+                arrowHead.getTransforms().clear();
+            }
+        }
+
+        private static MeshView createConeMesh(float radius, float height, int divisions) {
+            TriangleMesh mesh = new TriangleMesh();
+            mesh.getTexCoords().addAll(0.5f, 0.5f);
+            // Vertex 0: Tip at (0, 0, 0); base vertices at y = -height
+            mesh.getPoints().addAll(0f, 0f, 0f);
+            for (int i = 0; i < divisions; i++) {
+                double theta = 2.0 * Math.PI * i / divisions;
+                float x = (float) (radius * Math.cos(theta));
+                float z = (float) (radius * Math.sin(theta));
+                mesh.getPoints().addAll(x, -height, z);
+            }
+            // Center of base
+            mesh.getPoints().addAll(0f, -height, 0f);
+            int baseCenterIdx = divisions + 1;
+            for (int i = 0; i < divisions; i++) {
+                int curr = i + 1;
+                int next = (i + 1) % divisions + 1;
+                // Side triangle
+                mesh.getFaces().addAll(0, 0, next, 0, curr, 0);
+                // Base cap triangle
+                mesh.getFaces().addAll(baseCenterIdx, 0, curr, 0, next, 0);
+            }
+            return new MeshView(mesh);
         }
     }
 
@@ -634,23 +832,24 @@ public class AgentPanel extends Pane {
             MusicianList.getInstance().removeMusician(mc.getMusician());
             numMusicians = MusicianList.getInstance().numMusicians();
             musicianComponents.remove(id);
-
-            // Remove any edges connected to this musician
-            edges.removeIf(edge -> edge.source.equals(mc) || edge.target.equals(mc));
-
-            // disconnect any property change listeners from mc
+            synchronized (edges) {
+                var iter = edges.iterator();
+                while (iter.hasNext()) {
+                    var edge = iter.next();
+                    if (edge.source.equals(mc) || edge.target.equals(mc)) {
+                        edgeLayer.getChildren().remove(edge.group);
+                        iter.remove();
+                    }
+                }
+            }
             mc.dispose();
-            getChildren().remove(mc);
-
+            nodeLayer.getChildren().remove(mc);
             Options.getInstance().getMusicians().remove(id);
             Options.getInstance().getUiOptions().getMusicianComponents().remove(id);
             Options.getInstance().getMusicians().values().forEach(m -> m.getPeerIds().remove(Integer.valueOf(id)));
-
             lastRemovedAgent.set(mc);
         }
-
-        // Redraw canvas immediately so removed edges disappear right away
-        drawBackground();
+        drawOverlayHUD();
     }
 
     enum EditMode {
@@ -694,7 +893,6 @@ public class AgentPanel extends Pane {
     }
 
     class MuteSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -703,11 +901,9 @@ public class AgentPanel extends Pane {
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnmuteSelectedCommand())));
         }
-
     }
 
     class UnmuteSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -716,7 +912,6 @@ public class AgentPanel extends Pane {
                 CommandCaretaker
                         .pushStack(new Memento(this, List.of(new RestoreSelectedCommand(), new MuteSelectedCommand())));
         }
-
     }
 
     private class RestoreSelectedCommand implements Command {
@@ -736,7 +931,6 @@ public class AgentPanel extends Pane {
     }
 
     class ToggleMuteSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected).forEach(mc -> {
@@ -751,7 +945,6 @@ public class AgentPanel extends Pane {
     }
 
     class LockSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -761,7 +954,6 @@ public class AgentPanel extends Pane {
                         new Memento(this, List.of(new RestoreSelectedCommand(), new UnlockSelectedCommand())));
             }
         }
-
     }
 
     class UnlockSelectedCommand implements Command {
@@ -813,7 +1005,6 @@ public class AgentPanel extends Pane {
     }
 
     class DeleteSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
@@ -846,12 +1037,9 @@ public class AgentPanel extends Pane {
         private final List<MusicianComponent> deletedMusicians;
         private final Map<Integer, MusicianOptions> deletedMusicianOptions;
         private final Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions;
-        // Key = id of deleted musician, value = list of musicians with the deleted
-        // musician as a peer
         private final Map<Integer, List<Integer>> mapOfOthersToThese;
 
-        RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians,
-                Map<Integer, MusicianOptions> deletedMusicianOptions,
+        RestoreDeletedMusiciansCommand(List<MusicianComponent> deletedMusicians, Map<Integer, MusicianOptions> deletedMusicianOptions,
                 Map<Integer, MusicianComponentOptions> deletedMusicianComponentOptions,
                 Map<Integer, List<Integer>> mapOfOthersToThese) {
             this.deletedMusicians = deletedMusicians;
@@ -867,18 +1055,15 @@ public class AgentPanel extends Pane {
                 MusicianList.getInstance().addMusician(mc.getMusician());
                 numMusicians = MusicianList.getInstance().numMusicians();
                 musicianComponents.put(id, mc);
-
                 mc.reattach();
-                getChildren().add(mc);
+                nodeLayer.getChildren().add(mc);
                 mc.updateLocation();
-                mc.draw();
-
+                mc.updateAppearance();
                 Options.getInstance().getMusicians().put(id, deletedMusicianOptions.get(id));
                 Options.getInstance().getUiOptions().getMusicianComponents().put(id,
                         deletedMusicianComponentOptions.get(id));
                 lastAddedAgent.set(mc);
             }
-            // Restore peers
             for (var otherEntry : mapOfOthersToThese.entrySet()) {
                 var listOfOthers = otherEntry.getValue();
                 for (var otherId : listOfOthers) {
@@ -886,31 +1071,28 @@ public class AgentPanel extends Pane {
                             .addPeer(musicianComponents.get(otherEntry.getKey()).getMusician());
                 }
             }
-            // Re-calc edges
-            synchronized (edges) {
-                edges.clear();
-                calcEdges();
-            }
-            drawBackground();
+            calcEdges();
+            drawOverlayHUD();
         }
     }
 
     class ConnectSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                     .toList();
-            for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
-                for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
-                    var mc1 = selectedMusiciansLocal.get(i);
-                    var mus1 = mc1.getMusician();
-                    var mc2 = selectedMusiciansLocal.get(j);
-                    var mus2 = mc2.getMusician();
-                    mus1.addPeer(mus2);
-                    mus2.addPeer(mus1);
-                    edges.add(new Edge(mc1, mc2, UiOptions.DEFAULT_EDGE_LENGTH));
-                    edges.add(new Edge(mc2, mc1, UiOptions.DEFAULT_EDGE_LENGTH));
+            synchronized (edges) {
+                for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
+                    for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
+                        var mc1 = selectedMusiciansLocal.get(i);
+                        var mus1 = mc1.getMusician();
+                        var mc2 = selectedMusiciansLocal.get(j);
+                        var mus2 = mc2.getMusician();
+                        mus1.addPeer(mus2);
+                        mus2.addPeer(mus1);
+                        addEdgeInternal(mc1, mc2, UiOptions.DEFAULT_EDGE_LENGTH);
+                        addEdgeInternal(mc2, mc1, UiOptions.DEFAULT_EDGE_LENGTH);
+                    }
                 }
             }
             if (!undo)
@@ -920,22 +1102,24 @@ public class AgentPanel extends Pane {
     }
 
     class DisconnectSelectedCommand implements Command {
-
         @Override
         public void execute(boolean undo) {
             var selectedMusiciansLocal = musicianComponents.values().stream().filter(MusicianComponent::isSelected)
                     .toList();
-            for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
-                for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
-                    var mc1 = selectedMusiciansLocal.get(i);
-                    var mc2 = selectedMusiciansLocal.get(j);
-                    var edgeIter = edges.iterator();
-                    while (edgeIter.hasNext()) {
-                        var edge = edgeIter.next();
-                        if ((mc1.equals(edge.source) && mc2.equals(edge.target))
-                                || (mc2.equals(edge.source) && mc1.equals(edge.target))) {
-                            edge.source.getMusician().removePeer(edge.target.getMusician());
-                            edgeIter.remove();
+            synchronized (edges) {
+                for (int i = 0; i < selectedMusiciansLocal.size() - 1; i++) {
+                    for (int j = i + 1; j < selectedMusiciansLocal.size(); j++) {
+                        var mc1 = selectedMusiciansLocal.get(i);
+                        var mc2 = selectedMusiciansLocal.get(j);
+                        var edgeIter = edges.iterator();
+                        while (edgeIter.hasNext()) {
+                            var edge = edgeIter.next();
+                            if ((mc1.equals(edge.source) && mc2.equals(edge.target))
+                                    || (mc2.equals(edge.source) && mc1.equals(edge.target))) {
+                                edge.source.getMusician().removePeer(edge.target.getMusician());
+                                edgeLayer.getChildren().remove(edge.group);
+                                edgeIter.remove();
+                            }
                         }
                     }
                 }
@@ -988,12 +1172,11 @@ public class AgentPanel extends Pane {
             var musicianToCopyOpts = componentToCopy.getMusician().getOptions()
                     .copy(MusicianOptions.ID_GENERATOR.getAndIncrement());
             var newMusician = Musician.restoreFromStorage(musicianToCopyOpts);
-
             addMusicianComponent(newMusician);
             Options.getInstance().getUiOptions().copyMusicianComponentOptions(musicianIdToCopy, newMusician.getId());
         }
         requestLayout();
-        drawBackground();
+        drawOverlayHUD();
         this.copiedComponents = null;
         deselectAll();
     }
@@ -1011,12 +1194,17 @@ public class AgentPanel extends Pane {
     void reset() {
         this.musicianComponents.values().forEach(mc -> {
             mc.dispose();
-            getChildren().remove(mc);
+            nodeLayer.getChildren().remove(mc);
         });
         this.musicianComponents.clear();
-        this.edges.clear();
+        synchronized (edges) {
+            this.edges.forEach(e -> edgeLayer.getChildren().remove(e.group));
+            this.edges.clear();
+        }
+        this.ripples.forEach(r -> rippleLayer.getChildren().remove(r.node));
+        this.ripples.clear();
         this.numMusicians = 0;
-        drawBackground();
+        drawOverlayHUD();
     }
 
     void addCircle(int numToAdd) {
@@ -1031,16 +1219,19 @@ public class AgentPanel extends Pane {
             list.get(i).addPeer(list.get(i + 1));
         }
         list.get(list.size() - 1).addPeer(list.get(0));
-        var components = list.stream().map(c -> this.addMusicianComponent(c)).toList();
+        var components = list.stream().map(this::addMusicianComponent).toList();
         createEdges(components);
     }
 
     private void createEdges(List<MusicianComponent> components) {
-        for (var component : components) {
-            for (var peerId : component.getMusician().peerIds()) {
-                var edge = new Edge(component, musicianComponents.get(peerId),
-                        Options.getInstance().getUiOptions().getEdgeLength());
-                edges.add(edge);
+        synchronized (edges) {
+            for (var component : components) {
+                for (var peerId : component.getMusician().peerIds()) {
+                    var target = musicianComponents.get(peerId);
+                    if (target != null) {
+                        addEdgeInternal(component, target, Options.getInstance().getUiOptions().getEdgeLength());
+                    }
+                }
             }
         }
     }
@@ -1056,7 +1247,6 @@ public class AgentPanel extends Pane {
         public void execute(boolean undo) {
             addedMcs.forEach(mc -> mc.setSelected(true));
         }
-
     }
 
     class AddGridCommand implements Command {
@@ -1076,7 +1266,6 @@ public class AgentPanel extends Pane {
         @Override
         @SuppressWarnings("java:S3776")
         public void execute(boolean undo) {
-
             var list = new ArrayList<Musician>();
             var arr = new Musician[numRows][numCols];
             for (var y = 0; y < numRows; y++) {
@@ -1087,7 +1276,6 @@ public class AgentPanel extends Pane {
                     list.add(arr[y][x]);
                 }
             }
-            // make connections
             for (var y = 0; y < numRows; y++) {
                 for (var x = 0; x < numCols; x++) {
                     if (y < numRows - 1) {
@@ -1108,32 +1296,19 @@ public class AgentPanel extends Pane {
                     }
                 }
             }
-            var components = list.stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
+            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
             createEdges(components);
-
             if (!undo)
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
         }
-
     }
 
     /**
      * Direction in which fan peer relationships should be constructed
      */
     public enum FanDirection {
-        /**
-         * node to children
-         */
-        DOWN,
-        /**
-         * node to parent
-         */
-        UP,
-        /**
-         * node to children and parent
-         */
-        BIDIRECTIONAL;
+        DOWN, UP, BIDIRECTIONAL;
     }
 
     class AddFanCommand implements Command {
@@ -1159,7 +1334,6 @@ public class AgentPanel extends Pane {
                 arr[y].getOptions().setMuted(true);
                 MusicianList.getInstance().addMusician(arr[y]);
             }
-            // make connections
             for (var y = 0; y < num; y++) {
                 if ((direction == FanDirection.DOWN || direction == FanDirection.BIDIRECTIONAL)
                         && y < numWithConnections) {
@@ -1170,10 +1344,8 @@ public class AgentPanel extends Pane {
                     arr[y].addPeer(arr[(y - 1) / 2]);
                 }
             }
-            var components = Arrays.asList(arr).stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
-
+            var components = Arrays.stream(arr).map(AgentPanel.this::addMusicianComponent).toList();
             createEdges(components);
-
             if (!undo)
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
@@ -1199,9 +1371,8 @@ public class AgentPanel extends Pane {
                 list.add(m);
                 MusicianList.getInstance().addMusician(m);
             }
-            var components = list.stream().map(c -> AgentPanel.this.addMusicianComponent(c)).toList();
+            var components = list.stream().map(AgentPanel.this::addMusicianComponent).toList();
             createEdges(components);
-
             if (!undo)
                 CommandCaretaker.pushStack(
                         new Memento(this, List.of(new SelectAddedCommand(components), new DeleteSelectedCommand())));
@@ -1227,30 +1398,41 @@ public class AgentPanel extends Pane {
         return lastRemovedAgent;
     }
 
+    /**
+     * 3D expanding translucent sphere triggered when a musician plays a note.
+     */
     private static final class Ripple {
-        final double x;
-        final double y;
+        final Sphere node;
+        final PhongMaterial material;
         double radius;
         final double maxRadius;
         final Color color;
 
-        Ripple(double x, double y, double startRadius, double maxRadius, Color color) {
-            this.x = x;
-            this.y = y;
+        Ripple(Point3D center, double startRadius, double maxRadius, Color color) {
             this.radius = startRadius;
             this.maxRadius = maxRadius;
             this.color = color;
+            this.material = new PhongMaterial();
+            this.material.setDiffuseColor(color.deriveColor(0, 1.0, 1.0, opacity()));
+            this.node = new Sphere(startRadius);
+            this.node.setMaterial(material);
+            this.node.setMouseTransparent(true);
+            this.node.setCullFace(CullFace.FRONT); // Prevents occluding the sphere inside
+            this.node.setTranslateX(center.getX());
+            this.node.setTranslateY(center.getY());
+            this.node.setTranslateZ(center.getZ());
         }
 
         boolean update() {
             radius += Options.getInstance().getUiOptions().getRippleExpansionSpeed();
+            node.setRadius(radius);
+            material.setDiffuseColor(color.deriveColor(0, 1.0, 1.0, opacity()));
             return radius < maxRadius;
         }
 
         double opacity() {
             double progress = Math.clamp(radius / maxRadius, 0.0, 1.0);
-            return Math.pow(1.0 - progress, 1.8) * 0.55;
+            return Math.pow(1.0 - progress, 1.8) * 0.45;
         }
-
     }
 }
