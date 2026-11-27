@@ -14,25 +14,25 @@ jobs:
       fail-fast: false
       matrix:
         strategy:
-        fail-fast: false
-        matrix:
-          include:
-            - os: windows-latest
-              type: exe
-              icon: src/installer/margia.ico
-              arch: x64
-            - os: macos-15 # Apple Silicon
-              type: dmg
-              icon: src/installer/margia.icns
-              arch: arm64
-            - os: macos-15-intel # Intel
-              type: dmg
-              icon: src/installer/margia.icns
-              arch: x64
-            - os: ubuntu-latest
-              type: deb
-              icon: src/installer/margia.png
-              arch: amd64
+          fail-fast: false
+          matrix:
+            include:
+              - os: windows-latest
+                type: exe
+                icon: src/installer/margia.ico
+                arch: x64
+              - os: macos-15 # Apple Silicon
+                type: dmg
+                icon: src/installer/margia.icns
+                arch: arm64
+              - os: macos-15-intel # Intel
+                type: dmg
+                icon: src/installer/margia.icns
+                arch: x64
+              - os: ubuntu-latest
+                type: deb
+                icon: src/installer/margia.png
+                arch: amd64
 
     runs-on: ${{ matrix.os }}
 
