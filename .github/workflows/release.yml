@@ -72,7 +72,10 @@ jobs:
       - name: Prepare file-assoc.properties
         shell: bash
         run: |
-          echo "icon=${{ matrix.icon }}" >> file-assoc.properties
+          EXT="${{ matrix.icon }}"
+          EXT="${EXT##*.}"
+          cp "${{ matrix.icon }}" "src/installer/margia-doc.${EXT}"
+          echo "icon=src/installer/margia-doc.${EXT}" >> file-assoc.properties
 
       - name: Package native installer
         shell: bash
