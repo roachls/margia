@@ -1,6 +1,8 @@
 package org.roach.margia.view;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -32,6 +34,8 @@ import javafx.stage.*;
  */
 public class RuleEditorDialog extends Dialog<Void> {
 
+    @FXML
+    private SplitPane mainSplitPane;
     @FXML
     private ListView<String> ruleListView;
     @FXML
@@ -72,39 +76,13 @@ public class RuleEditorDialog extends Dialog<Void> {
     private final List<Musician> activeMusicians;
     private StateGraphPane graphPane;
     private boolean syncingTabs = false;
-    // @formatter:off
-    private static final List<String> SUPPORTED_ACTIONS = List.of(
-            "PLAY_CHORD",
-            "PLAY_CHORD_UP_INTERVAL",
-            "PLAY_CHORD_DOWN_INTERVAL",
-            "PLAY_CHORD_TWICE_LENGTH",
-            "PLAY_CHORD_HALF_LENGTH",
-            "PLAY_CHORD_UP_VELOCITY",
-            "PLAY_CHORD_DOWN_VELOCITY",
-            "PLAY_NOTE_UP_OCTAVE",
-            "PLAY_PSEUDO_RANDOM_CHORD",
-            "PLAY_PSEUDO_RANDOM_CHORD_FLAVOR",
-            "PLAY_RANDOM_CHORD",
-            "REPEAT_LAST_CHORD",
-            "SET_LAST_CHORD",
-            "REST_ONE_TICK",
-            "RESET_PLAYED_CHORDS",
-            "MUTE_MUSICIAN",
-            "UNMUTE_MUSICIAN");
-    private static final List<String> SUPPORTED_STATE_TYPES = List.of(
-            "ALWAYS_TRANSITION",
-            "DELAYED_TRANSITION",
-            "PSEUDO_RANDOM",
-            "DIE_ROLLING",
-            "COUNTDOWN",
-            "CONDITIONAL",
-            "NEVER_TRANSITION",
-            "NOTE_BASED");
-    // @formatter:on
+
+    private static final List<String> SUPPORTED_STATE_TYPES = List.of("ALWAYS_TRANSITION", "DELAYED_TRANSITION",
+            "PSEUDO_RANDOM", "DIE_ROLLING", "COUNTDOWN", "CONDITIONAL", "NEVER_TRANSITION", "NOTE_BASED");
 
     /**
-     * @param owner           the {@link Window} that owns this dialog
-     * @param activeMusicians the list of active musicians
+     * @param owner           the owning window
+     * @param activeMusicians all active musicians
      */
     public RuleEditorDialog(Window owner, List<Musician> activeMusicians) {
         this.activeMusicians = activeMusicians != null ? activeMusicians : List.of();
@@ -125,6 +103,7 @@ public class RuleEditorDialog extends Dialog<Void> {
             if (getDialogPane().getScene().getWindow() instanceof Stage stage) {
                 stage.setMaximized(true);
             }
+            Platform.runLater(() -> mainSplitPane.setDividerPositions(0.12));
         });
     }
 
@@ -164,20 +143,21 @@ public class RuleEditorDialog extends Dialog<Void> {
                         : "Loaded user rule '" + newVal + "'", false);
             }
         });
-
         propListView.setItems(propertyRows);
         propListView.setCellFactory(_ -> new PropertyCell(propertyRows::remove));
 
         stateListView.setItems(stateRows);
-        stateListView.setCellFactory(_ -> new StateCell(stateRows::remove, this::refreshStartingStateChoices));
+        stateListView.setCellFactory(
+                _ -> new StateCell(stateRows::remove, this::refreshStartingStateChoices, this::openActionsEditor));
 
         graphPane = new StateGraphPane();
         graphHostPane.setCenter(graphPane);
 
         // Two-way synchronization when switching tabs
         tabPane.getSelectionModel().selectedItemProperty().addListener((_, oldTab, newTab) -> {
-            if (syncingTabs)
+            if (syncingTabs) {
                 return;
+            }
             syncingTabs = true;
             try {
                 if (oldTab == yamlTab) {
@@ -224,10 +204,18 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     @FXML
+    private void onAddStateClicked() {
+        stateRows.add(new MutableState(nextUniqueStateName(), "ALWAYS_TRANSITION", "16", "",
+                List.of(new ActionDef("PLAY_CHORD", Map.of())), ""));
+        refreshStartingStateChoices();
+    }
+
+    @FXML
     private void onDeleteSelectedClicked() {
         String selected = ruleListView.getSelectionModel().getSelectedItem();
-        if (selected == null)
+        if (selected == null) {
             return;
+        }
         try {
             RuleRepository.getInstance().deleteExternalRule(selected);
             refreshRuleList();
@@ -237,7 +225,6 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
     }
 
-    @SuppressWarnings("unused")
     @FXML
     private void onImportClicked() {
         FileChooser chooser = new FileChooser();
@@ -245,27 +232,25 @@ public class RuleEditorDialog extends Dialog<Void> {
         chooser.getExtensionFilters()
                 .add(new FileChooser.ExtensionFilter("YAML Rule Files (*.yaml, *.yml)", "*.yaml", "*.yml"));
 
-        java.io.File chosen = chooser.showOpenDialog(getDialogPane().getScene().getWindow());
+        File chosen = chooser.showOpenDialog(getDialogPane().getScene().getWindow());
         if (chosen == null) {
             return;
         }
 
         try {
-            String content = java.nio.file.Files.readString(chosen.toPath());
+            String content = Files.readString(chosen.toPath());
             RuleDefinition imported = RuleRepository.getInstance().fromYamlString(content);
             if (imported.name() == null || imported.name().isBlank()) {
                 setStatus("Import failed: YAML file is missing a 'name' property.", true);
                 return;
             }
 
-            // Prevent overwriting a built-in read-only template name
             if (RuleRepository.getInstance().getRuleSource(imported.name()) == RuleSource.TEMPLATE_YAML) {
                 imported = new RuleDefinition(imported.name() + "_imported", imported.startingState(),
                         imported.properties(), imported.states());
             }
 
-            // Validate state machine & placeholders before saving
-            new DataDrivenMusicianRule(imported);
+            DataDrivenMusicianRule.validate(imported);
             RuleRepository.getInstance().saveRule(imported);
 
             refreshRuleList();
@@ -281,12 +266,11 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
     }
 
-    @SuppressWarnings("unused")
     @FXML
     private void onExportClicked() {
         try {
             RuleDefinition def = getActiveDefinition();
-            new DataDrivenMusicianRule(def);
+            DataDrivenMusicianRule.validate(def);
 
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Export Rule YAML");
@@ -294,13 +278,13 @@ public class RuleEditorDialog extends Dialog<Void> {
             chooser.setInitialFileName(defaultFileName);
             chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("YAML Rule Files (*.yaml)", "*.yaml"));
 
-            java.io.File target = chooser.showSaveDialog(getDialogPane().getScene().getWindow());
+            File target = chooser.showSaveDialog(getDialogPane().getScene().getWindow());
             if (target == null) {
                 return;
             }
 
             String yamlContent = RuleRepository.getInstance().toYamlString(def);
-            java.nio.file.Files.writeString(target.toPath(), yamlContent);
+            Files.writeString(target.toPath(), yamlContent);
             setStatus("Exported '" + def.name() + "' to " + target.getAbsolutePath(), false);
         } catch (Exception ex) {
             setStatus("Export failed: " + ex.getMessage(), true);
@@ -313,25 +297,16 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     @FXML
-    private void onAddStateClicked() {
-        stateRows.add(
-                new MutableState("state_" + (stateRows.size() + 1), "ALWAYS_TRANSITION", "16", "", "PLAY_CHORD", ""));
-        refreshStartingStateChoices();
-    }
-
-    @SuppressWarnings("unused")
-    @FXML
     private void onValidateClicked() {
         try {
             RuleDefinition def = getActiveDefinition();
-            new DataDrivenMusicianRule(def);
+            DataDrivenMusicianRule.validate(def);
             setStatus("Valid rule definition: '" + def.name() + "'", false);
         } catch (Exception ex) {
             setStatus("Validation failed: " + ex.getMessage(), true);
         }
     }
 
-    @SuppressWarnings("unused")
     @FXML
     private void onSaveClicked() {
         try {
@@ -341,7 +316,7 @@ public class RuleEditorDialog extends Dialog<Void> {
                 return;
             }
 
-            new DataDrivenMusicianRule(def);
+            DataDrivenMusicianRule.validate(def);
             RuleRepository.getInstance().saveRule(def);
 
             int reloadedCount = 0;
@@ -396,6 +371,15 @@ public class RuleEditorDialog extends Dialog<Void> {
         });
     }
 
+    private String nextUniqueStateName() {
+        Set<String> existing = stateRows.stream().map(s -> s.name).collect(Collectors.toSet());
+        int idx = stateRows.size() + 1;
+        while (existing.contains("state_" + idx)) {
+            idx++;
+        }
+        return "state_" + idx;
+    }
+
     private void loadDefinitionIntoEditor(RuleDefinition def) {
         populateFormFromDefinition(def);
         try {
@@ -427,37 +411,37 @@ public class RuleEditorDialog extends Dialog<Void> {
                     sl.label(), sl.defaultValue(), "", "", "", String.join(",", sl.values())));
             }
         }
-        // Inside populateFormFromDefinition(RuleDefinition def):
+
         stateRows.clear();
         def.states().forEach((name, stateDef) -> {
-            String actionSummary = serializeActionsSummary(stateDef.actions());
+            List<ActionDef> actions = stateDef.actions() != null ? new ArrayList<>(stateDef.actions()) : List.of();
             MutableState ms = switch (stateDef) {
             case StateDef.AlwaysTransition a ->
-                new MutableState(name, "ALWAYS_TRANSITION", "", a.nextState(), actionSummary, "");
+                new MutableState(name, "ALWAYS_TRANSITION", "", a.nextState(), actions, "");
             case StateDef.DelayedTransition d ->
-                new MutableState(name, "DELAYED_TRANSITION", String.valueOf(d.delay()), d.wrappedState(), "", "");
+                new MutableState(name, "DELAYED_TRANSITION", String.valueOf(d.delay()), d.wrappedState(), actions, "");
             case StateDef.Countdown c ->
-                new MutableState(name, "COUNTDOWN", String.valueOf(c.ticks()), c.nextState(), "", "");
+                new MutableState(name, "COUNTDOWN", String.valueOf(c.ticks()), c.nextState(), actions, "");
             case StateDef.PseudoRandom pr -> {
                 String ranges = pr.rangeTransitions().stream().map(rt -> rt.min() + "-" + rt.max() + "->" + rt.target())
                         .collect(Collectors.joining("; "));
-                yield new MutableState(name, "PSEUDO_RANDOM", String.valueOf(pr.maxRoll()), "", actionSummary, ranges);
+                yield new MutableState(name, "PSEUDO_RANDOM", String.valueOf(pr.maxRoll()), "", actions, ranges);
             }
             case StateDef.DieRolling dr -> {
                 String rangesText = dr.rangeTransitions().stream()
                         .map(rt -> rt.min() + "-" + rt.max() + "->" + rt.target()).collect(Collectors.joining("; "));
-                yield new MutableState(name, "DIE_ROLLING", dr.dice(), "", actionSummary, rangesText);
+                yield new MutableState(name, "DIE_ROLLING", dr.dice(), "", actions, rangesText);
             }
             case StateDef.Conditional cond -> {
                 String number = cond.condition() + ":" + cond.threshold();
                 String targetState = cond.trueState() + (cond.falseState() != null ? "," + cond.falseState() : "");
-                yield new MutableState(name, "CONDITIONAL", number, targetState, actionSummary, "");
+                yield new MutableState(name, "CONDITIONAL", number, targetState, actions, "");
             }
-            case StateDef.NeverTransition _ -> new MutableState(name, "NEVER_TRANSITION", "", "", actionSummary, "");
+            case StateDef.NeverTransition _ -> new MutableState(name, "NEVER_TRANSITION", "", "", actions, "");
             case StateDef.NoteBased nb -> {
                 String rangesText = nb.noteTransitions().stream().map(rt -> rt.notes() + "->" + rt.target())
                         .collect(Collectors.joining("; "));
-                yield new MutableState(name, "NOTE_BASED", "", "", actionSummary, rangesText);
+                yield new MutableState(name, "NOTE_BASED", "", "", actions, rangesText);
             }
             };
             if (stateDef.x() != null && stateDef.y() != null) {
@@ -479,7 +463,13 @@ public class RuleEditorDialog extends Dialog<Void> {
         List<PropertyDef> props = propertyRows.stream().map(MutableProperty::toPropertyDef).toList();
         Map<String, StateDef> states = new LinkedHashMap<>();
         for (MutableState ms : stateRows) {
-            states.put(ms.name.trim(), ms.toStateDef());
+            String stateName = ms.name.trim();
+            if (stateName.isEmpty()) {
+                throw new IllegalArgumentException("State names cannot be empty.");
+            }
+            if (states.put(stateName, ms.toStateDef()) != null) {
+                throw new IllegalArgumentException("Duplicate state name: '" + stateName + "'");
+            }
         }
         String start = startingStateCombo.getValue();
         if (start == null || !states.containsKey(start)) {
@@ -506,8 +496,9 @@ public class RuleEditorDialog extends Dialog<Void> {
         String current = startingStateCombo.getValue();
         List<String> names = stateRows.stream().map(s -> s.name).filter(n -> !n.isBlank()).toList();
         startingStateCombo.getItems().setAll(names);
-        if (current != null)
+        if (current != null && names.contains(current)) {
             startingStateCombo.setValue(current);
+        }
     }
 
     private void setStatus(String msg, boolean isError) {
@@ -516,10 +507,17 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     private static String serializeActionsSummary(List<ActionDef> actions) {
-        if (actions == null || actions.isEmpty())
-            return "";
-        return actions.stream().map(a -> a.params().isEmpty() ? a.type() : a.type() + a.params())
-                .collect(Collectors.joining(", "));
+        if (actions == null || actions.isEmpty()) {
+            return "(none)";
+        }
+        return actions.stream().map(a -> {
+            if (a.params() == null || a.params().isEmpty()) {
+                return a.type();
+            }
+            String joinedParams = a.params().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue())
+                    .collect(Collectors.joining(", "));
+            return a.type() + "(" + joinedParams + ")";
+        }).collect(Collectors.joining("; "));
     }
 
     private static RuleDefinition createStarterTemplate() {
@@ -530,6 +528,17 @@ public class RuleEditorDialog extends Dialog<Void> {
                         "playAndHold", new StateDef.DelayedTransition("$holdTicks", "play")));
     }
 
+    private void openActionsEditor(MutableState st, Runnable onUpdated) {
+        List<String> propKeys = propertyRows.stream().map(p -> p.key).filter(k -> k != null && !k.isBlank()).toList();
+        StateActionsDialog dialog = new StateActionsDialog(getDialogPane().getScene().getWindow(), st.name, st.actions,
+                propKeys);
+        dialog.showAndWait().ifPresent(updatedActions -> {
+            st.actions = new ArrayList<>(updatedActions);
+            onUpdated.run();
+        });
+    }
+
+    // --- Interactive State Graph ---
     private class StateGraphPane extends BorderPane {
         private static final double RX = 68;
         private static final double RY = 34;
@@ -577,8 +586,8 @@ public class RuleEditorDialog extends Dialog<Void> {
             hint.setStyle("-fx-text-fill: #555555;");
 
             HBox topBar = new HBox(8, connectModeBtn, new Separator(Orientation.VERTICAL), new Label("Zoom:"),
-                    zoomOutBtn, zoomLabel, zoomInBtn, zoomResetBtn, new Separator(Orientation.VERTICAL), autoLayoutBtn,
-                    hint);
+                    zoomOutBtn, zoomLabel, zoomInBtn, zoomResetBtn, zoomFitBtn, new Separator(Orientation.VERTICAL),
+                    autoLayoutBtn, hint);
             topBar.setAlignment(Pos.CENTER_LEFT);
             topBar.setPadding(new Insets(6));
             topBar.setStyle("-fx-background-color: #eeeeee;");
@@ -587,7 +596,6 @@ public class RuleEditorDialog extends Dialog<Void> {
             scrollPane.setPannable(true);
             setCenter(scrollPane);
 
-            // Ctrl + Mouse Wheel zoom
             scrollPane.addEventFilter(ScrollEvent.SCROLL, e -> {
                 if (e.isControlDown()) {
                     double delta = e.getDeltaY() > 0 ? 0.1 : -0.1;
@@ -620,7 +628,7 @@ public class RuleEditorDialog extends Dialog<Void> {
                     if (target != null) {
                         connectStates(dragSourceForArrow, target);
                     }
-                    canvas.getChildren().remove(previewLine);
+                    arrowLayer.getChildren().remove(previewLine);
                     previewLine = null;
                     dragSourceForArrow = null;
                     redraw();
@@ -649,7 +657,7 @@ public class RuleEditorDialog extends Dialog<Void> {
 
             for (MutableState st : stateRows) {
                 minX = Math.min(minX, st.x - RX - 40);
-                minY = Math.min(minY, st.y - RY - 50); // extra top margin for self-loop arcs
+                minY = Math.min(minY, st.y - RY - 50);
                 maxX = Math.max(maxX, st.x + RX + 40);
                 maxY = Math.max(maxY, st.y + RY + 40);
             }
@@ -666,7 +674,6 @@ public class RuleEditorDialog extends Dialog<Void> {
             double fitScale = Math.min(viewWidth / graphWidth, viewHeight / graphHeight);
             setZoom(Math.min(1.0, fitScale));
 
-            // Center the scroll viewport on the bounding box center
             double centerX = (minX + maxX) / 2.0;
             double centerY = (minY + maxY) / 2.0;
             double canvasW = canvas.getPrefWidth();
@@ -781,6 +788,7 @@ public class RuleEditorDialog extends Dialog<Void> {
             oval.setFill(isSelected ? Color.web("#e3f2fd") : Color.WHITE);
             oval.setStroke(isStart ? Color.web("#2e7d32") : (isSelected ? Color.web("#1565c0") : Color.web("#37474f")));
             oval.setStrokeWidth(isStart || isSelected ? 3.0 : 1.6);
+
             Label nameLbl = new Label(st.name);
             nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
             Label typeLbl = new Label(abbreviateType(st.type));
@@ -788,17 +796,22 @@ public class RuleEditorDialog extends Dialog<Void> {
             VBox textBox = new VBox(1, nameLbl, typeLbl);
             textBox.setAlignment(Pos.CENTER);
             textBox.setMouseTransparent(true);
+
             StackPane node = new StackPane(oval, textBox);
             node.setLayoutX(st.x - RX);
             node.setLayoutY(st.y - RY);
             final double[] dragOffset = new double[2];
 
             node.setOnMousePressed(e -> {
-                selectedState = st;
+                if (selectedState != st) {
+                    selectedState = st;
+                    redraw();
+                    return;
+                }
                 updateInspector();
+                Point2D localPt = canvas.sceneToLocal(e.getSceneX(), e.getSceneY());
                 if (e.isShiftDown() || connectModeBtn.isSelected()) {
                     dragSourceForArrow = st;
-                    Point2D localPt = canvas.sceneToLocal(e.getSceneX(), e.getSceneY());
                     previewLine = new Line(st.x, st.y, localPt.getX(), localPt.getY());
                     previewLine.getStrokeDashArray().addAll(6.0, 4.0);
                     previewLine.setStroke(Color.web("#1565c0"));
@@ -806,7 +819,6 @@ public class RuleEditorDialog extends Dialog<Void> {
                     previewLine.setMouseTransparent(true);
                     arrowLayer.getChildren().add(previewLine);
                 } else {
-                    Point2D localPt = canvas.sceneToLocal(e.getSceneX(), e.getSceneY());
                     dragOffset[0] = localPt.getX() - st.x;
                     dragOffset[1] = localPt.getY() - st.y;
                 }
@@ -871,15 +883,18 @@ public class RuleEditorDialog extends Dialog<Void> {
             double startY = src.y + oy + RY * Math.sin(angle);
             double endX = dst.x + ox - RX * Math.cos(angle);
             double endY = dst.y + oy - RY * Math.sin(angle);
+
             Line line = new Line(startX, startY, endX, endY);
             line.setStroke(Color.web("#455a64"));
             line.setStrokeWidth(1.6);
+
             double arrowLen = 10.0;
             double arrowAngle = Math.toRadians(25);
             Polygon head = new Polygon(endX, endY, endX - arrowLen * Math.cos(angle - arrowAngle),
                     endY - arrowLen * Math.sin(angle - arrowAngle), endX - arrowLen * Math.cos(angle + arrowAngle),
                     endY - arrowLen * Math.sin(angle + arrowAngle));
             head.setFill(Color.web("#455a64"));
+
             Label lbl = new Label(labelText);
             lbl.setStyle(
                     "-fx-background-color: rgba(255,255,255,0.88); -fx-font-size: 10px; -fx-padding: 1 4; -fx-border-color: #cfd8dc;");
@@ -891,21 +906,49 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
 
         private void connectStates(MutableState src, MutableState dst) {
-            if ("PSEUDO_RANDOM".equals(src.type)) {
+            switch (src.type) {
+            case "PSEUDO_RANDOM", "DIE_ROLLING" -> {
                 TextInputDialog dialog = new TextInputDialog("1-5");
                 dialog.initOwner(getDialogPane().getScene().getWindow());
-                dialog.setTitle("Pseudo-Random Range Transition");
+                dialog.setTitle("Range Transition");
                 dialog.setHeaderText("Transition from '" + src.name + "' to '" + dst.name + "'");
                 dialog.setContentText("Roll range (min-max):");
                 dialog.showAndWait().ifPresent(range -> {
                     String entry = range.trim() + "->" + dst.name;
-                    src.rangesText = src.rangesText == null || src.rangesText.isBlank() ? entry
+                    src.rangesText = (src.rangesText == null || src.rangesText.isBlank()) ? entry
                             : src.rangesText + "; " + entry;
                     setStatus("Added transition " + entry, false);
                 });
-            } else {
+            }
+            case "NOTE_BASED" -> {
+                TextInputDialog dialog = new TextInputDialog("60, 64, 67");
+                dialog.initOwner(getDialogPane().getScene().getWindow());
+                dialog.setTitle("Note-Based Transition");
+                dialog.setHeaderText("Transition from '" + src.name + "' to '" + dst.name + "'");
+                dialog.setContentText("MIDI note numbers (comma-separated):");
+                dialog.showAndWait().ifPresent(notes -> {
+                    String entry = "[" + notes.trim() + "]->" + dst.name;
+                    src.rangesText = (src.rangesText == null || src.rangesText.isBlank()) ? entry
+                            : src.rangesText + "; " + entry;
+                    setStatus("Added transition " + entry, false);
+                });
+            }
+            case "CONDITIONAL" -> {
+                if (src.targetState == null || src.targetState.isBlank()) {
+                    src.targetState = dst.name;
+                    setStatus("Set 'true' branch of '" + src.name + "' -> '" + dst.name + "'", false);
+                } else {
+                    String trueTarget = src.targetState.split(",", 2)[0].trim();
+                    src.targetState = trueTarget + "," + dst.name;
+                    setStatus("Set 'false' branch of '" + src.name + "' -> '" + dst.name + "'", false);
+                }
+            }
+            case "NEVER_TRANSITION" ->
+                setStatus("'" + src.name + "' is NEVER_TRANSITION and cannot have outgoing arrows.", true);
+            default -> {
                 src.targetState = dst.name;
                 setStatus("Connected '" + src.name + "' -> '" + dst.name + "'", false);
+            }
             }
         }
 
@@ -924,16 +967,22 @@ public class RuleEditorDialog extends Dialog<Void> {
         }
 
         private void promptNewStateAt(double x, double y) {
-            TextInputDialog dialog = new TextInputDialog("state_" + (stateRows.size() + 1));
+            TextInputDialog dialog = new TextInputDialog(nextUniqueStateName());
             dialog.initOwner(getDialogPane().getScene().getWindow());
             dialog.setTitle("Add State");
             dialog.setHeaderText("Create a new state at (" + (int) x + ", " + (int) y + ")");
             dialog.setContentText("State name:");
             dialog.showAndWait().ifPresent(name -> {
                 String trimmed = name.trim();
-                if (trimmed.isEmpty())
+                if (trimmed.isEmpty()) {
                     return;
-                MutableState st = new MutableState(trimmed, "ALWAYS_TRANSITION", "16", "", "PLAY_CHORD", "");
+                }
+                if (stateRows.stream().anyMatch(s -> trimmed.equals(s.name))) {
+                    setStatus("State '" + trimmed + "' already exists.", true);
+                    return;
+                }
+                MutableState st = new MutableState(trimmed, "ALWAYS_TRANSITION", "16", "",
+                        List.of(new ActionDef("PLAY_CHORD", Map.of())), "");
                 st.x = x;
                 st.y = y;
                 stateRows.add(st);
@@ -948,8 +997,9 @@ public class RuleEditorDialog extends Dialog<Void> {
 
         private void autoLayoutStates(boolean force) {
             int count = stateRows.size();
-            if (count == 0)
+            if (count == 0) {
                 return;
+            }
             double centerX = 430;
             double centerY = 260;
             double radiusX = Math.max(180, count * 24.0);
@@ -995,39 +1045,25 @@ public class RuleEditorDialog extends Dialog<Void> {
                     redraw();
                 }
             });
+
             ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_STATE_TYPES));
             typeBox.setValue(st.type);
             typeBox.setOnAction(_ -> {
                 st.type = typeBox.getValue();
                 redraw();
             });
+
             TextField numField = new TextField(st.numberOrPlaceholder);
             numField.setPromptText("ticks/roll/$prop");
             numField.setPrefWidth(95);
             numField.textProperty().addListener((_, _, nv) -> st.numberOrPlaceholder = nv);
 
-            ComboBox<String> actionPicker = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_ACTIONS));
-            actionPicker.setPromptText("Pick action...");
-            actionPicker.setPrefWidth(175);
-
-            TextField actionsField = new TextField(st.actionsText);
-            actionsField.setPromptText("Actions (e.g. PLAY_CHORD)");
-            actionsField.setPrefWidth(190);
-            actionsField.textProperty().addListener((_, _, nv) -> st.actionsText = nv);
-
-            Button addActionBtn = new Button("+ Add");
-            addActionBtn.setOnAction(_ -> {
-                String chosen = actionPicker.getValue();
-                if (chosen == null || chosen.isBlank())
-                    return;
-                appendActionWithPrompt(st, chosen, actionsField);
-            });
-
-            Button clearActionsBtn = new Button("Clear");
-            clearActionsBtn.setOnAction(_ -> {
-                st.actionsText = "";
-                actionsField.setText("");
-            });
+            Button editActionsBtn = new Button("Actions (" + st.actions.size() + ")...");
+            editActionsBtn.setTooltip(new Tooltip(serializeActionsSummary(st.actions)));
+            editActionsBtn.setOnAction(_ -> openActionsEditor(st, () -> {
+                editActionsBtn.setText("Actions (" + st.actions.size() + ")...");
+                editActionsBtn.setTooltip(new Tooltip(serializeActionsSummary(st.actions)));
+            }));
 
             Button setStartBtn = new Button("Set as Start");
             setStartBtn.setOnAction(_ -> {
@@ -1043,59 +1079,30 @@ public class RuleEditorDialog extends Dialog<Void> {
                 redraw();
             });
 
-            // @formatter:off
-            inspectorBar.getChildren().addAll(
-                    new Label("State:"), nameField, typeBox,
-                    new Label("Param:"), numField,
-                    new Label("Actions:"), actionPicker, addActionBtn, actionsField, clearActionsBtn,
-                    setStartBtn, delStateBtn);
-            // @formatter:on
-        }
-
-        private void appendActionWithPrompt(MutableState st, String actionType, TextField actionsField) {
-            String templateParams = switch (actionType) {
-            case "PLAY_CHORD_UP_INTERVAL", "PLAY_CHORD_DOWN_INTERVAL" -> "interval=5";
-            case "PLAY_CHORD_UP_VELOCITY", "PLAY_CHORD_DOWN_VELOCITY" -> "diff=15";
-            case "PLAY_PSEUDO_RANDOM_CHORD" -> "spread=20; num=10; numNotes=3";
-            case "PLAY_PSEUDO_RANDOM_CHORD_FLAVOR" -> "spread=20; num=10; flavor=MAJOR";
-            case "PLAY_RANDOM_CHORD" -> "dice=1d20; num=10; maxNotesDiceDescription=1d4";
-            case "MUTE_MUSICIAN", "UNMUTE_MUSICIAN" -> "";
-            default -> null;
-            };
-
-            if (templateParams == null) {
-                appendFormattedAction(st, actionType, actionsField);
-                return;
-            }
-
-            TextInputDialog dialog = new TextInputDialog(templateParams);
-            dialog.initOwner(getDialogPane().getScene().getWindow());
-            dialog.setTitle("Action Parameters");
-            dialog.setHeaderText("Configure '" + actionType + "'");
-            dialog.setContentText("Parameters (key=value separated by ';', or blank for default):");
-
-            dialog.showAndWait().ifPresent(val -> {
-                String trimmed = val.trim();
-                String formatted = trimmed.isEmpty() ? actionType : actionType + "{" + trimmed + "}";
-                appendFormattedAction(st, formatted, actionsField);
-            });
-        }
-
-        private void appendFormattedAction(MutableState st, String formatted, TextField actionsField) {
-            String next = (st.actionsText == null || st.actionsText.isBlank()) ? formatted
-                    : st.actionsText + ", " + formatted;
-            st.actionsText = next;
-            actionsField.setText(next);
+            inspectorBar.getChildren().addAll(new Label("State:"), nameField, typeBox, new Label("Param:"), numField,
+                    editActionsBtn, setStartBtn, delStateBtn);
         }
 
         private void renameStateReferences(String oldName, String newName) {
             for (MutableState s : stateRows) {
-                if (oldName.equals(s.name))
+                if (oldName.equals(s.name)) {
                     s.name = newName;
-                if (oldName.equals(s.targetState))
+                }
+                if ("CONDITIONAL".equals(s.type) && s.targetState != null && !s.targetState.isBlank()) {
+                    s.targetState = Arrays.stream(s.targetState.split(",", 2)).map(String::trim)
+                            .map(t -> oldName.equals(t) ? newName : t).collect(Collectors.joining(","));
+                } else if (oldName.equals(s.targetState)) {
                     s.targetState = newName;
-                if (s.rangesText != null && s.rangesText.contains("->" + oldName)) {
-                    s.rangesText = s.rangesText.replace("->" + oldName, "->" + newName);
+                }
+                if (s.rangesText != null && !s.rangesText.isBlank()) {
+                    s.rangesText = Arrays.stream(s.rangesText.split(";")).map(String::trim)
+                            .filter(part -> !part.isEmpty()).map(part -> {
+                                String[] arrow = part.split("->", 2);
+                                if (arrow.length == 2 && oldName.equals(arrow[1].trim())) {
+                                    return arrow[0].trim() + "->" + newName;
+                                }
+                                return part;
+                            }).collect(Collectors.joining("; "));
                 }
             }
             if (oldName.equals(startingStateCombo.getValue())) {
@@ -1108,6 +1115,9 @@ public class RuleEditorDialog extends Dialog<Void> {
             case "ALWAYS_TRANSITION" -> "Always";
             case "DELAYED_TRANSITION" -> "Delayed";
             case "PSEUDO_RANDOM" -> "Random";
+            case "DIE_ROLLING" -> "Dice";
+            case "NOTE_BASED" -> "Notes";
+            case "NEVER_TRANSITION" -> "Terminal";
             case "COUNTDOWN" -> "Countdown";
             default -> type;
             };
@@ -1146,37 +1156,40 @@ public class RuleEditorDialog extends Dialog<Void> {
     }
 
     private static class MutableState {
-        String name, type, numberOrPlaceholder, targetState, actionsText, rangesText;
+        String name, type, numberOrPlaceholder, targetState, rangesText;
+        List<ActionDef> actions;
         double x = -1;
         double y = -1;
 
-        MutableState(String name, String type, String numberOrPlaceholder, String targetState, String actionsText,
+        MutableState(String name, String type, String numberOrPlaceholder, String targetState, List<ActionDef> actions,
                 String rangesText) {
             this.name = name;
             this.type = type;
             this.numberOrPlaceholder = numberOrPlaceholder;
             this.targetState = targetState;
-            this.actionsText = actionsText;
+            this.actions = actions != null ? new ArrayList<>(actions) : new ArrayList<>();
             this.rangesText = rangesText;
         }
 
         StateDef toStateDef() {
             Object numericArg = numberOrPlaceholder.startsWith("$") ? numberOrPlaceholder
                     : (numberOrPlaceholder.isBlank() ? 0 : Integer.parseInt(numberOrPlaceholder.trim()));
-            List<ActionDef> actions = parseActions(actionsText);
+            List<ActionDef> immutableActions = List.copyOf(actions);
             Double savedX = (x >= 0) ? Math.round(x * 10.0) / 10.0 : null;
             Double savedY = (y >= 0) ? Math.round(y * 10.0) / 10.0 : null;
 
             return switch (type) {
-            case "ALWAYS_TRANSITION" -> new StateDef.AlwaysTransition(actions, targetState.trim(), savedX, savedY);
+            case "ALWAYS_TRANSITION" ->
+                new StateDef.AlwaysTransition(immutableActions, targetState.trim(), savedX, savedY);
             case "DELAYED_TRANSITION" -> new StateDef.DelayedTransition(numericArg, targetState.trim(), savedX, savedY);
             case "COUNTDOWN" -> new StateDef.Countdown(numericArg, targetState.trim(), savedX, savedY);
             case "PSEUDO_RANDOM" ->
-                new StateDef.PseudoRandom(numericArg, actions, parseRanges(rangesText), savedX, savedY);
-            case "NEVER_TRANSITION" -> new StateDef.NeverTransition(actions, savedX, savedY);
-            case "DIE_ROLLING" ->
-                new StateDef.DieRolling(numberOrPlaceholder.trim(), actions, parseRanges(rangesText), savedX, savedY);
-            case "NOTE_BASED" -> new StateDef.NoteBased(actions, parseNoteTransitions(rangesText), savedX, savedY);
+                new StateDef.PseudoRandom(numericArg, immutableActions, parseRanges(rangesText), savedX, savedY);
+            case "NEVER_TRANSITION" -> new StateDef.NeverTransition(immutableActions, savedX, savedY);
+            case "DIE_ROLLING" -> new StateDef.DieRolling(numberOrPlaceholder.trim(), immutableActions,
+                    parseRanges(rangesText), savedX, savedY);
+            case "NOTE_BASED" ->
+                new StateDef.NoteBased(immutableActions, parseNoteTransitions(rangesText), savedX, savedY);
             case "CONDITIONAL" -> {
                 List<String> condParts = List.of(numberOrPlaceholder.split(":", 2));
                 String condName = condParts.getFirst().trim();
@@ -1187,67 +1200,36 @@ public class RuleEditorDialog extends Dialog<Void> {
                 }
                 List<String> targets = List.of(targetState.split(",", 2));
                 String onTrue = targets.getFirst().trim();
-                String onFalse = targets.size() > 1 ? targets.get(1).trim() : null;
-                yield new StateDef.Conditional(condName, thresh, actions, onTrue, onFalse, savedX, savedY);
+                String onFalse = (targets.size() > 1 && !targets.get(1).trim().isEmpty()) ? targets.get(1).trim()
+                        : null;
+                yield new StateDef.Conditional(condName, thresh, immutableActions, onTrue, onFalse, savedX, savedY);
             }
             default -> throw new IllegalArgumentException("Unsupported state type: " + type);
             };
         }
 
-        private static List<ActionDef> parseActions(String text) {
-            if (text == null || text.isBlank())
-                return List.of();
-            List<ActionDef> list = new ArrayList<>();
-            for (String token : text.split(",")) {
-                String trimmed = token.trim();
-                int brace = trimmed.indexOf('{');
-                if (brace > 0 && trimmed.endsWith("}")) {
-                    String actType = trimmed.substring(0, brace).trim();
-                    String inner = trimmed.substring(brace + 1, trimmed.length() - 1);
-                    Map<String, Object> params = new LinkedHashMap<>();
-                    for (String kv : inner.split(";")) {
-                        String[] parts = kv.split("=", 2);
-                        if (parts.length == 2) {
-                            String v = parts[1].trim();
-                            Object parsedVal;
-                            if (v.startsWith("$")) {
-                                parsedVal = v;
-                            } else {
-                                try {
-                                    parsedVal = Integer.parseInt(v);
-                                } catch (NumberFormatException e) {
-                                    parsedVal = v;
-                                }
-                            }
-                            params.put(parts[0].trim(), parsedVal);
-                        }
-                    }
-                    list.add(new ActionDef(actType, params));
-                } else {
-                    list.add(new ActionDef(trimmed, Map.of()));
-                }
-            }
-            return list;
-        }
-
         private static List<RangeTransition> parseRanges(String text) {
-            if (text == null || text.isBlank())
+            if (text == null || text.isBlank()) {
                 return List.of();
+            }
             List<RangeTransition> ranges = new ArrayList<>();
             for (String part : text.split(";")) {
                 String[] arrow = part.trim().split("->");
                 if (arrow.length == 2) {
                     String[] bounds = arrow[0].trim().split("-");
-                    ranges.add(new RangeTransition(Integer.parseInt(bounds[0].trim()),
-                            Integer.parseInt(bounds[1].trim()), arrow[1].trim()));
+                    if (bounds.length == 2) {
+                        ranges.add(new RangeTransition(Integer.parseInt(bounds[0].trim()),
+                                Integer.parseInt(bounds[1].trim()), arrow[1].trim()));
+                    }
                 }
             }
             return ranges;
         }
 
         private static List<NoteTransition> parseNoteTransitions(String text) {
-            if (text == null || text.isBlank())
+            if (text == null || text.isBlank()) {
                 return List.of();
+            }
             List<NoteTransition> list = new ArrayList<>();
             for (String part : text.split(";")) {
                 List<String> arrow = List.of(part.trim().split("->"));
@@ -1260,7 +1242,11 @@ public class RuleEditorDialog extends Dialog<Void> {
             }
             return list;
         }
+    }
 
+    @FunctionalInterface
+    private interface ActionsEditorLauncher {
+        void open(MutableState state, Runnable onUpdated);
     }
 
     private static class PropertyCell extends ListCell<MutableProperty> {
@@ -1282,17 +1268,17 @@ public class RuleEditorDialog extends Dialog<Void> {
             typeBox.setPrefWidth(115);
             typeBox.setValue(item.type);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
-
             TextField keyField = field(item.key, "key", 110, v -> item.key = v);
             TextField labelField = field(item.label, "Label:", 130, v -> item.label = v);
             TextField defField = field(item.defaultVal, "default", 70, v -> item.defaultVal = v);
             TextField minField = field(item.min, "min", 55, v -> item.min = v);
             TextField maxField = field(item.max, "max", 55, v -> item.max = v);
+            TextField stepField = field(item.step, "step", 55, v -> item.step = v);
             TextField listField = field(item.listValues, "a,b,c (STRING_LIST)", 140, v -> item.listValues = v);
             Button removeBtn = new Button("X");
             removeBtn.setOnAction(_ -> onRemove.accept(item));
-
-            setGraphic(new HBox(6, typeBox, keyField, labelField, defField, minField, maxField, listField, removeBtn));
+            setGraphic(new HBox(6, typeBox, keyField, labelField, defField, minField, maxField, stepField, listField,
+                    removeBtn));
         }
 
         private static TextField field(String val, String prompt, double width, Consumer<String> onChange) {
@@ -1307,10 +1293,12 @@ public class RuleEditorDialog extends Dialog<Void> {
     private static class StateCell extends ListCell<MutableState> {
         private final Consumer<MutableState> onRemove;
         private final Runnable onNameChanged;
+        private final ActionsEditorLauncher onEditActions;
 
-        StateCell(Consumer<MutableState> onRemove, Runnable onNameChanged) {
+        StateCell(Consumer<MutableState> onRemove, Runnable onNameChanged, ActionsEditorLauncher onEditActions) {
             this.onRemove = onRemove;
             this.onNameChanged = onNameChanged;
+            this.onEditActions = onEditActions;
         }
 
         @Override
@@ -1327,37 +1315,50 @@ public class RuleEditorDialog extends Dialog<Void> {
                 item.name = newV;
                 onNameChanged.run();
             });
-            
+
             ComboBox<String> typeBox = new ComboBox<>(FXCollections.observableArrayList(SUPPORTED_STATE_TYPES));
             typeBox.setValue(item.type);
             typeBox.setPrefWidth(165);
             typeBox.setOnAction(_ -> item.type = typeBox.getValue());
+
             TextField numField = new TextField(item.numberOrPlaceholder);
-            
             numField.setPromptText("ticks / maxRoll / $prop");
             numField.setPrefWidth(135);
             numField.textProperty().addListener((_, _, newV) -> item.numberOrPlaceholder = newV);
-            
+
             TextField targetField = new TextField(item.targetState);
             targetField.setPromptText("next / wrapped state");
             targetField.setPrefWidth(130);
             targetField.textProperty().addListener((_, _, newV) -> item.targetState = newV);
-            
-            TextField actionsField = new TextField(item.actionsText);
-            actionsField.setPromptText("Actions (e.g. PLAY_CHORD)");
-            actionsField.setPrefWidth(180);
-            actionsField.textProperty().addListener((_, _, newV) -> item.actionsText = newV);
-            
+
+            Label actionsLabel = new Label(serializeActionsSummary(item.actions));
+            actionsLabel.setPrefWidth(130);
+            actionsLabel.setTooltip(new Tooltip(serializeActionsSummary(item.actions)));
+
+            Button editActionsBtn = new Button("Edit...");
+            editActionsBtn.setPrefWidth(54);
+            editActionsBtn.setOnAction(_ -> onEditActions.open(item, () -> {
+                String summary = serializeActionsSummary(item.actions);
+                actionsLabel.setText(summary);
+                actionsLabel.setTooltip(new Tooltip(summary));
+            }));
+
+            HBox actionsBox = new HBox(4, actionsLabel, editActionsBtn);
+            actionsBox.setAlignment(Pos.CENTER_LEFT);
+            actionsBox.setPrefWidth(190);
+
             TextField rangesField = new TextField(item.rangesText);
             rangesField.setPromptText("Ranges (1-3->stateA; 4-6->stateB)");
-            rangesField.setPrefWidth(200);
+            rangesField.setPrefWidth(190);
             rangesField.textProperty().addListener((_, _, newV) -> item.rangesText = newV);
+
             Button removeBtn = new Button("X");
             removeBtn.setOnAction(_ -> {
                 onRemove.accept(item);
                 onNameChanged.run();
             });
-            setGraphic(new HBox(6, nameField, typeBox, numField, targetField, actionsField, rangesField, removeBtn));
+
+            setGraphic(new HBox(6, nameField, typeBox, numField, targetField, actionsBox, rangesField, removeBtn));
         }
     }
 }

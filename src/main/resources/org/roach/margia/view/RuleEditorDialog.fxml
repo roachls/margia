@@ -6,6 +6,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
@@ -15,12 +16,11 @@
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
 <fx:root type="javafx.scene.control.DialogPane"
-	prefHeight="650.0" prefWidth="940.0" xmlns="http://javafx.com"
+	prefHeight="720.0" prefWidth="1120.0" xmlns="http://javafx.com"
 	xmlns:fx="http://javafx.com">
 	<content>
 		<VBox spacing="8.0">
@@ -28,13 +28,14 @@
 				<Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
 			</padding>
 			<children>
-				<SplitPane dividerPositions="0.20"
+				<SplitPane fx:id="mainSplitPane" dividerPositions="0.12"
 					orientation="HORIZONTAL" VBox.vgrow="ALWAYS">
 					<items>
 						<!-- Left Sidebar: Rules & Templates -->
-						<VBox prefWidth="150.0" spacing="8.0">
+						<VBox SplitPane.resizableWithParent="false" minWidth="145.0"
+							prefWidth="165.0" maxWidth="210.0" spacing="6.0">
 							<padding>
-								<Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+								<Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
 							</padding>
 							<children>
 								<Label style="-fx-font-weight: bold;"
@@ -45,15 +46,7 @@
 								<Button fx:id="deleteBtn"
 									maxWidth="1.7976931348623157E308"
 									onAction="#onDeleteSelectedClicked" text="Delete Selected" />
-								<!-- Inside the left sidebar VBox in RuleEditorDialog.fxml -->
-								<Label style="-fx-font-weight: bold;"
-									text="Rules &amp; Templates" />
-								<ListView fx:id="ruleListView" VBox.vgrow="ALWAYS" />
-								<Button fx:id="newBtn" maxWidth="1.7976931348623157E308"
-									onAction="#onNewBlankClicked" text="New Blank" />
-								<Button fx:id="deleteBtn"
-									maxWidth="1.7976931348623157E308"
-									onAction="#onDeleteSelectedClicked" text="Delete Selected" />
+								<Separator />
 								<Button fx:id="importBtn"
 									maxWidth="1.7976931348623157E308" onAction="#onImportClicked"
 									text="Import YAML..." />
@@ -66,7 +59,7 @@
 						<!-- Right Editor Pane -->
 						<VBox spacing="10.0">
 							<padding>
-								<Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+								<Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
 							</padding>
 							<children>
 								<!-- Rule Metadata -->
@@ -104,10 +97,10 @@
 										<!-- Tab 1: Visual Form Builder -->
 										<Tab fx:id="visualTab" text="Visual Builder">
 											<content>
-												<SplitPane dividerPositions="0.32"
+												<SplitPane dividerPositions="0.34"
 													orientation="VERTICAL">
 													<items>
-														<VBox spacing="8.0">
+														<VBox spacing="6.0">
 															<padding>
 																<Insets bottom="8.0" left="8.0" right="8.0"
 																	top="8.0" />
@@ -136,6 +129,9 @@
 																		<Label prefWidth="55.0"
 																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
 																			text="Max" />
+																		<Label prefWidth="55.0"
+																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
+																			text="Step" />
 																		<Label prefWidth="140.0"
 																			style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;"
 																			text="List Values (CSV)" />
@@ -147,7 +143,8 @@
 																	text="+ Add Property" />
 															</children>
 														</VBox>
-														<VBox spacing="8.0">
+
+														<VBox spacing="6.0">
 															<padding>
 																<Insets bottom="8.0" left="8.0" right="8.0"
 																	top="8.0" />
@@ -206,7 +203,7 @@
 								</TabPane>
 
 								<!-- Action Toolbar -->
-								<HBox spacing="10.0">
+								<HBox alignment="CENTER_LEFT" spacing="10.0">
 									<padding>
 										<Insets top="4.0" />
 									</padding>
@@ -224,7 +221,7 @@
 				</SplitPane>
 
 				<!-- Status Feedback Line -->
-				<Label fx:id="statusLabel" />
+				<Label fx:id="statusLabel" minHeight="22.0" wrapText="true" />
 			</children>
 		</VBox>
 	</content>
