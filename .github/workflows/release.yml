@@ -69,7 +69,25 @@ jobs:
           mkdir -p target/libs
           cp target/*.jar target/libs/
 
-      # (Keep your macOS certificate import, jpackage, notarization, and rename steps here)
+      - name: Package native installer
+        shell: bash
+        run: |
+          jpackage \
+            --input target/libs \
+            --name "MARGIA" \
+            --main-jar margia.jar \
+            --main-class org.roach.margia.main.Main \
+            --type ${{ matrix.type }} \
+            --icon ${{ matrix.icon }} \
+            --app-version ${GITHUB_REF_NAME#v} \
+            --dest target/dist \
+            --file-associations file-assoc.properties
+
+      - name: Rename macOS DMG with architecture
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          mv "target/dist/MARGIA-${VERSION}.dmg" "target/dist/MARGIA-${VERSION}-macOS-${{ matrix.arch }}.dmg"
 
       - name: Upload to Draft Release
         uses: softprops/action-gh-release@v3
