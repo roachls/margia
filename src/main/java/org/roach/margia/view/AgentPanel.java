@@ -90,6 +90,13 @@ public class AgentPanel extends Pane {
     private Rectangle clipRect;
     private Timeline animationTimeline;
 
+    private static final double DEFAULT_CAMERA_Z = -950.0;
+    private static final double DEFAULT_CAMERA_PITCH = -20.0;
+    private static final double DEFAULT_CAMERA_YAW = 15.0;
+
+    private boolean autoOrbit = false;
+    private Timeline cameraResetTimeline;
+
     /**
      * Constructor
      */
@@ -145,12 +152,13 @@ public class AgentPanel extends Pane {
     }
 
     private void applyDimensionMode(boolean is3D) {
+        if (cameraResetTimeline != null) {
+            cameraResetTimeline.stop();
+        }
         if (is3D) {
-            // Tilt camera slightly into 3D perspective
-            cameraRotateX.setAngle(-20);
-            cameraRotateY.setAngle(15);
+            cameraRotateX.setAngle(DEFAULT_CAMERA_PITCH);
+            cameraRotateY.setAngle(DEFAULT_CAMERA_YAW);
 
-            // Give coplanar Z=0 nodes a slight random Z nudge so repulsion blooms into 3D
             for (var mc : musicianComponents.values()) {
                 var pos = mc.getPosition();
                 if (Math.abs(pos.getZ()) < 0.01) {
@@ -160,12 +168,14 @@ public class AgentPanel extends Pane {
                 }
             }
         } else {
-            // Reset camera to straight-on top-down view
+            autoOrbit = false;
+            cameraPivot.setTranslateX(0);
+            cameraPivot.setTranslateY(0);
+            cameraPivot.setTranslateZ(0);
             cameraRotateX.setAngle(0);
             cameraRotateY.setAngle(0);
-            camera.setTranslateZ(-950.0);
+            camera.setTranslateZ(DEFAULT_CAMERA_Z);
 
-            // Flatten all nodes back onto the Z = 0 plane
             for (var mc : musicianComponents.values()) {
                 var pos = mc.getPosition();
                 mc.getOptions().setPosition(new Point3D(pos.getX(), pos.getY(), 0.0));
@@ -176,6 +186,8 @@ public class AgentPanel extends Pane {
     }
 
     private void setup3DScene() {
+        setFocusTraversable(true);
+
         worldRoot.getChildren().addAll(edgeLayer, nodeLayer);
 
         // Lighting for 3D spheres and edges
@@ -276,6 +288,10 @@ public class AgentPanel extends Pane {
         }
 
         drawOverlayHUD();
+
+        if (autoOrbit && Options.getInstance().getUiOptions().isThreeDMode()) {
+            cameraRotateY.setAngle((cameraRotateY.getAngle() + 0.25) % 360.0);
+        }
     }
 
     private void spawnRipple(MusicianComponent mc, Color color) {
@@ -448,6 +464,38 @@ public class AgentPanel extends Pane {
         return new Point2D(screenX, screenY);
     }
 
+    /**
+     * Smoothly animates the 3D camera back to its default angle, pan target, and
+     * zoom.
+     */
+    public void resetCamera() {
+        if (!Options.getInstance().getUiOptions().isThreeDMode()) {
+            return;
+        }
+        autoOrbit = false;
+        if (cameraResetTimeline != null) {
+            cameraResetTimeline.stop();
+        }
+        cameraResetTimeline = new Timeline(new KeyFrame(Duration.millis(350),
+                new KeyValue(cameraPivot.translateXProperty(), 0.0, Interpolator.EASE_BOTH),
+                new KeyValue(cameraPivot.translateYProperty(), 0.0, Interpolator.EASE_BOTH),
+                new KeyValue(cameraPivot.translateZProperty(), 0.0, Interpolator.EASE_BOTH),
+                new KeyValue(cameraRotateX.angleProperty(), DEFAULT_CAMERA_PITCH, Interpolator.EASE_BOTH),
+                new KeyValue(cameraRotateY.angleProperty(), DEFAULT_CAMERA_YAW, Interpolator.EASE_BOTH),
+                new KeyValue(camera.translateZProperty(), DEFAULT_CAMERA_Z, Interpolator.EASE_BOTH)));
+        cameraResetTimeline.play();
+    }
+
+    /**
+     * Toggles gentle continuous Y-axis camera rotation in 3D mode.
+     */
+    public void toggleAutoOrbit() {
+        if (!Options.getInstance().getUiOptions().isThreeDMode()) {
+            return;
+        }
+        autoOrbit = !autoOrbit;
+    }
+
     private void calcEdges() {
         synchronized (edges) {
             edges.forEach(e -> edgeLayer.getChildren().remove(e.group));
@@ -576,6 +624,7 @@ public class AgentPanel extends Pane {
         setOnMouseReleased(mouseHandler::mouseReleased);
         setOnMouseMoved(mouseHandler::mouseMoved);
         setOnScroll(mouseHandler::mouseScrolled);
+        setOnKeyPressed(mouseHandler::keyPressed);
     }
 
     private class MouseHandler {
@@ -583,15 +632,31 @@ public class AgentPanel extends Pane {
         private MusicianComponent movingComponent;
         private Point2D lastMousePos;
         private boolean isOrbiting = false;
+        private boolean isPanning = false;
 
         void mousePressed(MouseEvent e) {
+            requestFocus(); // Ensure AgentPanel receives keyboard shortcuts
             lastMousePos = new Point2D(e.getX(), e.getY());
-            // Right-click or Alt+Left-click orbits the 3D camera
-            if (e.getButton() == MouseButton.SECONDARY || (e.getButton() == MouseButton.PRIMARY && e.isAltDown())) {
-                isOrbiting = Options.getInstance().getUiOptions().isThreeDMode();
-                setCursor(Cursor.CLOSED_HAND);
-                return;
+            boolean is3D = Options.getInstance().getUiOptions().isThreeDMode();
+
+            if (is3D) {
+                // Middle-click or Shift+Right-click pans the camera focal point
+                if (e.getButton() == MouseButton.MIDDLE
+                        || (e.getButton() == MouseButton.SECONDARY && e.isShiftDown())) {
+                    isPanning = true;
+                    autoOrbit = false;
+                    setCursor(Cursor.MOVE);
+                    return;
+                }
+                // Right-click or Alt+Left-click orbits the camera
+                if (e.getButton() == MouseButton.SECONDARY || (e.getButton() == MouseButton.PRIMARY && e.isAltDown())) {
+                    isOrbiting = true;
+                    autoOrbit = false;
+                    setCursor(Cursor.CLOSED_HAND);
+                    return;
+                }
             }
+
             if (e.getButton() == MouseButton.PRIMARY) {
                 leftMouseButtonPressed(e);
             }
@@ -660,8 +725,9 @@ public class AgentPanel extends Pane {
         }
 
         void mouseReleased(MouseEvent e) {
-            if (isOrbiting) {
+            if (isOrbiting || isPanning) {
                 isOrbiting = false;
+                isPanning = false;
                 setCursor(Cursor.DEFAULT);
                 return;
             }
@@ -771,11 +837,25 @@ public class AgentPanel extends Pane {
             double dx = e.getX() - lastMousePos.getX();
             double dy = e.getY() - lastMousePos.getY();
             lastMousePos = new Point2D(e.getX(), e.getY());
+
             if (isOrbiting) {
                 cameraRotateY.setAngle(cameraRotateY.getAngle() + dx * 0.35);
                 cameraRotateX.setAngle(Math.clamp(cameraRotateX.getAngle() - dy * 0.35, -89.0, 89.0));
                 return;
             }
+
+            if (isPanning) {
+                // Pan cameraPivot opposite to drag direction, scaled by zoom distance
+                double distanceScale = Math.abs(camera.getTranslateZ()) / 950.0;
+                Point3D localPan = new Point3D(-dx * distanceScale, -dy * distanceScale, 0);
+                Point3D worldPan = cameraPivot.localToParent(localPan).subtract(cameraPivot.getTranslateX(),
+                        cameraPivot.getTranslateY(), cameraPivot.getTranslateZ());
+                cameraPivot.setTranslateX(Math.clamp(cameraPivot.getTranslateX() + worldPan.getX(), -800, 800));
+                cameraPivot.setTranslateY(Math.clamp(cameraPivot.getTranslateY() + worldPan.getY(), -800, 800));
+                cameraPivot.setTranslateZ(Math.clamp(cameraPivot.getTranslateZ() + worldPan.getZ(), -800, 800));
+                return;
+            }
+
             if (mode == EditMode.CONNECT && isConnecting) {
                 if (source != null) {
                     startSelection = projectToOverlay(source);
@@ -818,6 +898,65 @@ public class AgentPanel extends Pane {
         private void deselectAllMusicians() {
             musicianComponents.values().forEach(mc -> mc.setSelected(false));
             notifyListenersOfSelection();
+        }
+
+        void keyPressed(KeyEvent e) {
+            if (!Options.getInstance().getUiOptions().isThreeDMode()) {
+                return;
+            }
+            switch (e.getCode()) {
+            case HOME, R -> {
+                if (!e.isControlDown() && !e.isMetaDown()) {
+                    resetCamera();
+                    e.consume();
+                }
+            }
+            case O -> {
+                if (!e.isControlDown() && !e.isMetaDown()) {
+                    toggleAutoOrbit();
+                    e.consume();
+                }
+            }
+            case EQUALS, PLUS, ADD -> {
+                camera.setTranslateZ(Math.clamp(camera.getTranslateZ() * 0.9, -3500.0, -150.0));
+                e.consume();
+            }
+            case MINUS, SUBTRACT -> {
+                camera.setTranslateZ(Math.clamp(camera.getTranslateZ() * 1.1, -3500.0, -150.0));
+                e.consume();
+            }
+            case LEFT -> {
+                if (e.isAltDown() || selectedMusicians.isEmpty()) {
+                    autoOrbit = false;
+                    cameraRotateY.setAngle(cameraRotateY.getAngle() - 5.0);
+                    e.consume();
+                }
+            }
+            case RIGHT -> {
+                if (e.isAltDown() || selectedMusicians.isEmpty()) {
+                    autoOrbit = false;
+                    cameraRotateY.setAngle(cameraRotateY.getAngle() + 5.0);
+                    e.consume();
+                }
+            }
+            case UP -> {
+                if (e.isAltDown() || selectedMusicians.isEmpty()) {
+                    autoOrbit = false;
+                    cameraRotateX.setAngle(Math.clamp(cameraRotateX.getAngle() + 5.0, -89.0, 89.0));
+                    e.consume();
+                }
+            }
+            case DOWN -> {
+                if (e.isAltDown() || selectedMusicians.isEmpty()) {
+                    autoOrbit = false;
+                    cameraRotateX.setAngle(Math.clamp(cameraRotateX.getAngle() - 5.0, -89.0, 89.0));
+                    e.consume();
+                }
+            }
+            default -> {
+                // Let other keys bubble up to MargiaWindow shortcuts
+            }
+            }
         }
     }
 
