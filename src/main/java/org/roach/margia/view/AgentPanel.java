@@ -44,7 +44,7 @@ public class AgentPanel extends Pane {
     private final List<Edge> edges = new ArrayList<>();
     private static final double K_REPULSION = 10000; // Repulsion constant
     private static final double K_SPRING = 0.13; // Spring constant
-    private static final double WORLD_HALF_EXTENT = 450.0; // Half-size of 3D simulation cube
+    static final double WORLD_HALF_EXTENT = 450.0; // Half-size of 3D simulation cube
     private int tickLengthMillis;
 
     private Point2D startSelection;
@@ -615,6 +615,14 @@ public class AgentPanel extends Pane {
                     .map(mc -> mc.getPosition().getY()).min(Double::compare).ifPresent(Global::setMinComponentY);
             Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
                     .map(mc -> mc.getPosition().getY()).max(Double::compare).ifPresent(Global::setMaxComponentY);
+        }
+        if (Options.getInstance().getUiOptions().isThreeDMode()
+                && Options.getInstance().getMidiOptions().isSendDepthMessage()
+                && Options.getInstance().getMidiOptions().isDepthWithRelativeLocations()) {
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getZ()).min(Double::compare).ifPresent(Global::setMinComponentZ);
+            Options.getInstance().getUiOptions().getMusicianComponents().values().stream()
+                    .map(mc -> mc.getPosition().getZ()).max(Double::compare).ifPresent(Global::setMaxComponentZ);
         }
     }
 

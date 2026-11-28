@@ -112,17 +112,47 @@ public class MusicianComponent extends Group implements PropertyChangeListener {
     }
 
     private class PositionChangeListener implements ChangeListener<Point3D> {
+        private int lastSentDepthCC = -1; // Field on PositionChangeListener to avoid duplicate MIDI messages
+        private int lastSentStereoCC = -1; // Field on PositionChangeListener to avoid duplicate MIDI messages
+        private int lastSentVerticalCC = -1; // Field on PositionChangeListener to avoid duplicate MIDI messages
 
         @Override
         public void changed(ObservableValue<? extends Point3D> observable, Point3D oldValue, Point3D newValue) {
             if (newValue == null || musician.isMuted()) {
                 return;
             }
-            if (Options.getInstance().getMidiOptions().isSendPanMessage()) {
+            var midiOpts = Options.getInstance().getMidiOptions();
+            if (midiOpts.isSendPanMessage()) {
                 sendStereoPanning(newValue);
             }
-            if (Options.getInstance().getMidiOptions().isSendVerticalPanMessage()) {
+            if (midiOpts.isSendVerticalPanMessage()) {
                 sendVerticalPanning(newValue);
+            }
+            if (Options.getInstance().getUiOptions().isThreeDMode() && midiOpts.isSendDepthMessage()) {
+                sendDepthPanning(newValue);
+            }
+        }
+
+        private void sendDepthPanning(Point3D pos) {
+            var midiOpts = Options.getInstance().getMidiOptions();
+            int depthValue;
+            if (midiOpts.isDepthWithRelativeLocations()) {
+                double depthSpan = Global.getMaxComponentZ() - Global.getMinComponentZ();
+                // Further away (+Z) -> higher CC (127); closer (-Z) -> lower CC (0)
+                depthValue = depthSpan == 0 ? 63
+                        : (int) Math.clamp(127d * (pos.getZ() - Global.getMinComponentZ()) / depthSpan, 0, 127);
+            } else {
+                // Map full 3D world cube [-WORLD_HALF_EXTENT, +WORLD_HALF_EXTENT] to [0, 127]
+                double worldDepth = AgentPanel.WORLD_HALF_EXTENT * 2.0;
+                double normalizedZ = pos.getZ() + AgentPanel.WORLD_HALF_EXTENT;
+                depthValue = worldDepth == 0 ? 63 : (int) Math.clamp(127d * normalizedZ / worldDepth, 0, 127);
+            }
+
+            // Only transmit when the integer 0-127 MIDI value actually changes
+            if (depthValue != lastSentDepthCC) {
+                lastSentDepthCC = depthValue;
+                MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(),
+                        musician.getChannel(), midiOpts.getDepthController(), depthValue);
             }
         }
 
@@ -139,8 +169,12 @@ public class MusicianComponent extends Group implements PropertyChangeListener {
                 double normalizedY = (height / 2.0) - pos.getY();
                 verticalPanValue = height == 0 ? 63 : (int) Math.clamp(127d * normalizedY / height, 0, 127);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
-                    Options.getInstance().getMidiOptions().getVerticalPanController(), verticalPanValue);
+            if (verticalPanValue != lastSentVerticalCC) {
+                lastSentVerticalCC = verticalPanValue;
+                MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(),
+                        musician.getChannel(), Options.getInstance().getMidiOptions().getVerticalPanController(),
+                        verticalPanValue);
+            }
         }
 
         private void sendStereoPanning(Point3D pos) {
@@ -155,8 +189,11 @@ public class MusicianComponent extends Group implements PropertyChangeListener {
                 double normalizedX = pos.getX() + (width / 2.0);
                 panValue = width == 0 ? 63 : (int) Math.clamp(127d * normalizedX / width, 0, 127);
             }
-            MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(), musician.getChannel(),
-                    Options.getInstance().getMidiOptions().getPanController(), panValue);
+            if (lastSentStereoCC != panValue) {
+                panValue = lastSentStereoCC;
+                MidiController.getInstance().sendControlChange(musician.getOptions().getDeviceName(),
+                        musician.getChannel(), Options.getInstance().getMidiOptions().getPanController(), panValue);
+            }
         }
     }
 

@@ -31,11 +31,19 @@ public class MidiPanel extends VBox {
     Spinner<Integer> verticalPanController;
     @FXML
     CheckBox verticalPanWithRelativeLocations;
+    @FXML
+    CheckBox sendDepthMessage;
+    @FXML
+    Spinner<Integer> depthController;
+    @FXML
+    CheckBox depthWithRelativeLocations;
 
     @FXML
     private Label panControllerLabel;
     @FXML
     private Label verticalPanControllerLabel;
+    @FXML
+    private Label depthControllerLabel;
 
     /**
      * Construct a new {@link MidiPanel}
@@ -57,8 +65,9 @@ public class MidiPanel extends VBox {
         var midiOpts = Options.getInstance().getMidiOptions();
 
         external.setSelected(midiOpts.isUsingExternalMidi());
-        panController.getValueFactory().setValue(MidiOptions.DEFAULT_PAN_CONTROLLER);
-        verticalPanController.getValueFactory().setValue(MidiOptions.DEFAULT_VERTICAL_PAN_CONTROLLER);
+        panController.getValueFactory().setValue(midiOpts.getPanController());
+        verticalPanController.getValueFactory().setValue(midiOpts.getVerticalPanController());
+        depthController.getValueFactory().setValue(midiOpts.getDepthController());
 
         external.selectedProperty().addListener((_, _, newVal) -> midiOpts.setUsingExternalMidi(newVal));
         sendMidiTimecode.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendingMidiTimecode(newVal));
@@ -68,26 +77,33 @@ public class MidiPanel extends VBox {
                 midiOpts.setPanController(newVal);
             }
         });
-
         panWithRelativeLocations.selectedProperty()
                 .addListener((_, _, newVal) -> midiOpts.setPanWithRelativeLocations(newVal));
 
         sendVerticalPanMessage.selectedProperty()
                 .addListener((_, _, newVal) -> midiOpts.setSendVerticalPanMessage(newVal));
-
         verticalPanController.valueProperty().addListener((_, _, newVal) -> {
             if (newVal != null) {
                 midiOpts.setVerticalPanController(newVal);
             }
         });
-
         verticalPanWithRelativeLocations.selectedProperty()
                 .addListener((_, _, newVal) -> midiOpts.setVerticalPanWithRelativeLocations(newVal));
+
+        sendDepthMessage.selectedProperty().addListener((_, _, newVal) -> midiOpts.setSendDepthMessage(newVal));
+        depthController.valueProperty().addListener((_, _, newVal) -> {
+            if (newVal != null) {
+                midiOpts.setDepthController(newVal);
+            }
+        });
+        depthWithRelativeLocations.selectedProperty()
+                .addListener((_, _, newVal) -> midiOpts.setDepthWithRelativeLocations(newVal));
 
         // Declarative Disable Bindings
         var externalNotSelected = external.selectedProperty().not();
         var panDisabled = externalNotSelected.or(sendPanMessage.selectedProperty().not());
         var verticalPanDisabled = externalNotSelected.or(sendVerticalPanMessage.selectedProperty().not());
+        var depthPropertiesDisabled = externalNotSelected.or(sendDepthMessage.selectedProperty().not());
 
         sendMidiTimecode.disableProperty().bind(externalNotSelected);
         sendPanMessage.disableProperty().bind(externalNotSelected);
@@ -100,6 +116,10 @@ public class MidiPanel extends VBox {
         verticalPanController.disableProperty().bind(verticalPanDisabled);
         verticalPanControllerLabel.disableProperty().bind(verticalPanDisabled);
         verticalPanWithRelativeLocations.disableProperty().bind(verticalPanDisabled);
+
+        depthController.disableProperty().bind(depthPropertiesDisabled);
+        depthControllerLabel.disableProperty().bind(depthPropertiesDisabled);
+        depthWithRelativeLocations.disableProperty().bind(depthPropertiesDisabled);
     }
 
     @Override

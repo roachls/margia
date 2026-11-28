@@ -29,6 +29,9 @@
             <RowConstraints />
             <RowConstraints />
             <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
         </rowConstraints>
 
         <!-- Row 0: Use External MIDI -->
@@ -80,6 +83,28 @@
                   GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.columnSpan="2">
             <tooltip>
                 <Tooltip text="If set, vertical panning will be relative to the location of the top-most and bottom-most components; otherwise it will be relative to the screen" />
+            </tooltip>
+        </CheckBox>
+        
+        <!-- Row 8: Send depth -->
+        <CheckBox fx:id="sendDepthMessage" text="Send depth CC"
+                  GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="2" />
+
+        <!-- Row 9: Pan controller -->
+        <Label fx:id="depthControllerLabel" text="Depth controller" labelFor="$depthController"
+               GridPane.columnIndex="0" GridPane.rowIndex="9" />
+        <Spinner fx:id="depthController" id="Depth controller" editable="true"
+                 GridPane.columnIndex="1" GridPane.rowIndex="9">
+            <valueFactory>
+                <SpinnerValueFactory.IntegerSpinnerValueFactory min="0" max="127" amountToStepBy="1" />
+            </valueFactory>
+        </Spinner>
+
+        <!-- Row 10: Depth with relative locations -->
+        <CheckBox fx:id="depthWithRelativeLocations" text="Depth with relative locations"
+                  GridPane.columnIndex="0" GridPane.rowIndex="10" GridPane.columnSpan="2">
+            <tooltip>
+                <Tooltip text="If set, depth CC will be relative to the location of the closest and farthest components; otherwise it will be relative to the screen" />
             </tooltip>
         </CheckBox>
     </GridPane>

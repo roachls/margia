@@ -5,6 +5,7 @@ import java.util.*;
 import javax.swing.event.ChangeListener;
 
 import org.roach.margia.storage.Options;
+import org.roach.margia.util.RangeCheck;
 import org.roach.margia.view.ChangeEmitter;
 import org.roach.margia.view.ChangeEmitter.ChangeSource;
 
@@ -39,6 +40,9 @@ public class MidiOptions {
     private boolean verticalPanWithRelativeLocations = true;
     private boolean usingExternalTiming;
     private String externalTimingDevice;
+    private boolean sendDepthMessage = false;
+    private boolean depthWithRelativeLocations = true;
+    private int depthController = 91;
     private final ChangeEmitter emitter = new ChangeEmitter();
 
     /**
@@ -227,6 +231,36 @@ public class MidiOptions {
     public void setExternalTimingDevice(String externalTimingDevice) {
         this.externalTimingDevice = externalTimingDevice;
     }
+    
+    public boolean isSendDepthMessage() { return sendDepthMessage; }
+
+    public void setSendDepthMessage(boolean sendDepthMessage) {
+        var oldVal = this.sendDepthMessage;
+        this.sendDepthMessage = sendDepthMessage;
+        if (oldVal != this.sendDepthMessage) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    public boolean isDepthWithRelativeLocations() { return depthWithRelativeLocations; }
+
+    public void setDepthWithRelativeLocations(boolean depthWithRelativeLocations) {
+        var oldVal = this.depthWithRelativeLocations;
+        this.depthWithRelativeLocations = depthWithRelativeLocations;
+        if (oldVal != this.depthWithRelativeLocations) {
+            Options.getInstance().setDirty();
+        }
+    }
+
+    public int getDepthController() { return depthController; }
+
+    public void setDepthController(int depthController) {
+        var oldVal = this.depthController;
+        this.depthController = RangeCheck.check("Depth MIDI controller", depthController, 0, 127);
+        if (oldVal != this.depthController) {
+            Options.getInstance().setDirty();
+        }
+    }
 
     /**
      * @param key      name of property being listened for
@@ -289,5 +323,8 @@ public class MidiOptions {
         this.verticalPanWithRelativeLocations = other.verticalPanWithRelativeLocations;
         this.usingExternalTiming = other.usingExternalTiming;
         this.externalTimingDevice = other.externalTimingDevice;
+        this.sendDepthMessage = other.sendDepthMessage;
+        this.depthController = other.depthController;
+        this.depthWithRelativeLocations = other.depthWithRelativeLocations;
     }
 }

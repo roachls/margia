@@ -19,7 +19,8 @@ public class Global {
     private static final AtomicReference<Double> maxComponentX = new AtomicReference<>(0d);
     private static final AtomicReference<Double> minComponentY = new AtomicReference<>(0d);
     private static final AtomicReference<Double> maxComponentY = new AtomicReference<>(0d);
-
+    private static double minComponentZ;
+    private static double maxComponentZ;
     /**
      * @return the minimum component x
      */
@@ -68,6 +69,10 @@ public class Global {
         maxComponentY.set(max);
     }
 
+    public static double getMinComponentZ() { return minComponentZ; }
+    public static void setMinComponentZ(double minComponentZ) { Global.minComponentZ = minComponentZ; }
+    public static double getMaxComponentZ() { return maxComponentZ; }
+    public static void setMaxComponentZ(double maxComponentZ) { Global.maxComponentZ = maxComponentZ; }
     /**
      * @return width of screen (actually {@link AgentPanel})
      */
@@ -79,6 +84,7 @@ public class Global {
     public static void setScreenWidth(int screenWidth) {
         Global.screenWidth.set(screenWidth);
     }
+
     /**
      * @return height of screen (actually {@link AgentPanel})
      */
